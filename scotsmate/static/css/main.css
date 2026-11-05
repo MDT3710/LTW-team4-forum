@@ -91,7 +91,8 @@ hr {
   display: flex;
   align-items: center;
   gap: 20px;
-  width: 1440px;
+  width: 100%;
+  max-width: 1440px;
   height: 76px;
   padding: 0 24px;
   background: var(--navy);
@@ -177,9 +178,10 @@ hr {
 .primary-nav {
   display: flex;
   gap: 2px;
-  width: 660px;
+  flex: 1;
+  max-width: 660px;
   height: 76px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .nav-tab {
@@ -349,7 +351,9 @@ hr {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  width: 1032px;
+  flex: 1;
+  min-width: 0;
+  max-width: 1032px;
 }
 
 /* -- Shared card -------------------------------------------- */
