@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- ======================= MAIN ======================= -->
+  <main class="main">
+
+    <!-- LEFT COLUMN -->
+    <aside class="left-col">
+
+      <!-- Sự kiện sắp tới -->
+      <section class="card events-card">
+        <h2 class="card-title">Sự kiện sắp tới</h2>
+        <hr class="divider" />
+        <div class="event">
+          <h3 class="event-name">Đổi mới phương pháp giảng dạy</h3>
+          <div class="event-meta">
+            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Thứ Sáu · 14:00 – 16:00</span>
+          </div>
+          <div class="event-meta">
+            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span>Scots English Cầu Giấy</span>
+          </div>
+          <span class="pill pill-registered">Đã đăng ký tham gia</span>
+        </div>
+        <hr class="divider" />
+        <div class="event">
+          <h3 class="event-name">Ngày hội thể thao Scots</h3>
+          <div class="event-meta">
+            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Thứ Bảy · 07:00 – 11:00</span>
+          </div>
+          <div class="event-meta">
+            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span>Công viên Yên Sở</span>
+          </div>
+          <button class="btn-outline btn-block">Chi tiết</button>
+        </div>
+        <a class="view-all" href="#">Xem tất cả sự kiện →</a>
+      </section>
+
+      <!-- Lịch của bạn -->
+      <section class="card calendar-card">
+        <h2 class="card-title">Lịch của bạn</h2>
+        <div class="day-row">
+          <span class="pill pill-day">10/10</span>
+          <div class="flex-line"></div>
+        </div>
+        <div class="cal-event">
+          <svg class="ce" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Workshop: Lắng nghe chủ động</span>
+        </div>
+        <div class="cal-event">
+          <svg class="ce" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Họp nhóm giáo viên</span>
+        </div>
+        <div class="day-row">
+          <span class="pill pill-day">12/10</span>
+          <div class="flex-line"></div>
+        </div>
+        <div class="cal-event">
+          <svg class="ce" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Họp hằng tuần</span>
+        </div>
+        <a class="view-all" href="#">Xem tất cả sự kiện →</a>
+      </section>
+    </aside>
+
+    <!-- FEED COLUMN -->
+    <div class="feed-col">
+
+      <!-- Tạo bài viết -->
+      <section class="card create-post">
+        <div class="composer">
+          <div class="avatar avatar-lg"><span>MA</span></div>
+          <div class="composer-body">
+            <span class="composer-label">Chia sẻ với đồng nghiệp</span>
+            <div class="composer-row">
+              <input class="text-input" type="text"
+                     value="Minh Anh ơi, hôm nay bạn có điều gì mới?"
+                     aria-label="Nội dung chia sẻ" />
+              <button class="btn-primary">Đăng bài</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feed -->
+      <section class="feed">
+        <h1 class="feed-title">Bảng tin</h1>
+
+        <!-- POST 1 -->
+        <article class="card post">
+          <div class="post-body">
+            <div class="author-row">
+              <div class="avatar"><span>TH</span></div>
+              <div class="author-info">
+                <span class="author-name">Nguyễn Thu Hà</span>
+                <span class="author-meta">
+                  <span>2 giờ trước · Cầu Giấy</span>
+                  <svg class="am" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </span>
+              </div>
+              <button class="more-btn" aria-label="Thêm tuỳ chọn">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="5" cy="12" r="2.4"></circle>
+                  <circle cx="12" cy="12" r="2.4"></circle>
+                  <circle cx="19" cy="12" r="2.4"></circle>
+                </svg>
+              </button>
+            </div>
+
+            <p class="post-content">
+              Một buổi chia sẻ thật nhiều năng lượng cùng đội ngũ giáo viên!<br />
+              Cùng thử những hoạt động mới để mỗi giờ học tiếng Anh đều là một trải nghiệm đáng nhớ cho học viên.
+            </p>
+
+            <div class="post-photos">
+              <div class="photo p1"><span>📸</span></div>
+              <div class="photo p1"><span>🔖</span></div>
+            </div>
+          </div>
+
+          <div class="post-actions">
+            <div class="stats-row">
+              <span class="stat-like">
+                <span class="reaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg></span>
+                <span>128 lượt thích</span>
+              </span>
+              <span class="stat-comment">24 bình luận</span>
+            </div>
+            <hr class="divider" />
+            <div class="action-row">
+              <button class="like-btn liked">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                <span>Đã thích</span>
+              </button>
+              <div class="comment-box">
+                <div class="avatar avatar-sm"><span>MA</span></div>
+                <input class="text-input" type="text" value="Viết bình luận…" aria-label="Bình luận" />
+              </div>
+            </div>
+
+            <!-- Bình luận nổi bật -->
+            <div class="featured-comment">
+              <hr class="divider" />
+              <div class="comment">
+                <div class="avatar avatar-sm"><span>DA</span></div>
+                <div class="comment-body">
+                  <div class="comment-bubble">
+                    <span class="comment-author">Đỗ Ngọc Anh</span>
+                    <span class="comment-text">Hoạt động rất hay! Mình sẽ thử áp dụng cho lớp tuần này.</span>
+                  </div>
+                  <span class="comment-actions">Thích · Trả lời · 25 phút</span>
+                </div>
+              </div>
+              <a class="view-more-comments" href="#">Xem thêm bình luận...</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- POST 2 -->
+        <article class="card post">
+          <div class="post-body">
+            <div class="author-row">
+              <div class="avatar av-lin"><span>PL</span></div>
+              <div class="author-info">
+                <span class="author-name">
+                  <span>Lê Phương Linh</span>
+                  <span class="author-topic-arrow">▶</span>
+                  <span class="author-topic">Gắn kết mỗi ngày</span>
+                </span>
+                <span class="author-meta">
+                  <span>5 giờ trước · Hội sở</span>
+                  <svg class="am" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </span>
+              </div>
+              <button class="more-btn" aria-label="Thêm tuỳ chọn">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="5" cy="12" r="2.4"></circle>
+                  <circle cx="12" cy="12" r="2.4"></circle>
+                  <circle cx="19" cy="12" r="2.4"></circle>
+                </svg>
+              </button>
+            </div>
+
+            <p class="post-content">
+              Không chỉ là đồng nghiệp, chúng mình còn là một đội!<br />
+              Một vài khoảnh khắc từ ngày gắn kết Scots. Cảm ơn mọi người đã cùng tạo nên những kỷ niệm thật đẹp.
+            </p>
+
+            <div class="post-photos">
+              <div class="photo p2"><span>🍀</span></div>
+            </div>
+          </div>
+
+          <div class="post-actions">
+            <div class="stats-row">
+              <span class="stat-like">
+                <span class="reaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg></span>
+                <span>86 lượt thích</span>
+              </span>
+              <span class="stat-comment">12 bình luận</span>
+            </div>
+            <hr class="divider" />
+            <div class="action-row">
+              <button class="like-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                </svg>
+                <span>Thích</span>
+              </button>
+              <div class="comment-box">
+                <div class="avatar avatar-sm"><span>MA</span></div>
+                <input class="text-input" type="text" value="Viết bình luận…" aria-label="Bình luận" />
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <button class="btn-more-posts">Xem thêm bài viết</button>
+      </section>
+    </div>
+  </main>
+{% endblock %}
