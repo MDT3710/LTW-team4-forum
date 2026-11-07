@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Danh sách câu trả lời tự luận (Bộ lọc) - ScotsMate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../style.css">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body style="margin: 0; background: var(--bg);">
+
+  <!-- Lớp phủ Modal Backdrop -->
+  <div class="doc-modal-backdrop" id="essayModalBackdrop2">
+    
+    <!-- Cửa sổ Modal 1000px (Figma 324:552) -->
+    <div class="doc-modal survey-modal-large" role="dialog" aria-modal="true">
+      
+      <!-- Tiêu đề cửa sổ -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 16px; border-bottom: 1px solid var(--line);">
+        <div>
+          <h2 class="doc-modal-title">Danh sách câu trả lời tự luận (Theo phân loại)</h2>
+          <div style="font-size: 13px; color: var(--ink-soft); margin-top: 4px;">
+            Khảo sát: Đánh giá chất lượng cơ sở vật chất và tiện ích Quý 3/2026
+          </div>
+        </div>
+        <a href="responses_overview.html?id=301" class="doc-btn doc-btn-secondary" style="width: 36px; height: 36px; padding: 0; border-radius: 50%;">✕</a>
+      </div>
+
+      <!-- Khung thông tin câu hỏi kèm bộ lọc -->
+      <div style="background: var(--blue-soft); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px;">
+            Câu hỏi: Nhận xét chi tiết về các tiện ích phục vụ giờ giải lao
+          </div>
+          <div style="font-size: 12px; color: var(--ink-soft);">
+            Tổng số: 24 phản hồi • 100% tỷ lệ trả lời
+          </div>
+        </div>
+        <div>
+          <select class="doc-form-select" style="width: 180px; padding: 8px 12px; font-size: 13px;">
+            <option value="all">Tất cả phòng ban</option>
+            <option value="training">Khối Đào tạo</option>
+            <option value="hr">Khối Hành chính</option>
+            <option value="it">Khối Công nghệ</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Danh sách phản hồi -->
+      <div style="display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; padding-right: 6px;">
+        
+        <article class="survey-essay-card">
+          <div class="survey-essay-meta">
+            <div>
+              <strong style="color: var(--ink);">Phạm Hải Nam</strong> • Nhân sự & Hành chính
+            </div>
+            <span>#RESP-032 • 15:10 03/11/2026</span>
+          </div>
+          <p class="survey-essay-body">
+            "Khu vực Pantry tại tầng 3 rất sạch sẽ và tiện nghi. Máy pha cà phê tự động hoạt động rất tốt, giúp nhân viên giải tỏa căng thẳng sau các giờ dạy liên tục."
+          </p>
+        </article>
+
+        <article class="survey-essay-card">
+          <div class="survey-essay-meta">
+            <div>
+              <strong style="color: var(--ink);">Hoàng Thúy Vy</strong> • Marketing & Truyền thông
+            </div>
+            <span>#RESP-028 • 11:25 02/11/2026</span>
+          </div>
+          <p class="survey-essay-body">
+            "Không gian sinh hoạt chung nên bổ sung thêm cây xanh và rèm che nắng hướng tây vào các buổi chiều."
+          </p>
+        </article>
+
+        <article class="survey-essay-card">
+          <div class="survey-essay-meta">
+            <div>
+              <strong style="color: var(--ink);">Đặng Tuấn Kiệt</strong> • Chăm sóc học viên
+            </div>
+            <span>#RESP-019 • 09:40 01/11/2026</span>
+          </div>
+          <p class="survey-essay-body">
+            "Tủ đồ cá nhân của nhân sự tư vấn ca tối cần được thay khóa từ mới để đảm bảo tính an toàn tài sản cá nhân."
+          </p>
+        </article>
+
+      </div>
+
+      <!-- Nút đóng chân trang -->
+      <div style="display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--line);">
+        <a href="responses_overview.html?id=301" class="doc-btn doc-btn-primary" style="min-width: 100px;">Đóng</a>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    document.getElementById('essayModalBackdrop2').addEventListener('click', function(e) {
+      if (e.target === this) {
+        window.location.href = 'surveys_admin_responses_overview.html?id=301';
+      }
+    });
+  </script>
+
+</body>
+</html>
