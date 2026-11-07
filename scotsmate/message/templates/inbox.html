@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <!-- Bỏ staff-workspace, dùng flex-row để 3 cột nằm ngang song song -->
+  <div class="messages-workspace flex flex-row gap-6 px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto bg-[#f8fafc]">
+    
+    <!-- CỘT 1: Sidebar danh sách cuộc trò chuyện (248px) -->
+    <aside class="conversation-list w-[248px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-4 shrink-0 shadow-sm self-start min-h-[680px]">
+      <div class="convo-header flex items-center justify-between w-full">
+        <h2 class="convo-title text-lg font-bold text-slate-900 m-0">Hộp thư</h2>
+        <a href="{% url 'group_create' %}" class="convo-add-btn inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm no-underline">
+          + Thêm mới
+        </a>
+      </div>
+
+      <!-- Tìm kiếm -->
+      <div class="convo-search flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+        <svg class="text-slate-400 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" placeholder="Tìm cuộc trò chuyện..." class="bg-transparent border-none outline-none text-xs w-full text-slate-700">
+      </div>
+
+      <!-- Danh sách hội thoại -->
+      <nav class="convo-items flex flex-col gap-1.5 flex-1">
+        
+        <!-- Hội thoại 1: Tư vấn Cầu Giấy -->
+        <a href="{% url 'group_detail' 1 %}" class="convo-item p-2.5 rounded-xl flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent no-underline">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-[#edf4fb] text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0">
+              TV
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Tư vấn Cầu Giấy</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Nhóm • 8 thành viên</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-[#134c81] font-semibold self-end">09:45 • 2 tin mới</span>
+        </a>
+
+        <!-- Hội thoại 2: Trần Minh Đức (Đang chọn - Active) -->
+        <a href="{% url 'inbox_detail' 1 %}" class="convo-item p-2.5 rounded-xl flex flex-col gap-1.5 bg-[#edf4fb] border border-blue-200/50 no-underline">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-white text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+              MD
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Trần Minh Đức</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Gửi bạn tài liệu bài học nhé.</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">09:32</span>
+        </a>
+
+        <!-- Hội thoại 3: Lê Thu Hà -->
+        <a href="{% url 'inbox_detail' 2 %}" class="convo-item p-2.5 rounded-xl flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent no-underline">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0">
+              TH
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Lê Thu Hà</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Lịch đào tạo đã cập nhật.</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">08:50</span>
+        </a>
+
+        <!-- Hội thoại 4: Nguyễn Hoài An -->
+        <a href="#" class="convo-item p-2.5 rounded-xl flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent no-underline">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center shrink-0">
+              HA
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Nguyễn Hoài An</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Cảm ơn cả nhóm!</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">Hôm qua</span>
+        </a>
+
+        <!-- Hội thoại 5: Đào tạo tháng 10 -->
+        <a href="{% url 'group_detail' 2 %}" class="convo-item p-2.5 rounded-xl flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent no-underline">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center shrink-0">
+              ĐT
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Đào tạo tháng 10</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Nhóm • 24 thành viên</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">Hôm qua</span>
+        </a>
+
+      </nav>
+
+      <a href="{% url 'group_create' %}" class="w-full inline-flex items-center justify-center h-9 rounded-xl border border-slate-200 bg-white text-[#134c81] text-xs font-semibold hover:bg-slate-50 transition no-underline mt-2">
+        + Tạo cuộc trò chuyện
+      </a>
+    </aside>
+    
+
+    <!-- CỘT 2: Cửa sổ chat 1-1 với Trần Minh Đức (ở giữa) chuẩn Figma -->
+    <main class="workspace-card flex-1 min-w-0 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm min-h-[680px]">
+      
+      <div>
+        <!-- Chat Header -->
+        <header class="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-100 text-[#134c81] font-bold text-sm flex items-center justify-center shrink-0">
+              MD
+            </div>
+            <div>
+              <h1 class="text-base font-bold text-slate-900 m-0 leading-none">Trần Minh Đức</h1>
+              <p class="text-xs text-slate-400 m-0 mt-1">Trainer</p>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-[#edf4fb] text-[#134c81]">
+              Trực tiếp
+            </span>
+          </div>
+        </header>
+
+        <!-- Mốc thời gian -->
+        <div class="text-center my-4">
+          <span class="text-[11px] text-slate-400">Hôm nay, 06/10/2026</span>
+        </div>
+
+        <!-- Dòng tin nhắn chuẩn Figma -->
+        <div class="flex flex-col gap-4 overflow-y-auto max-h-[460px] pr-2">
+          
+          <!-- Tin nhắn nhận 1 (Trần Minh Đức) -->
+          <div class="message received flex flex-col gap-1 items-start max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Trần Minh Đức • 09:20</span>
+            <div class="p-3.5 rounded-2xl rounded-tl-sm bg-[#edf4fb] text-slate-800 text-sm leading-relaxed">
+              Chào Minh Anh, bạn đã xem phần xử lý phản hồi trong Bài 4 chưa?
+            </div>
+          </div>
+
+          <!-- Tin nhắn gửi 2 (Bạn - Màu xanh Navy chuẩn Figma) -->
+          <div class="message sent flex flex-col gap-1 items-end self-end max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Bạn • 09:24</span>
+            <div class="p-3.5 rounded-2xl rounded-tr-sm bg-[#134c81] text-white text-sm leading-relaxed">
+              Em đang học phần này. Anh có thể gửi thêm tình huống để em thực hành không ạ?
+            </div>
+            <span class="text-[10px] text-slate-400">Đã xem</span>
+          </div>
+
+          <!-- Tin nhắn nhận 3 (Trần Minh Đức kèm file PDF) -->
+          <div class="message received flex flex-col gap-1 items-start max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Trần Minh Đức • 09:32</span>
+            <div class="p-3.5 rounded-2xl rounded-tl-sm bg-[#edf4fb] text-slate-800 text-sm leading-relaxed flex flex-col gap-2.5">
+              <span>Anh gửi tài liệu thực hành bổ sung nhé. Em xem tình huống số 2 và ghi lại cách phản hồi của mình.</span>
+              
+              <!-- File đính kèm Tinh-huong-CSHV.pdf -->
+              <div class="flex items-center gap-2.5 p-2 bg-white/70 rounded-xl border border-slate-200/60 text-xs text-slate-700">
+                <div class="text-slate-500 flex items-center justify-center shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+                <div class="flex items-center gap-1.5 font-medium">
+                  <span>Tinh-huong-CSHV.pdf</span>
+                  <span class="text-slate-400">•</span>
+                  <span class="text-slate-400 text-[11px]">1.2 MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tin nhắn gửi 4 (Bạn) -->
+          <div class="message sent flex flex-col gap-1 items-end self-end max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Bạn • 09:34</span>
+            <div class="p-3.5 rounded-2xl rounded-tr-sm bg-[#134c81] text-white text-sm leading-relaxed">
+              Em cảm ơn anh. Em sẽ làm và gửi lại trước buổi workshop.
+            </div>
+            <span class="text-[10px] text-slate-400">Đã xem</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Composer soạn thảo -->
+      <footer class="mt-4 pt-3 border-t border-slate-200 flex flex-col gap-2">
+        <textarea rows="2" placeholder="Nhập tin nhắn..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] resize-none"></textarea>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 text-slate-400">
+            <button type="button" class="hover:text-[#134c81] transition" title="Đính kèm tệp">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <button type="button" class="hover:text-[#134c81] transition" title="Gửi hình ảnh">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </button>
+            <button type="button" class="hover:text-[#134c81] transition" title="Emoji">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/></svg>
+            </button>
+          </div>
+
+          <button type="button" class="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+            Gửi tin nhắn
+          </button>
+        </div>
+      </footer>
+
+    </main>
+
+
+    <!-- CỘT 3: Thông tin người trò chuyện bên phải (260px) chuẩn Figma -->
+    <aside class="chat-sidebar w-[260px] bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-5 shrink-0 shadow-sm self-start min-h-[680px]">
+      
+      <!-- Avatar & Tên -->
+      <div class="flex flex-col items-center text-center pt-2">
+        <div class="w-16 h-16 rounded-full bg-blue-100 text-[#134c81] font-bold text-xl flex items-center justify-center shrink-0 mb-3 shadow-xs">
+          MD
+        </div>
+        <h3 class="text-sm font-bold text-slate-900 m-0">Trần Minh Đức</h3>
+      </div>
+
+      <!-- 2 nút tròn: Tắt thông báo & Tìm kiếm -->
+      <div class="flex items-center justify-center gap-8 py-1">
+        <button type="button" class="flex flex-col items-center gap-1.5 text-slate-600 hover:text-[#134c81] transition group">
+          <div class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-[#134c81] group-hover:bg-slate-50 transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </div>
+          <span class="text-[11px] text-slate-500">Tắt thông báo</span>
+        </button>
+
+        <button type="button" class="flex flex-col items-center gap-1.5 text-slate-600 hover:text-[#134c81] transition group">
+          <div class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-[#134c81] group-hover:bg-slate-50 transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+          <span class="text-[11px] text-slate-500">Tìm kiếm</span>
+        </button>
+      </div>
+
+      <!-- File phương tiện và file -->
+      <div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
+        <h4 class="text-xs font-bold text-slate-900 m-0 pt-2">File phương tiện và file</h4>
+        <div class="flex flex-col text-xs">
+          <a href="#" class="flex items-center justify-between py-2 text-slate-600 hover:text-[#134c81] transition no-underline">
+            <div class="flex items-center gap-2.5">
+              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>File phương tiện</span>
+            </div>
+            <svg class="text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+
+          <a href="#" class="flex items-center justify-between py-2 text-slate-600 hover:text-[#134c81] transition no-underline">
+            <div class="flex items-center gap-2.5">
+              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>File</span>
+            </div>
+            <svg class="text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+{% endblock %}
