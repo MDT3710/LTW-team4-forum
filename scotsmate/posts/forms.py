@@ -1,0 +1,79 @@
+from django import forms
+from .models import Post, PostAttachment, PostComment
+
+
+class PostForm(forms.ModelForm):
+    """
+    Form tạo và chỉnh sửa bài đăng (bảng `post` trong ERD).
+    """
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'id': 'post-title-input',
+                'class': 'topic-title-input',
+                'placeholder': 'Nhập hoặc chọn chủ đề...',
+            }),
+            'content': forms.Textarea(attrs={
+                'id': 'composer-text',
+                'class': 'composer-textarea',
+                'placeholder': 'Bạn muốn chia sẻ điều gì với đồng nghiệp Scots English hôm nay?...',
+                'rows': 4,
+                'required': True,
+            }),
+        }
+        labels = {
+            'title': 'Chủ đề / Tiêu đề',
+            'content': 'Nội dung bài viết',
+        }
+
+    def clean_content(self):
+        content = self.cleaned_data.get('content', '').strip()
+        if not content:
+            raise forms.ValidationError("Nội dung bài viết không được để trống.")
+        return content
+
+
+class PostCommentForm(forms.ModelForm):
+    """
+    Form bình luận dưới bài viết (bảng `post_comment` trong ERD).
+    """
+    class Meta:
+        model = PostComment
+        fields = ['content']
+        widgets = {
+            'content': forms.TextInput(attrs={
+                'class': 'text-input comment-text-field',
+                'placeholder': 'Viết bình luận… (Enter để gửi)',
+                'required': True,
+            })
+        }
+        labels = {
+            'content': 'Nội dung bình luận',
+        }
+
+    def clean_content(self):
+        content = self.cleaned_data.get('content', '').strip()
+        if not content:
+            raise forms.ValidationError("Nội dung bình luận không được để trống.")
+        return content
+
+
+class PostAttachmentForm(forms.ModelForm):
+    """
+    Form đính kèm tệp tin / hình ảnh vào bài viết (bảng `post_attachment` trong ERD).
+    """
+    class Meta:
+        model = PostAttachment
+        fields = ['file', 'file_name']
+        widgets = {
+            'file': forms.FileInput(attrs={
+                'class': 'file-input',
+                'accept': 'image/*,.pdf,.doc,.docx',
+            }),
+            'file_name': forms.TextInput(attrs={
+                'class': 'file-name-input',
+                'placeholder': 'Tên tệp đính kèm',
+            }),
+        }

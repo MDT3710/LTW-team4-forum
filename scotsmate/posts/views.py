@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.utils import timezone
 from .models import Post, PostAttachment, PostReaction, PostComment
+from .forms import PostForm, PostCommentForm, PostAttachmentForm
 
 
 def login_view(request):
@@ -41,7 +42,7 @@ def logout_view(request):
 
 def post_create_view(request):
     """
-    Xử lý hiển thị form và tiếp nhận đăng bài viết mới:
+    Xử lý hiển thị form và tiếp nhận đăng bài viết mới thông qua PostForm (Django ModelForm):
     Lưu dữ liệu vào bảng `post` và tệp tải lên vào bảng `post_attachment`.
     """
     if not request.user.is_authenticated:
@@ -54,45 +55,45 @@ def post_create_view(request):
     )
 
     if request.method == 'POST':
-        content = request.POST.get('content', '').strip()
-        title = request.POST.get('title', '').strip()
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = current_user
 
-        if not content:
-            messages.error(request, 'Nội dung bài viết không được để trống.')
-            return render(request, 'post_create.html', {'current_user': current_user})
+            # Nếu không nhập tiêu đề, tự động lấy dòng đầu tiên làm tiêu đề
+            if not post.title:
+                first_line = post.content.split('\n')[0].strip()
+                post.title = first_line[:100] if first_line else "Bài viết mới"
 
-        # Nếu không nhập tiêu đề, tự động lấy dòng đầu tiên hoặc 60 ký tự đầu làm tiêu đề
-        if not title:
-            first_line = content.split('\n')[0].strip()
-            title = first_line[:100] if first_line else "Bài viết mới"
+            post.save()
 
-        # 1. Tạo bài viết trong bảng `post`
-        post = Post.objects.create(
-            author=current_user,
-            title=title,
-            content=content
-        )
+            # Xử lý lưu các tệp đính kèm vào bảng `post_attachment`
+            uploaded_files = []
+            if 'attachment' in request.FILES:
+                uploaded_files.extend(request.FILES.getlist('attachment'))
+            if 'image' in request.FILES:
+                uploaded_files.extend(request.FILES.getlist('image'))
+            if 'doc' in request.FILES:
+                uploaded_files.extend(request.FILES.getlist('doc'))
 
-        # 2. Xử lý lưu các tệp đính kèm vào bảng `post_attachment`
-        uploaded_files = []
-        if 'attachment' in request.FILES:
-            uploaded_files.extend(request.FILES.getlist('attachment'))
-        if 'image' in request.FILES:
-            uploaded_files.extend(request.FILES.getlist('image'))
-        if 'doc' in request.FILES:
-            uploaded_files.extend(request.FILES.getlist('doc'))
+            for f in uploaded_files:
+                PostAttachment.objects.create(
+                    post=post,
+                    file=f,
+                    file_name=f.name
+                )
 
-        for f in uploaded_files:
-            PostAttachment.objects.create(
-                post=post,
-                file=f,
-                file_name=f.name
-            )
+            messages.success(request, 'Chúc mừng! Bài viết của bạn đã được đăng thành công.')
+            return redirect('home')
+        else:
+            messages.error(request, 'Nội dung bài viết không được để trống hoặc không hợp lệ.')
+    else:
+        form = PostForm()
 
-        messages.success(request, 'Chúc mừng! Bài viết của bạn đã được đăng thành công.')
-        return redirect('home')
-
-    return render(request, 'post_create.html', {'current_user': current_user})
+    return render(request, 'post_create.html', {
+        'form': form,
+        'current_user': current_user
+    })
 
 
 def profile_view(request, username=None):
@@ -194,24 +195,24 @@ def post_likes_api(request, post_id):
 
 
 def add_comment_api(request, post_id):
-    """API AJAX thêm bình luận mới (bảng `post_comment`)"""
+    """API AJAX thêm bình luận mới sử dụng PostCommentForm (Django ModelForm)"""
     if request.method == 'POST':
         post = get_object_or_404(Post, id=post_id)
-        content = request.POST.get('content', '').strip()
+        form = PostCommentForm(request.POST)
 
-        if not content:
-            return JsonResponse({'success': False, 'error': 'Nội dung rỗng'}, status=400)
+        if not form.is_valid():
+            error_msg = list(form.errors.values())[0][0] if form.errors else 'Nội dung rỗng'
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
 
         user = request.user if request.user.is_authenticated else (
             User.objects.filter(username='minhanh').first() or User.objects.first()
         )
 
-        comment = PostComment.objects.create(
-            post=post,
-            emp=user,
-            content=content,
-            time_reacted="Vừa xong"
-        )
+        comment = form.save(commit=False)
+        comment.post = post
+        comment.emp = user
+        comment.time_reacted = "Vừa xong"
+        comment.save()
 
         author_name = user.get_full_name() or user.username
         if user.username == 'thuha':
@@ -271,7 +272,7 @@ def delete_comment_api(request, comment_id):
 
 def edit_post_api(request, post_id):
     """
-    API AJAX chỉnh sửa bài viết (bảng `post`):
+    API AJAX chỉnh sửa bài viết sử dụng PostForm (Django ModelForm):
     Hỗ trợ lấy dữ liệu cũ (GET) và lưu cập nhật nội dung (POST).
     Chỉ tác giả hoặc admin mới có quyền sửa.
     """
@@ -297,24 +298,19 @@ def edit_post_api(request, post_id):
         })
 
     if request.method == 'POST':
-        content = request.POST.get('content', '').strip()
-        title = request.POST.get('title', '').strip()
-
-        if not content:
-            return JsonResponse({'success': False, 'error': 'Nội dung bài viết không được để trống.'}, status=400)
-
-        post.content = content
-        if title:
-            post.title = title
-        post.save()  # Tự động cập nhật `updated_at` trong bảng `post`
-
-        return JsonResponse({
-            'success': True,
-            'message': 'Cập nhật bài viết thành công.',
-            'title': post.title,
-            'content': post.content,
-            'updated_at': post.updated_at.strftime('%H:%M %d/%m/%Y')
-        })
+        form = PostForm(request.POST, instance=post)
+        if form.is_valid():
+            post = form.save()
+            return JsonResponse({
+                'success': True,
+                'message': 'Cập nhật bài viết thành công.',
+                'title': post.title,
+                'content': post.content,
+                'updated_at': post.updated_at.strftime('%H:%M %d/%m/%Y')
+            })
+        else:
+            error_msg = list(form.errors.values())[0][0] if form.errors else 'Dữ liệu không hợp lệ.'
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
 
     return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
 
