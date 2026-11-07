@@ -1,0 +1,815 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tạo bài đăng · ScotsMate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  <style>
+    /* Reset & Page-specific styles for Post Creation */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #19334b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Page container */
+    .create-page-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* ================= 1. PAGE HEADER ================= */
+    .create-header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-btn-pill {
+      background: #edf4fb;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #134c81;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .back-btn-pill:hover {
+      background: #e0edf9;
+      color: #0d365d;
+      transform: translateX(-2px);
+    }
+
+    .back-btn-pill svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .header-subtitle {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 400;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-action-secondary {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      height: 44px;
+      padding: 0 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #134c81;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action-secondary:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .btn-action-primary {
+      background: #134c81;
+      border: 1px solid #134c81;
+      border-radius: 8px;
+      height: 44px;
+      padding: 0 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action-primary:hover {
+      background: #0f3d68;
+      border-color: #0f3d68;
+      box-shadow: 0 4px 12px rgba(19, 76, 129, 0.2);
+    }
+
+    /* ================= 2. PAGE BODY ================= */
+    .create-body {
+      flex: 1;
+      width: 100%;
+      max-width: 1376px;
+      margin: 0 auto;
+      padding: 32px 32px 48px;
+    }
+
+    .main-column {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%;
+    }
+
+    /* Title block */
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .title-eyebrow {
+      font-size: 14px;
+      font-weight: 600;
+      color: #134c81;
+    }
+
+    .title-h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #19334b;
+      line-height: 1.25;
+      margin: 0;
+    }
+
+    .title-desc {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* Card base */
+    .create-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Author / Profile Row */
+    .profile-card {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .profile-avatar-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid #edf2f7;
+    }
+
+    .profile-avatar-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .profile-details {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .profile-author-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #19334b;
+      line-height: 1.25;
+    }
+
+    .privacy-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .privacy-pill {
+      background: #edf4fb;
+      border: 1px solid #134c81;
+      border-radius: 100px;
+      padding: 6px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #134c81;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .privacy-pill:hover {
+      background: #e2edf8;
+    }
+
+    .privacy-pill svg {
+      width: 14px;
+      height: 14px;
+      stroke: #134c81;
+    }
+
+    .topic-pill {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 400;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .topic-pill:hover {
+      border-color: #cbd5e1;
+      color: #19334b;
+      background: #f8fafc;
+    }
+
+    /* Composer */
+    .composer-card {
+      padding: 24px;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .composer-textarea {
+      width: 100%;
+      height: 272px;
+      min-height: 240px;
+      border: none;
+      outline: none;
+      resize: vertical;
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #19334b;
+      background: transparent;
+    }
+
+    .composer-textarea::placeholder {
+      color: #64748b;
+      font-size: 16px;
+    }
+
+    /* Features Selector */
+    .features-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .features-heading {
+      font-size: 16px;
+      font-weight: 700;
+      color: #19334b;
+      margin: 0;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+    }
+
+    @media (max-width: 680px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feature-action-btn {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .feature-action-btn:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transform: translateY(-1px);
+    }
+
+    .feature-action-btn.btn-image:hover {
+      border-color: #1bc1a0;
+      background: #fbfefd;
+    }
+
+    .feature-action-btn.btn-doc:hover {
+      border-color: #134c81;
+      background: #f8fbfe;
+    }
+
+    .icon-surface {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .icon-surface.surface-mint {
+      background: #effbf8;
+    }
+
+    .icon-surface.surface-blue {
+      background: #eaf2f9;
+    }
+
+    .feature-text-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #19334b;
+    }
+
+    .feature-subtitle {
+      font-size: 12px;
+      font-weight: 400;
+      color: #64748b;
+    }
+
+    /* Attached File Preview Card */
+    .attached-file-card {
+      background: #f8fafb;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .attached-file-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .pdf-badge {
+      width: 48px;
+      height: 52px;
+      background: #fff0f0;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .pdf-badge svg {
+      width: 18px;
+      height: 18px;
+      stroke: #e25555;
+    }
+
+    .pdf-badge-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: #e25555;
+      letter-spacing: 0.5px;
+      line-height: 1;
+    }
+
+    .file-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #19334b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .file-size {
+      color: #64748b;
+    }
+
+    .file-dot {
+      width: 3px;
+      height: 3px;
+      background: #94a3b8;
+      border-radius: 50%;
+    }
+
+    .file-status {
+      color: #087c66;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .file-status svg {
+      width: 14px;
+      height: 14px;
+      stroke: #087c66;
+    }
+
+    .btn-remove-file {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #f0f2f5;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-file:hover {
+      background: #e2e8f0;
+      color: #19334b;
+      transform: scale(1.05);
+    }
+
+    .btn-remove-file svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ================= 3. PAGE FOOTER ================= */
+    .create-footer {
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      padding: 24px 32px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+
+    .footer-prompt-text {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-publish {
+      background: #134c81;
+      border: 1px solid #134c81;
+      border-radius: 8px;
+      height: 44px;
+      padding: 0 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-publish:hover {
+      background: #0f3d68;
+      border-color: #0f3d68;
+      box-shadow: 0 4px 12px rgba(19, 76, 129, 0.2);
+    }
+  </style>
+</head>
+
+<body>
+<div class="create-page-wrapper">
+
+  <!-- ======================= 1. PAGE HEADER ======================= -->
+  <header class="create-header">
+    <div class="header-left">
+      <a class="back-btn-pill" href="{% url 'home' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Quay lại trang chủ</span>
+      </a>
+      <span class="header-subtitle">Tạo bài đăng mới</span>
+    </div>
+
+    <div class="header-right">
+      <a class="btn-action-secondary" href="{% url 'home' %}">Hủy</a>
+      <button class="btn-action-primary" id="btn-save-draft" onclick="saveDraft()">Lưu nháp</button>
+    </div>
+  </header>
+
+  <!-- ======================= 2. PAGE BODY ======================= -->
+  <main class="create-body">
+    <form id="post-create-form" method="POST" action="{% url 'post_create' %}" enctype="multipart/form-data" onsubmit="return handlePublish(event)">
+      {% csrf_token %}
+      <div class="main-column">
+
+        <!-- Title Block -->
+        <div class="title-block">
+          <span class="title-eyebrow">Tạo bài đăng</span>
+          <h1 class="title-h1">Chia sẻ thông tin với đồng nghiệp</h1>
+          <p class="title-desc">Tạo một bài đăng mới để cập nhật thông tin, chia sẻ tài liệu hoặc gắn thẻ đồng nghiệp.</p>
+        </div>
+
+        <!-- Profile / Author Row Card -->
+        <input type="hidden" name="title" id="post-title-input" value="" />
+        <section class="create-card profile-card">
+          <div class="profile-avatar-wrap" style="width: 48px; height: 48px; border-radius: 50%; overflow: hidden;">
+            <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+          </div>
+          <div class="profile-details">
+            <span class="profile-author-name">{{ current_user.get_full_name|default:current_user.username|default:'Nguyễn Minh Anh' }}</span>
+            <div class="privacy-controls">
+              <!-- Privacy Pill with interactive dropdown toggle -->
+              <div class="privacy-pill" id="privacy-toggle" onclick="cyclePrivacy()" title="Nhấn để đổi phạm vi hiển thị">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                <span id="privacy-label">Toàn công ty</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+
+              <!-- Topic Selector -->
+              <button type="button" class="topic-pill" id="btn-topic" onclick="selectTopic()">+ Chọn chủ đề</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Post Composer Card -->
+        <section class="create-card composer-card">
+          <textarea
+            class="composer-textarea"
+            id="composer-text"
+            name="content"
+            placeholder="Bạn muốn chia sẻ điều gì với đồng nghiệp Scots English hôm nay?..."
+            aria-label="Nội dung bài viết"
+            required></textarea>
+        </section>
+
+        <!-- Feature Selector Card -->
+        <section class="create-card features-card">
+          <h2 class="features-heading">Thêm vào bài viết của bạn</h2>
+          <div class="features-grid">
+
+            <!-- Thêm ảnh -->
+            <button type="button" class="feature-action-btn btn-image" onclick="document.getElementById('file-input-image').click()">
+              <input type="file" id="file-input-image" name="image" accept="image/*" style="display: none;" onchange="handleImageSelected(this)" />
+              <div class="icon-surface surface-mint">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#087c66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="#087c66"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div class="feature-text-block">
+                <span class="feature-title">Ảnh</span>
+              </div>
+            </button>
+
+            <!-- Đính kèm tài liệu -->
+            <button type="button" class="feature-action-btn btn-doc" onclick="document.getElementById('file-input-doc').click()">
+              <input type="file" id="file-input-doc" name="doc" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;" onchange="handleDocSelected(this)" />
+              <div class="icon-surface surface-blue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+              <div class="feature-text-block">
+                <span class="feature-title">Đính kèm tài liệu</span>
+                <span class="feature-subtitle">PDF / Word / Excel</span>
+              </div>
+            </button>
+
+          </div>
+        </section>
+
+        <!-- Attached File Preview Card -->
+        <section class="attached-file-card" id="attached-file-preview">
+          <div class="pdf-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span class="pdf-badge-label" id="file-badge-text">PDF</span>
+          </div>
+
+          <div class="file-info">
+            <span class="file-name" id="file-display-name">Quy_trinh_Dao_tao_Q4_2026.pdf</span>
+            <div class="file-meta-row">
+              <span class="file-size" id="file-display-size">2.4 MB</span>
+              <span class="file-dot"></span>
+              <span class="file-status">
+                <span>Đã tải lên</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <button type="button" class="btn-remove-file" aria-label="Xóa tệp đính kèm" onclick="removeAttachedFile()" title="Xóa tệp đính kèm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </section>
+
+      </div>
+    </form>
+  </main>
+
+  <!-- ======================= 3. PAGE FOOTER ======================= -->
+  <footer class="create-footer">
+    <span class="footer-prompt-text">Đã sẵn sàng để đăng bài?</span>
+    <div class="footer-actions">
+      <a class="btn-action-secondary" href="{% url 'home' %}">Hủy</a>
+      <button type="submit" form="post-create-form" class="btn-publish">Đăng bài</button>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Interactive Client-side Scripting -->
+<script>
+  // Chuyển đổi quyền riêng tư: Toàn công ty -> Phòng ban -> Nội bộ -> Toàn công ty
+  const privacyLevels = ['Toàn công ty', 'Phòng ban', 'Chỉ mình tôi'];
+  let privacyIndex = 0;
+  function cyclePrivacy() {
+    privacyIndex = (privacyIndex + 1) % privacyLevels.length;
+    document.getElementById('privacy-label').textContent = privacyLevels[privacyIndex];
+  }
+
+  // Chọn chủ đề
+  function selectTopic() {
+    const topics = ['Văn hóa doanh nghiệp', 'Thông báo chung', 'Đào tạo & Kỹ năng', 'Sự kiện & Hoạt động', 'Công nghệ'];
+    const promptMsg = 'Chọn số (1-5) hoặc nhập chủ đề bài viết:\n\n' + topics.map((t, i) => `${i + 1}. ${t}`).join('\n');
+    const chosen = prompt(promptMsg);
+    if (chosen) {
+      let topicText = chosen.trim();
+      const num = parseInt(topicText);
+      if (!isNaN(num) && num >= 1 && num <= topics.length) {
+        topicText = topics[num - 1];
+      }
+      document.getElementById('post-title-input').value = topicText;
+      const topicBtn = document.getElementById('btn-topic');
+      topicBtn.textContent = '#' + topicText;
+      topicBtn.style.color = '#134c81';
+      topicBtn.style.borderColor = '#134c81';
+      topicBtn.style.fontWeight = '600';
+      topicBtn.style.background = '#edf4fb';
+    }
+  }
+
+  // Xóa file đính kèm
+  function removeAttachedFile() {
+    const preview = document.getElementById('attached-file-preview');
+    preview.style.display = 'none';
+  }
+
+  // Chọn ảnh từ máy tính
+  function handleImageSelected(input) {
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const preview = document.getElementById('attached-file-preview');
+      preview.style.display = 'flex';
+      document.getElementById('file-display-name').textContent = file.name;
+      document.getElementById('file-display-size').textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      document.getElementById('file-badge-text').textContent = file.name.split('.').pop().toUpperCase();
+    }
+  }
+
+  // Chọn tài liệu từ máy tính
+  function handleDocSelected(input) {
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const preview = document.getElementById('attached-file-preview');
+      preview.style.display = 'flex';
+      document.getElementById('file-display-name').textContent = file.name;
+      document.getElementById('file-display-size').textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      document.getElementById('file-badge-text').textContent = file.name.split('.').pop().toUpperCase();
+    }
+  }
+
+  // Lưu nháp
+  function saveDraft() {
+    const content = document.getElementById('composer-text').value;
+    if (!content.trim()) {
+      alert('Vui lòng nhập nội dung trước khi lưu nháp.');
+      return;
+    }
+    alert('Đã lưu bài viết vào bản nháp thành công!');
+  }
+
+  // Đăng bài: kiểm tra nội dung trước khi gửi form thật về server
+  function handlePublish(event) {
+    const content = document.getElementById('composer-text').value;
+    if (!content.trim()) {
+      event.preventDefault();
+      alert('Vui lòng nhập nội dung bài viết.');
+      return false;
+    }
+    // Cho phép form submit tự nhiên về server Django
+    return true;
+  }
+</script>
+
+</body>
+</html>

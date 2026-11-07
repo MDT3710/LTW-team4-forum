@@ -8,6 +8,7 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('profile/<str:username>/', views.profile_view, name='user_profile'),
     path('posts/<int:post_id>/like/', views.toggle_like_api, name='post_like_api'),
+    path('posts/<int:post_id>/likes/', views.post_likes_api, name='post_likes_api'),
     path('posts/<int:post_id>/comment/', views.add_comment_api, name='post_comment_api'),
     path('posts/<int:post_id>/edit/', views.edit_post_api, name='post_edit_api'),
     path('posts/<int:post_id>/delete/', views.delete_post_api, name='post_delete_api'),

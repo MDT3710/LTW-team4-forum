@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
   <!-- ======================= MAIN ======================= -->
-      <main class="main">
+  <main class="main">
 
     <!-- LEFT COLUMN -->
     <aside class="left-col">
@@ -49,6 +50,9 @@
           <button class="btn-outline btn-block">Chi tiết</button>
         </div>
         <a class="view-all" href="#">Xem tất cả sự kiện →</a>
+      
+      
+
       </section>
 
       <!-- Lịch của bạn -->
@@ -90,6 +94,9 @@
           <span>Họp hằng tuần</span>
         </div>
         <a class="view-all" href="#">Xem tất cả sự kiện →</a>
+      
+      
+
       </section>
     </aside>
 
@@ -99,115 +106,65 @@
       <!-- Tạo bài viết -->
       <section class="card create-post">
         <div class="composer">
-          <div class="avatar avatar-lg"><span>MA</span></div>
+          <div class="avatar avatar-lg" style="border-radius: 50%; overflow: hidden;">
+            <img src="{% static 'img/profile_avatar_144.png' %}" alt="Minh Anh" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+            <span style="display: none;">MA</span>
+          </div>
           <div class="composer-body">
             <span class="composer-label">Chia sẻ với đồng nghiệp</span>
             <div class="composer-row">
               <input class="text-input" type="text"
                      value="Minh Anh ơi, hôm nay bạn có điều gì mới?"
-                     aria-label="Nội dung chia sẻ" />
-              <button class="btn-primary">Đăng bài</button>
+                     aria-label="Nội dung chia sẻ"
+                     onclick="window.location.href='{% url 'post_create' %}'"
+                     style="cursor: pointer;" />
+              <a href="{% url 'post_create' %}" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Đăng bài</a>
             </div>
           </div>
         </div>
+      
+      
+
       </section>
 
-      <!-- Feed -->
+            <!-- Feed -->
       <section class="feed">
         <h1 class="feed-title">Bảng tin</h1>
 
-        <!-- POST 1 -->
-        <article class="card post">
+        {% if search_query %}
+        <div class="card" style="margin-bottom: 20px; padding: 14px 20px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 13px; color: #1e40af;">Kết quả tìm kiếm cho: <strong>"{{ search_query }}"</strong> ({{ posts|length }} bài viết)</span>
+          </div>
+          <a href="{% url 'home' %}" style="font-size: 12px; color: #2563eb; text-decoration: underline; font-weight: 500;">Xóa bộ lọc</a>
+        </div>
+        {% endif %}
+
+        {% for post in posts %}
+        <article class="card post" id="post-{{ post.id }}" style="margin-bottom: 24px;">
           <div class="post-body">
             <div class="author-row">
-              <div class="avatar"><span>TH</span></div>
-              <div class="author-info">
-                <span class="author-name">Nguyễn Thu Hà</span>
-                <span class="author-meta">
-                  <span>2 giờ trước · Cầu Giấy</span>
-                  <svg class="am" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </span>
+              <div class="avatar" style="border-radius: 50%; overflow: hidden; width: 44px; height: 44px;">
+                {% if post.author.username == 'thuha' %}
+                  <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                {% elif post.author.username == 'phuonglinh' %}
+                  <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                {% elif post.author.username == 'ngocanh' %}
+                  <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                {% else %}
+                  <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                {% endif %}
               </div>
-              <button class="more-btn" aria-label="Thêm tuỳ chọn">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="5" cy="12" r="2.4"></circle>
-                  <circle cx="12" cy="12" r="2.4"></circle>
-                  <circle cx="19" cy="12" r="2.4"></circle>
-                </svg>
-              </button>
-            </div>
-
-            <p class="post-content">
-              Một buổi chia sẻ thật nhiều năng lượng cùng đội ngũ giáo viên!<br />
-              Cùng thử những hoạt động mới để mỗi giờ học tiếng Anh đều là một trải nghiệm đáng nhớ cho học viên.
-            </p>
-
-            <div class="post-photos">
-              <div class="photo p1"><span>📸</span></div>
-              <div class="photo p1"><span>🔖</span></div>
-            </div>
-          </div>
-
-          <div class="post-actions">
-            <div class="stats-row">
-              <span class="stat-like">
-                <span class="reaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                </svg></span>
-                <span>128 lượt thích</span>
-              </span>
-              <span class="stat-comment">24 bình luận</span>
-            </div>
-            <hr class="divider" />
-            <div class="action-row">
-              <button class="like-btn liked">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                </svg>
-                <span>Đã thích</span>
-              </button>
-              <div class="comment-box">
-                <div class="avatar avatar-sm"><span>MA</span></div>
-                <input class="text-input" type="text" value="Viết bình luận…" aria-label="Bình luận" />
-              </div>
-            </div>
-
-            <!-- Bình luận nổi bật -->
-            <div class="featured-comment">
-              <hr class="divider" />
-              <div class="comment">
-                <div class="avatar avatar-sm"><span>DA</span></div>
-                <div class="comment-body">
-                  <div class="comment-bubble">
-                    <span class="comment-author">Đỗ Ngọc Anh</span>
-                    <span class="comment-text">Hoạt động rất hay! Mình sẽ thử áp dụng cho lớp tuần này.</span>
-                  </div>
-                  <span class="comment-actions">Thích · Trả lời · 25 phút</span>
-                </div>
-              </div>
-              <a class="view-more-comments" href="#">Xem thêm bình luận...</a>
-            </div>
-          </div>
-        </article>
-
-        <!-- POST 2 -->
-        <article class="card post">
-          <div class="post-body">
-            <div class="author-row">
-              <div class="avatar av-lin"><span>PL</span></div>
               <div class="author-info">
                 <span class="author-name">
-                  <span>Lê Phương Linh</span>
-                  <span class="author-topic-arrow">▶</span>
-                  <span class="author-topic">Gắn kết mỗi ngày</span>
+                  <span>{{ post.author.get_full_name|default:post.author.username }}</span>
+                  {% if post.title and post.title != post.content %}
+                    <span class="author-topic-arrow">▶</span>
+                    <span class="author-topic">{{ post.title }}</span>
+                  {% endif %}
                 </span>
                 <span class="author-meta">
-                  <span>5 giờ trước · Hội sở</span>
+                  <span>{{ post.created_at|timesince }} trước · Scots English</span>
                   <svg class="am" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
@@ -216,53 +173,457 @@
                   </svg>
                 </span>
               </div>
-              <button class="more-btn" aria-label="Thêm tuỳ chọn">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="5" cy="12" r="2.4"></circle>
-                  <circle cx="12" cy="12" r="2.4"></circle>
-                  <circle cx="19" cy="12" r="2.4"></circle>
-                </svg>
-              </button>
+              {% if current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+                            <div class="post-more-menu-wrap" style="position: relative;">
+                <button type="button" class="more-btn" aria-label="Thêm tuỳ chọn" onclick="togglePostMenu({{ post.id }}, event)">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <circle cx="5" cy="12" r="2"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <circle cx="19" cy="12" r="2"></circle>
+                  </svg>
+                </button>
+                <div class="post-dropdown-menu" id="menu-post-{{ post.id }}" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); min-width: 160px; z-index: 100; overflow: hidden; padding: 4px 0;">
+                  <button type="button" onclick="openEditPostModal({{ post.id }})" style="width: 100%; border: none; background: none; text-align: left; padding: 10px 16px; font-size: 14px; font-weight: 500; color: #134c81; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Chỉnh sửa bài viết</span>
+                  </button>
+                  <button type="button" onclick="confirmDeletePost({{ post.id }})" style="width: 100%; border: none; background: none; text-align: left; padding: 10px 16px; font-size: 14px; font-weight: 500; color: #e25555; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#fff1f0'" onmouseout="this.style.background='none'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e25555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Xóa bài viết</span>
+                  </button>
+                </div>
+              </div>
+              {% endif %}
             </div>
 
-            <p class="post-content">
-              Không chỉ là đồng nghiệp, chúng mình còn là một đội!<br />
-              Một vài khoảnh khắc từ ngày gắn kết Scots. Cảm ơn mọi người đã cùng tạo nên những kỷ niệm thật đẹp.
-            </p>
+            <p class="post-content" id="post-content-{{ post.id }}">{{ post.content|linebreaksbr }}</p>
+            <span id="post-edited-badge-{{ post.id }}" style="font-size: 11px; color: #94a3b8; display: block; margin-top: 4px;">
+              {% if post.created_at != post.updated_at %}
+                (Đã chỉnh sửa lúc {{ post.updated_at|date:"H:i d/m/Y" }})
+              {% endif %}
+            </span>
 
-            <div class="post-photos">
-              <div class="photo p2"><span>🍀</span></div>
+            {% if post.attachments.all %}
+            <div class="post-photos" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px;">
+              {% for att in post.attachments.all %}
+                {% if att.file %}
+                  <div class="photo" style="overflow: hidden; max-height: 380px; border-radius: 8px; flex: 1; min-width: 240px;">
+                    <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/post_photo_1.png' %}';" />
+                  </div>
+                {% else %}
+                  <div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">
+                    📄 <span>{{ att.file_name }}</span>
+                  </div>
+                {% endif %}
+              {% endfor %}
             </div>
+            {% endif %}
           </div>
 
           <div class="post-actions">
             <div class="stats-row">
-              <span class="stat-like">
+              <span class="stat-like" onclick="showLikesModal({{ post.id }})" style="cursor: pointer;" title="Nhấn để xem ai đã thích">
                 <span class="reaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
                 </svg></span>
-                <span>86 lượt thích</span>
+                <span id="post-like-count-{{ post.id }}">{{ post.reactions.count }} lượt thích</span>
               </span>
-              <span class="stat-comment">12 bình luận</span>
+              <span class="stat-comment" id="post-comment-count-{{ post.id }}">{{ post.comments.count }} bình luận</span>
             </div>
             <hr class="divider" />
             <div class="action-row">
-              <button class="like-btn">
+              <button class="like-btn {% if post.is_liked_by_user %}liked{% endif %}" onclick="handleLike({{ post.id }}, this)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
                 </svg>
-                <span>Thích</span>
+                <span>{% if post.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span>
               </button>
               <div class="comment-box">
-                <div class="avatar avatar-sm"><span>MA</span></div>
-                <input class="text-input" type="text" value="Viết bình luận…" aria-label="Bình luận" />
+                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden;">
+                  <img src="{% static 'img/profile_avatar_144.png' %}" alt="Minh Anh" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                </div>
+                <input class="text-input" type="text" placeholder="Viết bình luận… (Enter để gửi)" aria-label="Bình luận" onkeydown="if(event.key==='Enter'){ submitComment({{ post.id }}, this); }" />
               </div>
+            </div>
+
+            <!-- Danh sách bình luận -->
+            <div class="featured-comment" id="comments-list-{{ post.id }}">
+              {% for comment in post.comments.all %}
+              <div class="comment" id="comment-item-{{ comment.id }}" style="margin-top: 12px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="display: flex; gap: 8px; flex: 1;">
+                                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
+                  {% if comment.emp.username == 'thuha' %}
+                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif comment.emp.username == 'phuonglinh' %}
+                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif comment.emp.username == 'ngocanh' %}
+                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% else %}
+                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% endif %}
+                </div>
+                <div class="comment-body">
+                  <div class="comment-bubble">
+                    <span class="comment-author">{{ comment.emp.get_full_name|default:comment.emp.username }}</span>
+                    <span class="comment-text">{{ comment.content }}</span>
+                  </div>
+                  <span class="comment-actions">Thích · Trả lời · {{ comment.time_reacted }}</span>
+                </div>
+              </div>
+                {% if current_user.id == comment.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+                <button type="button" onclick="deleteComment({{ comment.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#94a3b8\'">&times;</button>
+                {% endif %}
+              </div>
+              {% endfor %}
             </div>
           </div>
         </article>
+        {% empty %}
+        <div class="card" style="padding: 40px; text-align: center; color: #64748b;">
+          <p>Chưa có bài đăng nào. Hãy là người đầu tiên chia sẻ!</p>
+          <a href="{% url 'post_create' %}" class="btn-primary" style="display: inline-block; margin-top: 16px;">Tạo bài viết ngay</a>
+        </div>
+        {% endfor %}
 
-        <button class="btn-more-posts">Xem thêm bài viết</button>
+        <button class="btn-more-posts" onclick="window.location.reload();">Tải lại bảng tin</button>
+      
+      
+
       </section>
+
+      <!-- AJAX Scripts for Like & Comment -->
+      <script>
+        function getCsrfToken() {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, 10) === 'csrftoken=') {
+                cookieValue = decodeURIComponent(cookie.substring(10));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+
+        function handleLike(postId, btn) {
+          fetch(`/posts/${postId}/like/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken(),
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const label = btn.querySelector('span');
+              if (data.liked) {
+                btn.classList.add('liked');
+                label.textContent = 'Đã thích';
+              } else {
+                btn.classList.remove('liked');
+                label.textContent = 'Thích';
+              }
+              const countEl = document.getElementById(`post-like-count-${postId}`);
+              if (countEl) countEl.textContent = `${data.count} lượt thích`;
+            }
+          })
+          .catch(err => console.error(err));
+        }
+
+        function submitComment(postId, input) {
+          const content = input.value.trim();
+          if (!content) return;
+
+          const formData = new FormData();
+          formData.append('content', content);
+
+          fetch(`/posts/${postId}/comment/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              input.value = '';
+              const list = document.getElementById(`comments-list-${postId}`);
+              const countEl = document.getElementById(`post-comment-count-${postId}`);
+              if (countEl) countEl.textContent = `${data.count} bình luận`;
+
+              if (list) {
+                const newCommentHtml = `
+                  <div class="comment" style="margin-top: 12px; animation: fadeIn 0.3s ease;">
+                    <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden;">
+                      <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    </div>
+                    <div class="comment-body">
+                      <div class="comment-bubble">
+                        <span class="comment-author">${data.comment.author}</span>
+                        <span class="comment-text">${data.comment.content}</span>
+                      </div>
+                      <span class="comment-actions">Thích · Trả lời · ${data.comment.time}</span>
+                    </div>
+                  </div>
+                `;
+                list.insertAdjacentHTML('beforeend', newCommentHtml);
+              }
+            }
+          })
+          .catch(err => console.error(err));
+        }
+      
+        function togglePostMenu(postId, event) {
+          event.stopPropagation();
+          document.querySelectorAll('.post-dropdown-menu').forEach(m => {
+            if (m.id !== `menu-post-${postId}`) m.style.display = 'none';
+          });
+          const menu = document.getElementById(`menu-post-${postId}`);
+          if (menu) {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+          }
+        }
+
+        document.addEventListener('click', () => {
+          document.querySelectorAll('.post-dropdown-menu').forEach(m => m.style.display = 'none');
+        });
+
+        function confirmDeletePost(postId) {
+          if (confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) {
+            fetch(`/posts/${postId}/delete/`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': getCsrfToken()
+              }
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                const postCard = document.getElementById(`post-${postId}`);
+                if (postCard) {
+                  postCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                  postCard.style.opacity = '0';
+                  postCard.style.transform = 'translateY(-10px)';
+                  setTimeout(() => postCard.remove(), 300);
+                }
+              } else {
+                alert(data.error || 'Không thể xóa bài viết.');
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              alert('Đã xảy ra lỗi khi xóa bài viết.');
+            });
+          }
+        }
+      
+        function openEditPostModal(postId) {
+          document.querySelectorAll('.post-dropdown-menu').forEach(m => m.style.display = 'none');
+          fetch(`/posts/${postId}/edit/`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                document.getElementById('edit-post-id').value = postId;
+                document.getElementById('edit-post-title').value = data.title || '';
+                document.getElementById('edit-post-content').value = data.content || '';
+                const modal = document.getElementById('editPostModal');
+                if (modal) modal.style.display = 'flex';
+              } else {
+                alert(data.error || 'Không thể lấy thông tin bài viết.');
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              alert('Đã xảy ra lỗi khi lấy thông tin bài viết.');
+            });
+        }
+
+        function closeEditPostModal() {
+          const modal = document.getElementById('editPostModal');
+          if (modal) modal.style.display = 'none';
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+          const modal = document.getElementById('editPostModal');
+          if (modal) {
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeEditPostModal(); });
+          }
+        });
+        function _dummy() {
+          const modal = document.getElementById('editPostModal');
+          if (modal) modal.style.display = 'none';
+        }
+
+        function submitEditPost() {
+          const postId = document.getElementById('edit-post-id').value;
+          const title = document.getElementById('edit-post-title').value.trim();
+          const content = document.getElementById('edit-post-content').value.trim();
+
+          if (!content) {
+            alert('Nội dung bài viết không được để trống.');
+            return;
+          }
+
+          const btn = document.getElementById('btn-save-edit');
+          btn.disabled = true;
+          btn.innerText = 'Đang lưu...';
+
+          const formData = new FormData();
+          formData.append('title', title);
+          formData.append('content', content);
+
+          fetch(`/posts/${postId}/edit/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            if (data.success) {
+              const contentEl = document.getElementById(`post-content-${postId}`);
+              if (contentEl) {
+                contentEl.innerHTML = data.content.replace(/\n/g, '<br />');
+              }
+              const badgeEl = document.getElementById(`post-edited-badge-${postId}`);
+              if (badgeEl) {
+                badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
+                badgeEl.style.display = 'inline-block';
+              }
+              closeEditPostModal();
+            } else {
+              alert(data.error || 'Không thể cập nhật bài viết.');
+            }
+          })
+          .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            console.error(err);
+            alert('Đã xảy ra lỗi khi lưu cập nhật.');
+          });
+        }
+
+        function deleteComment(commentId, postId) {
+          if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
+          fetch(`/comments/${commentId}/delete/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const el = document.getElementById(`comment-item-${commentId}`);
+              if (el) {
+                el.style.transition = 'opacity 0.2s ease, height 0.2s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 200);
+              }
+              const countEl = document.getElementById(`post-comment-count-${postId}`);
+              if (countEl) {
+                countEl.innerText = `${data.count} bình luận`;
+              }
+            } else {
+              alert(data.error || 'Không thể xóa bình luận.');
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            alert('Đã xảy ra lỗi khi xóa bình luận.');
+          });
+        }
+
+      
+        function showLikesModal(postId) {
+          fetch(`/posts/${postId}/likes/`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                const modal = document.getElementById('likes-modal');
+                const list = document.getElementById('likes-modal-list');
+                const title = document.getElementById('likes-modal-title');
+                title.textContent = `Người đã thích (${data.count})`;
+                if (data.users.length === 0) {
+                  list.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Chưa có lượt thích nào.</p>';
+                } else {
+                  list.innerHTML = data.users.map(u => `
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                      <div style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
+                        <img src="${u.avatar}" alt="${u.name}" style="width: 100%; height: 100%; object-fit: cover;" />
+                      </div>
+                      <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 14px; color: #0f172a;">${u.name}</div>
+                        <div style="font-size: 12px; color: #94a3b8;">${u.time}</div>
+                      </div>
+                    </div>
+                  `).join('');
+                }
+                modal.style.display = 'flex';
+              }
+            })
+            .catch(err => console.error(err));
+        }
+
+        function closeLikesModal() {
+          const modal = document.getElementById('likes-modal');
+          if (modal) modal.style.display = 'none';
+        }
+
+      </script>
+
     </div>
+  <!-- Modal Chỉnh sửa bài viết -->
+      <div id="editPostModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: #ffffff; border-radius: 14px; width: 90%; max-width: 560px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
+          <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Chỉnh sửa bài viết</h3>
+            </div>
+            <button type="button" onclick="closeEditPostModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+          </div>
+          <div style="padding: 22px;">
+            <input type="hidden" id="edit-post-id" />
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
+              <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>
+              <textarea id="edit-post-content" rows="6" placeholder="Chia sẻ suy nghĩ của bạn..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
+            </div>
+          </div>
+          <div style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" onclick="closeEditPostModal()" style="padding: 9px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Hủy</button>
+            <button type="button" id="btn-save-edit" onclick="submitEditPost()" style="padding: 9px 22px; border: none; border-radius: 8px; background: #134c81; color: #ffffff; font-weight: 600; font-size: 14px; cursor: pointer; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Lưu thay đổi</button>
+          </div>
+        </div>
+      </div>
   </main>
+
+    <!-- Likes Modal -->
+    <div id="likes-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; padding: 16px;">
+      <div style="background: #ffffff; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; animation: fadeIn 0.2s ease;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+          <h3 id="likes-modal-title" style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">Người đã thích</h3>
+          <button type="button" onclick="closeLikesModal()" style="border: none; background: none; font-size: 22px; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+        </div>
+        <div id="likes-modal-list" style="padding: 16px 20px; max-height: 360px; overflow-y: auto;"></div>
+      </div>
+    </div>
+
 {% endblock %}

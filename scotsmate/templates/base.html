@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -10,7 +9,6 @@
           ScotsMate
       {% endblock %}
   </title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -22,25 +20,26 @@
   <!-- ======================= TOP NAVIGATION ======================= -->
   <header class="topbar">
       <!-- Logo -->
-      <span class="logo">
-        <img class="logo-mark" src='{% static 'img/logo_no_text.png' %}' alt="" />
+      <a href="{% url 'home' %}" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+        <img class="logo-mark" src="{% static 'img/logo_no_text.png' %}" alt="Scots English" />
           <span class="brand-name">
               <span class="brand-primary">SCOTS</span>
               <span class="brand-secondary">ENGLISH</span>
           </span>
-      </span>
+      </a>
+
       <!-- Searchbar -->
-      <div class="search">
-        <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <form method="GET" action="{% url 'home' %}" class="search" style="display: flex; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 9999px; padding: 6px 14px; gap: 8px; width: 340px; margin: 0 16px;">
+        <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #64748b; flex-shrink: 0;">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <span class="search-placeholder">Tìm kiếm nhân viên, phòng ban, thông báo...</span>
-      </div>
+        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm bài viết, tác giả..." style="border: none; outline: none; background: transparent; width: 100%; font-size: 13px; color: #1e293b;" />
+      </form>
 
     <!-- Primary navigation -->
     <nav class="primary-nav">
-      <a class="nav-tab active" href="#">
+      <a class="nav-tab active" href="{% url 'home' %}">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -82,7 +81,7 @@
         </svg>
         <span class="nav-label">Đào tạo</span>
       </a>
-      <a class="nav-tab" href="#">
+      <a class="nav-tab" href="/surveys/">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 20H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7"></path>
           <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L11 15l-4 1 1-4 10.4-9.4z"></path>
@@ -93,36 +92,74 @@
 
     <!-- Account actions -->
     <div class="account-actions">
-      <button class="round-btn" aria-label="Tạo bài viết">
+      <button class="round-btn" aria-label="Tạo bài viết" onclick="window.location.href='{% url 'post_create' %}'" title="Tạo bài viết mới" style="cursor: pointer;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
       </button>
-      <button class="round-btn" aria-label="Messenger">
+      <button class="round-btn" aria-label="Messenger" title="Tin nhắn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>
       </button>
-      <button class="round-btn has-badge" aria-label="Thông báo">
+      <button class="round-btn has-badge" aria-label="Thông báo" title="Thông báo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
         </svg>
         <span class="notif-badge">3</span>
       </button>
-      <div  class="profile-menu">
-        <div class="avatar avatar-profile">
-          <span>MA</span>
+
+      <!-- Profile Menu with Dropdown -->
+      <div class="profile-menu" onclick="toggleUserDropdown(event)" style="cursor: pointer; position: relative;" title="Tài khoản cá nhân">
+        <div class="avatar avatar-profile" style="border-radius: 50%; overflow: hidden; width: 36px; height: 36px;">
+          <img src="{% static 'img/profile_avatar_144.png' %}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+          <span style="display: none;">MA</span>
         </div>
         <div class="profile-details">
-          <span class="profile-name">Minh Anh</span>
+          <span class="profile-name">{{ request.user.first_name|default:request.user.username|default:'Minh Anh' }}</span>
           <span class="profile-role">Giáo viên</span>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
+
+        <!-- Dropdown menu -->
+        <div id="user-header-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); width: 220px; z-index: 1000; overflow: hidden; padding: 6px 0;">
+          <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+            <div style="font-weight: 600; font-size: 14px; color: #0f172a;">{{ request.user.get_full_name|default:'Nguyễn Minh Anh' }}</div>
+            <div style="font-size: 12px; color: #64748b;">{{ request.user.email|default:'minhanh@scotsenglish.edu.vn' }}</div>
+          </div>
+          <a href="{% url 'profile' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #334155; text-decoration: none;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Trang cá nhân</span>
+          </a>
+          <a href="{% url 'post_create' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #334155; text-decoration: none;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Tạo bài viết mới</span>
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser %}
+          <a href="/admin/" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #134c81; text-decoration: none; font-weight: 500;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <span>Quản trị Django</span>
+          </a>
+          {% endif %}
+          <div style="border-top: 1px solid #f1f5f9; margin: 4px 0;"></div>
+          {% if request.user.is_authenticated %}
+          <a href="{% url 'logout' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #e11d48; text-decoration: none;" onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Đăng xuất</span>
+          </a>
+          {% else %}
+          <a href="{% url 'login' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #134c81; text-decoration: none;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            <span>Đăng nhập</span>
+          </a>
+          {% endif %}
+        </div>
       </div>
+
     </div>
   </header>
 {% block content %}
@@ -152,5 +189,21 @@
   </footer>
 
 </div>
+
+<script>
+function toggleUserDropdown(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('user-header-dropdown');
+  if (menu) {
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  }
+}
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('user-header-dropdown');
+  if (menu && !menu.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});
+</script>
 </body>
 </html>

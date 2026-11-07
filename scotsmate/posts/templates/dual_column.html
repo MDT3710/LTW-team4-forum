@@ -1,0 +1,770 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng nhập · ScotsMate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  <style>
+    /* Reset & Base layout specifically for Dual Column Login */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+
+    .dual-login-container {
+      display: flex;
+      width: 100vw;
+      min-height: 100vh;
+      background: #ffffff;
+    }
+
+    /* ================= BÊN TRÁI: BRANDING (720px / 50%) ================= */
+    .branding-panel {
+      flex: 1;
+      background: #f8fafc;
+      padding: 48px 64px 34px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      box-sizing: border-box;
+      min-width: 600px;
+    }
+
+    /* Logo Brand */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #134c81;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(19, 76, 129, 0.15);
+    }
+
+    .brand-icon-box img {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+    }
+
+    .brand-titles {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-product-name {
+      font-size: 26px;
+      line-height: 1.15;
+      font-weight: 800;
+      color: #134c81;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-subtext {
+      font-size: 10px;
+      font-weight: 700;
+      color: #1bc1a0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Brand Message */
+    .brand-hero-text {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 580px;
+    }
+
+    .brand-headline {
+      font-size: 36px;
+      line-height: 1.2;
+      font-weight: 800;
+      color: #134c81;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-headline span.highlight {
+      color: #1bc1a0;
+    }
+
+    .brand-description {
+      font-size: 16px;
+      line-height: 1.55;
+      color: #64748b;
+      margin: 0;
+    }
+
+    /* Collage Container (Relative overlay matching Figma) */
+    .collage-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 580px;
+      height: 448px;
+      margin-top: 10px;
+    }
+
+    /* Mint Backdrop Circle/Box */
+    .collage-mint-backdrop {
+      position: absolute;
+      top: 26px;
+      right: 6px;
+      width: 250px;
+      height: 250px;
+      border-radius: 24px;
+      background: #e8faf6;
+      z-index: 1;
+    }
+
+    /* Team Photo */
+    .collage-team-photo {
+      position: absolute;
+      left: 62px;
+      top: 72px;
+      width: 506px;
+      height: 292px;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(19, 76, 129, 0.1);
+      z-index: 2;
+    }
+
+    .collage-team-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Card 1: Social Post Card (Top-Left) */
+    .collage-social-card {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 262px;
+      height: 142px;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(19, 76, 129, 0.1);
+      z-index: 3;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .social-author {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .social-author .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #e8faf6;
+      flex-shrink: 0;
+    }
+
+    .social-author .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .social-author-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .social-author-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #17324d;
+    }
+
+    .social-author-meta {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .social-more-icon {
+      color: #94a3b8;
+    }
+
+    .social-content {
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 500;
+      color: #17324d;
+      margin: 0;
+    }
+
+    /* Card 2: Activity Card (Bottom-Left) */
+    .collage-activity-card {
+      position: absolute;
+      left: 16px;
+      top: 338px;
+      width: 250px;
+      height: 94px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 8px 24px rgba(19, 76, 129, 0.1);
+      z-index: 3;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .activity-icon-box {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: #eaf2f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #134c81;
+      flex-shrink: 0;
+    }
+
+    .activity-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .activity-category {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .activity-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #134c81;
+    }
+
+    /* Card 3: Kudos Card (Bottom-Right) */
+    .collage-kudos-card {
+      position: absolute;
+      left: 346px;
+      top: 292px;
+      width: 222px;
+      height: 144px;
+      background: #134c81;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(19, 76, 129, 0.15);
+      z-index: 3;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    .kudos-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kudos-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #1bc1a0;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+
+    .kudos-score {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1bc1a0;
+    }
+
+    .kudos-text {
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .kudos-target {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    /* ================= BÊN PHẢI: LOGIN CARD (720px / 50%) ================= */
+    .login-panel {
+      flex: 1;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 40px;
+      box-sizing: border-box;
+      min-width: 480px;
+    }
+
+    .login-box-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .login-form-card {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 16px;
+      padding: 36px 34px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .login-card-header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .login-card-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #134c81;
+      margin: 0;
+    }
+
+    .login-card-subtitle {
+      font-size: 14px;
+      line-height: 1.45;
+      color: #64748b;
+      margin: 0;
+    }
+
+    .login-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .login-field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .login-field-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #17324d;
+    }
+
+    .login-input-wrapper {
+      position: relative;
+      height: 54px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease;
+    }
+
+    .login-input-wrapper:focus-within {
+      border-color: #134c81;
+      box-shadow: 0 0 0 3px rgba(19, 76, 129, 0.1);
+    }
+
+    .login-field-icon {
+      width: 19px;
+      height: 19px;
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    .login-input {
+      flex: 1;
+      height: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 14px;
+      color: #17324d;
+    }
+
+    .login-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .login-toggle-eye {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Submit Button with bottom accent line */
+    .login-btn-wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .btn-submit-login {
+      width: 100%;
+      height: 50px;
+      background: #134c81;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-submit-login:hover {
+      background: #0f3d68;
+    }
+
+    .btn-accent-bar {
+      width: 100%;
+      height: 4px;
+      background: #1bc1a0;
+      border-radius: 0 0 8px 8px;
+    }
+
+    .login-forgot-link {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      color: #134c81;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .login-forgot-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Footer */
+    .login-panel-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .footer-quick-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .footer-quick-link {
+      font-size: 12px;
+      font-weight: 500;
+      color: #134c81;
+      text-decoration: none;
+    }
+
+    .footer-quick-link:hover {
+      text-decoration: underline;
+    }
+
+    .footer-dot-sep {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: #1bc1a0;
+    }
+
+    .footer-copyright-text {
+      font-size: 11px;
+      color: #94a3b8;
+      margin: 0;
+      text-align: center;
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .dual-login-container {
+        flex-direction: column;
+      }
+      .branding-panel {
+        min-width: unset;
+        width: 100%;
+        padding: 40px 24px;
+      }
+      .login-panel {
+        min-width: unset;
+        width: 100%;
+        padding: 40px 24px;
+      }
+      .collage-wrapper {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dual-login-container">
+
+  <!-- ================= BÊN TRÁI: BRANDING & COMMUNITY ================= -->
+  <div class="branding-panel">
+
+    <!-- Brand -->
+    <div class="brand-header">
+      <div class="brand-icon-box">
+        <img src="{% static 'img/logo_no_text.png' %}" alt="Scots English" />
+      </div>
+      <div class="brand-titles">
+        <span class="brand-product-name">ScotsMate</span>
+        <span class="brand-subtext">Scots English</span>
+      </div>
+    </div>
+
+    <!-- Brand message -->
+    <div class="brand-hero-text">
+      <h1 class="brand-headline">
+        Kết nối nội bộ,<br />
+        <span class="highlight">gắn kết</span> yêu thương.
+      </h1>
+      <p class="brand-description">
+        Nền tảng truyền thông &amp; làm việc nội bộ dành riêng cho cán bộ, giáo viên Scots English.
+      </p>
+    </div>
+
+    <!-- Workplace collage (Relative overlay) -->
+    <div class="collage-wrapper">
+      
+      <!-- Mint backdrop circle -->
+      <div class="collage-mint-backdrop"></div>
+
+      <!-- Team Photo in Center -->
+      <div class="collage-team-photo">
+        <img src="{% static 'img/login_team_photo.png' %}" alt="Đội ngũ cán bộ giáo viên Scots English" />
+      </div>
+
+      <!-- Card 1: Social post card (Top Left) -->
+      <div class="collage-social-card">
+        <div class="social-author">
+          <div class="avatar">
+            <img src="{% static 'img/avatar_minhanh.png' %}" alt="Nguyễn Minh Anh" />
+          </div>
+          <div class="social-author-info">
+            <span class="social-author-name">Nguyễn Minh Anh</span>
+            <span class="social-author-meta">Khối Học thuật · 10 phút</span>
+          </div>
+          <div class="social-more-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="2"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <circle cx="19" cy="12" r="2"></circle>
+            </svg>
+          </div>
+        </div>
+        <p class="social-content">
+          Một tuần thật nhiều năng lượng cùng đội ngũ Scots English! 💙
+        </p>
+      </div>
+
+      <!-- Card 2: Activity card (Bottom Left) -->
+      <div class="collage-activity-card">
+        <div class="activity-icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <div class="activity-info">
+          <span class="activity-category">Sự kiện nội bộ</span>
+          <span class="activity-name">Teacher Connect · 16:30</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Kudos card (Bottom Right) -->
+      <div class="collage-kudos-card">
+        <div class="kudos-top-bar">
+          <div class="kudos-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"></path>
+            </svg>
+            <span>KUDOS</span>
+          </div>
+          <span class="kudos-score">+100</span>
+        </div>
+        <p class="kudos-text">
+          Cảm ơn bạn vì luôn hỗ trợ đồng đội!
+        </p>
+        <span class="kudos-target">
+          Gửi đến Trần Gia Hân
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ================= BÊN PHẢI: LOGIN FORM CARD ================= -->
+  <div class="login-panel">
+    <div class="login-box-container">
+
+      <!-- Login Card -->
+      <div class="login-form-card">
+        
+        <div class="login-card-header">
+          <h2 class="login-card-title">Đăng nhập vào ScotsMate</h2>
+          <p class="login-card-subtitle">Chào mừng bạn trở lại không gian làm việc chung.</p>
+        </div>
+
+                {% if error_msg %}
+        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span>{{ error_msg }}</span>
+        </div>
+        {% endif %}
+        {% if messages %}
+          {% for msg in messages %}
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <span>{{ msg }}</span>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form class="login-fields" method="POST" action="{% url 'login' %}">
+          {% csrf_token %}
+          
+          <!-- Field 1: Username -->
+          <div class="login-field-group">
+            <label class="login-field-label" for="username">Tên đăng nhập</label>
+            <div class="login-input-wrapper">
+              <svg class="login-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <input class="login-input" id="username" name="username" type="text" placeholder="Tên đăng nhập (vd: minhanh, thuha, admin)" required autofocus />
+            </div>
+          </div>
+
+          <!-- Field 2: Password -->
+          <div class="login-field-group">
+            <label class="login-field-label" for="password">Mật khẩu</label>
+            <div class="login-input-wrapper">
+              <svg class="login-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <input class="login-input" id="password" name="password" type="password" placeholder="Mật khẩu" required />
+              <button class="login-toggle-eye" type="button" aria-label="Hiện mật khẩu" onclick="const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password';">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Primary Submit Action -->
+          <div class="login-btn-wrapper">
+            <button class="btn-submit-login" type="submit">
+              Đăng nhập
+            </button>
+            <div class="btn-accent-bar"></div>
+          </div>
+
+          <!-- Quick Test Accounts Hint -->
+          <div style="margin-top: 14px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #64748b; line-height: 1.5;">
+            <strong style="color: #1e293b;">Tài khoản gợi ý để thử nghiệm:</strong><br />
+            • <code>minhanh</code> / <code>password123</code> (Giáo viên)<br />
+            • <code>thuha</code> / <code>password123</code> (Giáo viên)<br />
+            • <code>admin</code> / <code>adminpassword123</code> (Quản trị viên)
+          </div>
+
+          <!-- Forgot Password -->
+          <a class="login-forgot-link" href="#" style="margin-top: 8px;">Quên mật khẩu?</a>
+
+        </form>
+
+      </div>
+
+      <!-- Footer Quick Links & Legal -->
+      <div class="login-panel-footer">
+        <div class="footer-quick-links">
+          <a class="footer-quick-link" href="#">Chính sách bảo mật nội bộ</a>
+          <div class="footer-dot-sep"></div>
+          <a class="footer-quick-link" href="#">Hỗ trợ IT / Helpdesk</a>
+        </div>
+        <p class="footer-copyright-text">
+          © 2026 Scots English Australia. Tất cả quyền được bảo lưu.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

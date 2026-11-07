@@ -44,27 +44,31 @@ def post_create_view(request):
     Xử lý hiển thị form và tiếp nhận đăng bài viết mới:
     Lưu dữ liệu vào bảng `post` và tệp tải lên vào bảng `post_attachment`.
     """
+    if not request.user.is_authenticated:
+        default_user = User.objects.filter(username='minhanh').first()
+        if default_user:
+            login(request, default_user)
+
+    current_user = request.user if request.user.is_authenticated else (
+        User.objects.filter(username='minhanh').first() or User.objects.first()
+    )
+
     if request.method == 'POST':
         content = request.POST.get('content', '').strip()
         title = request.POST.get('title', '').strip()
 
         if not content:
             messages.error(request, 'Nội dung bài viết không được để trống.')
-            return render(request, 'post_create.html')
+            return render(request, 'post_create.html', {'current_user': current_user})
 
         # Nếu không nhập tiêu đề, tự động lấy dòng đầu tiên hoặc 60 ký tự đầu làm tiêu đề
         if not title:
             first_line = content.split('\n')[0].strip()
             title = first_line[:100] if first_line else "Bài viết mới"
 
-        # Tác giả: dùng user đã đăng nhập, nếu chưa đăng nhập thì mặc định dùng tài khoản 'minhanh'
-        author = request.user if request.user.is_authenticated else (
-            User.objects.filter(username='minhanh').first() or User.objects.first()
-        )
-
         # 1. Tạo bài viết trong bảng `post`
         post = Post.objects.create(
-            author=author,
+            author=current_user,
             title=title,
             content=content
         )
@@ -88,7 +92,7 @@ def post_create_view(request):
         messages.success(request, 'Chúc mừng! Bài viết của bạn đã được đăng thành công.')
         return redirect('home')
 
-    return render(request, 'post_create.html')
+    return render(request, 'post_create.html', {'current_user': current_user})
 
 
 def profile_view(request, username=None):
@@ -108,11 +112,22 @@ def profile_view(request, username=None):
     else:
         profile_user = current_user
 
-    posts = Post.objects.filter(author=profile_user).prefetch_related(
-        'attachments', 'reactions', 'comments', 'comments__emp'
-    ).order_by('-created_at') if profile_user else []
+    posts = list(Post.objects.filter(author=profile_user).prefetch_related(
+        'attachments', 'reactions', 'reactions__emp', 'comments', 'comments__emp'
+    ).order_by('-created_at')) if profile_user else []
 
-    posts_count = posts.count() if hasattr(posts, 'count') else len(posts)
+    # Gán trạng thái like của user hiện tại
+    if current_user and current_user.is_authenticated:
+        liked_post_ids = set(
+            PostReaction.objects.filter(emp=current_user).values_list('post_id', flat=True)
+        )
+    else:
+        liked_post_ids = set()
+
+    for p in posts:
+        p.is_liked_by_user = p.id in liked_post_ids
+
+    posts_count = len(posts)
 
     return render(request, 'profile.html', {
         'profile_user': profile_user,
@@ -144,6 +159,38 @@ def toggle_like_api(request, post_id):
             'count': post.reaction_count
         })
     return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
+
+
+def post_likes_api(request, post_id):
+    """
+    API AJAX trả về danh sách nhân viên đã tương tác/thích bài viết (bảng `post_reaction`).
+    """
+    post = get_object_or_404(Post, id=post_id)
+    reactions = post.reactions.select_related('emp').all()
+    user_list = []
+    for r in reactions:
+        u = r.emp
+        name = u.get_full_name() or u.username
+        if u.username == 'thuha':
+            avatar = '/static/img/avatar_thuha.png'
+        elif u.username == 'phuonglinh':
+            avatar = '/static/img/avatar_phuonglinh.png'
+        elif u.username == 'ngocanh':
+            avatar = '/static/img/avatar_ngocanh.png'
+        else:
+            avatar = '/static/img/profile_avatar_144.png'
+        user_list.append({
+            'id': u.id,
+            'name': name,
+            'username': u.username,
+            'avatar': avatar,
+            'time': r.time_reacted or 'Gần đây'
+        })
+    return JsonResponse({
+        'success': True,
+        'count': len(user_list),
+        'users': user_list
+    })
 
 
 def add_comment_api(request, post_id):
@@ -283,7 +330,6 @@ def delete_post_api(request, post_id):
             User.objects.filter(username='minhanh').first() or User.objects.first()
         )
 
-        # Kiểm tra quyền:
         is_author = (user and user.id == post.author_id)
         is_admin = (user and (user.is_staff or user.is_superuser))
 
