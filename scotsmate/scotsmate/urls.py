@@ -23,6 +23,6 @@ urlpatterns = [
     # path('courses/',include('courses.urls')),
     # path('documents/',include('documents.urls')),
     # path('message/',include('message.urls')),
-    # path('surveys/',include('surveys.urls')),
+    path('surveys/',include('surveys.urls')),
     # path('posts/',include('posts.urls'))
 ]
