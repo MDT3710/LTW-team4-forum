@@ -1,0 +1,142 @@
+{%  extends 'base.html' %}
+
+{% block content %}
+
+  <main class="survey-workspace">
+    
+    <!-- Tiêu đề trang & Hành động -->
+    <header class="doc-header">
+      <div>
+        <h1 class="doc-header-title">Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026</h1>
+        <p class="doc-header-subtitle">Danh sách chi tiết 48 bài nộp khảo sát của cán bộ nhân viên</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <a href="published.html" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
+        <a href="#" class="doc-btn doc-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Xuất file Excel
+        </a>
+      </div>
+    </header>
+
+    <!-- Tabs chuyển đổi giữa Tổng quan và Chi tiết từng người -->
+    <nav class="doc-tabs">
+      <a href="responses_overview.html?id=301" class="doc-tab">Tổng quan phân tích</a>
+      <a href="responses_detail.html?id=301" class="doc-tab active">Chi tiết từng phản hồi (48)</a>
+    </nav>
+
+    <!-- Toolbar tìm kiếm -->
+    <section class="doc-toolbar">
+      <div class="doc-search-box" style="max-width: 100%;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" placeholder="Tìm kiếm theo mã phản hồi, tên nhân sự hoặc phòng ban...">
+      </div>
+      <button class="doc-filter-btn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        Bộ lọc
+      </button>
+    </section>
+
+    <!-- Bảng danh sách phản hồi cá nhân -->
+    <section class="doc-table-card">
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Mã phản hồi</th>
+            <th>Người tham gia</th>
+            <th>Phòng ban</th>
+            <th>Thời điểm nộp</th>
+            <th>Đánh giá chung</th>
+            <th style="text-align: right;">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>#RESP-048</td>
+            <td class="doc-table-title">Trần Hoàng Long</td>
+            <td>Phòng Đào tạo</td>
+            <td>10:45 04/11/2026</td>
+            <td><span class="doc-badge doc-badge-approved">5★ Rất hài lòng</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=1&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem bài nộp</a>
+            </td>
+          </tr>
+          <tr>
+            <td>#RESP-047</td>
+            <td class="doc-table-title">Nguyễn Minh Anh</td>
+            <td>Phòng Đào tạo</td>
+            <td>09:12 04/11/2026</td>
+            <td><span class="doc-badge doc-badge-in-progress">4★ Hài lòng</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=1&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem bài nộp</a>
+            </td>
+          </tr>
+          <tr>
+            <td>#RESP-046</td>
+            <td class="doc-table-title">Lê Thu Trang</td>
+            <td>Nhân sự & Hành chính</td>
+            <td>16:20 03/11/2026</td>
+            <td><span class="doc-badge doc-badge-approved">5★ Rất hài lòng</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=1&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem bài nộp</a>
+            </td>
+          </tr>
+          <tr>
+            <td>#RESP-045</td>
+            <td class="doc-table-title">Phạm Hải Nam</td>
+            <td>Nhân sự & Hành chính</td>
+            <td>14:05 03/11/2026</td>
+            <td><span class="doc-badge doc-badge-in-progress">4★ Hài lòng</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=1&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem bài nộp</a>
+            </td>
+          </tr>
+          <tr>
+            <td>#RESP-044</td>
+            <td class="doc-table-title">Hoàng Thúy Vy</td>
+            <td>Marketing & Tuyển sinh</td>
+            <td>11:30 02/11/2026</td>
+            <td><span class="doc-badge doc-badge-draft">3★ Bình thường</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=1&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem bài nộp</a>
+            </td>
+          </tr>
+          <tr>
+            <td>#RESP-043</td>
+            <td class="doc-table-title">Vũ Quốc Đạt</td>
+            <td>Công nghệ & Hệ thống</td>
+            <td>08:50 02/11/2026</td>
+            <td><span class="doc-badge doc-badge-in-progress">4★ Hài lòng</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=1&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem bài nộp</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Phân trang -->
+      <footer class="doc-table-pagination">
+        <div>Hiển thị 1 - 6 trong tổng số 48 phản hồi</div>
+        <div class="doc-page-controls">
+          <a href="#" class="doc-page-btn">&lt;</a>
+          <a href="#" class="doc-page-btn active">1</a>
+          <a href="#" class="doc-page-btn">2</a>
+          <a href="#" class="doc-page-btn">3</a>
+          <a href="#" class="doc-page-btn">...</a>
+          <a href="#" class="doc-page-btn">8</a>
+          <a href="#" class="doc-page-btn">&gt;</a>
+        </div>
+      </footer>
+    </section>
+
+  </main>
+{% endblock %}

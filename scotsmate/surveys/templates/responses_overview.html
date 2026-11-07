@@ -1,0 +1,175 @@
+{%  extends 'base.html' %}
+
+{% block content %}
+
+  <main class="survey-workspace">
+    
+    <!-- Tiêu đề trang & Hành động xuất file -->
+    <header class="doc-header">
+      <div>
+        <h1 class="doc-header-title">Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026</h1>
+        <p class="doc-header-subtitle">Tổng hợp và phân tích dữ liệu thống kê từ 48 lượt phản hồi của cán bộ nhân viên</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <a href="published.html" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
+        <a href="#" class="doc-btn doc-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Xuất báo cáo Excel
+        </a>
+      </div>
+    </header>
+
+    <!-- Tabs chuyển đổi giữa Tổng quan và Chi tiết từng người -->
+    <nav class="doc-tabs">
+      <a href="responses_overview.html?id=301" class="doc-tab active">Tổng quan phân tích</a>
+      <a href="responses_detail.html?id=301" class="doc-tab">Chi tiết từng phản hồi (48)</a>
+    </nav>
+
+    <!-- Thẻ tóm tắt số liệu chính -->
+    <section style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 100%;">
+      <div class="doc-card" style="padding: 20px;">
+        <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;">Tổng lượt phản hồi</div>
+        <div style="font-size: 28px; font-weight: 700; color: var(--navy);">48 / 60</div>
+        <div style="font-size: 12px; color: var(--teal-dark); margin-top: 4px;">Đạt 80% chỉ tiêu</div>
+      </div>
+
+      <div class="doc-card" style="padding: 20px;">
+        <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;">Điểm hài lòng trung bình</div>
+        <div style="font-size: 28px; font-weight: 700; color: var(--teal-dark);">4.2 / 5.0</div>
+        <div style="font-size: 12px; color: var(--teal-dark); margin-top: 4px;">Mức đánh giá tích cực</div>
+      </div>
+
+      <div class="doc-card" style="padding: 20px;">
+        <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;">Số ý kiến đóng góp</div>
+        <div style="font-size: 28px; font-weight: 700; color: var(--navy);">18 ý kiến</div>
+        <div style="font-size: 12px; color: var(--ink-soft); margin-top: 4px;">Trong phần tự luận</div>
+      </div>
+
+      <div class="doc-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: center;">
+        <a href="surveys_participants_list_ex1.html" class="doc-btn doc-btn-secondary" style="height: 38px; font-size: 13px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+          </svg>
+          Danh sách người tham gia
+        </a>
+      </div>
+    </section>
+
+    <!-- Phân tích chi tiết từng câu hỏi -->
+    <section style="display: flex; flex-direction: column; gap: 24px; width: 100%;">
+      
+      <!-- Câu 1 Chart -->
+      <div class="doc-card">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 20px;">
+          Câu 1: Mức độ hài lòng tổng quan về môi trường làm việc tại ScotsMate
+        </h2>
+        
+        <div style="display: flex; flex-direction: column; gap: 14px; max-width: 800px;">
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Rất hài lòng (5★)</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 45%; background: var(--teal-dark);"></div>
+            </div>
+            <div class="survey-chart-percent">45% (22)</div>
+          </div>
+
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Hài lòng (4★)</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 38%; background: var(--navy);"></div>
+            </div>
+            <div class="survey-chart-percent">38% (18)</div>
+          </div>
+
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Bình thường (3★)</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 12%; background: #94a3b8;"></div>
+            </div>
+            <div class="survey-chart-percent">12% (6)</div>
+          </div>
+
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Không hài lòng (2★)</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 5%; background: #f59e0b;"></div>
+            </div>
+            <div class="survey-chart-percent">5% (2)</div>
+          </div>
+
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Rất không hài lòng (1★)</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 0%; background: #e11d48;"></div>
+            </div>
+            <div class="survey-chart-percent">0% (0)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Câu 2 Chart -->
+      <div class="doc-card">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 20px;">
+          Câu 2: Các khía cạnh cần ưu tiên cải thiện trong thời gian tới
+        </h2>
+
+        <div style="display: flex; flex-direction: column; gap: 14px; max-width: 800px;">
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Cơ sở vật chất & Lab</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 68%; background: var(--navy);"></div>
+            </div>
+            <div class="survey-chart-percent">68% (33)</div>
+          </div>
+
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Chương trình tập huấn</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 52%; background: var(--navy);"></div>
+            </div>
+            <div class="survey-chart-percent">52% (25)</div>
+          </div>
+
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Chính sách khen thưởng</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 44%; background: var(--navy);"></div>
+            </div>
+            <div class="survey-chart-percent">44% (21)</div>
+          </div>
+
+          <div class="survey-chart-row">
+            <div class="survey-chart-label">Hoạt động gắn kết</div>
+            <div class="survey-chart-bar-bg">
+              <div class="survey-chart-bar-val" style="width: 31%; background: var(--navy);"></div>
+            </div>
+            <div class="survey-chart-percent">31% (15)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Câu 3 Tự luận Card -->
+      <div class="doc-card" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
+            Câu 3: Đóng góp ý kiến và đề xuất nguyện vọng tự do
+          </h2>
+          <p style="font-size: 13px; color: var(--ink-soft); margin: 0;">
+            Đã thu thập được 18 phản hồi chi tiết từ nhân sự các cơ sở.
+          </p>
+        </div>
+        <a href="surveys_essay_response_list_ex1.html" class="doc-btn doc-btn-primary" style="height: 40px; font-size: 13px;">
+          Xem danh sách 18 ý kiến
+        </a>
+      </div>
+
+    </section>
+
+  </main>
+
+{% endblock %}
