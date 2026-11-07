@@ -290,6 +290,18 @@ hr {
   flex-shrink: 0;
 }
 
+.avatar {
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy), var(--teal));
+  color: var(--white);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
 /* Cho phép hiển thị chấm xanh online ở góc dưới phải avatar */
 .topbar .avatar-profile {
   position: relative;
