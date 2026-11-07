@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <main class="doc-workspace">
+    
+    <!-- Tiêu đề trang & Nút tải lên -->
+    <header class="doc-header">
+      <div>
+        <h1 class="doc-header-title">Tài liệu của tôi</h1>
+        <p class="doc-header-subtitle">Theo dõi các tài liệu bạn đã tạo, trạng thái phê duyệt và lịch sử sửa đổi</p>
+      </div>
+      <a href="documents_create.html" class="doc-btn doc-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Tải lên tài liệu mới
+      </a>
+    </header>
+
+    <!-- Điều hướng phân hệ (Tabs) -->
+    <nav class="doc-tabs">
+      <a href="documents.html" class="doc-tab">Danh mục tài liệu</a>
+      <a href="documents_approve.html" class="doc-tab">Tài liệu chờ duyệt (6)</a>
+      <a href="documents_my_docs.html" class="doc-tab active">Tài liệu của tôi</a>
+    </nav>
+
+    <!-- Thanh tìm kiếm & bộ lọc -->
+    <section class="doc-toolbar">
+      <div class="doc-search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" placeholder="Tìm kiếm tài liệu cá nhân đã đăng tải...">
+      </div>
+      <button class="doc-filter-btn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        Bộ lọc
+      </button>
+    </section>
+
+    <!-- Bảng danh sách tài liệu cá nhân -->
+    <section class="doc-table-card">
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Tên tài liệu</th>
+            <th>Danh mục</th>
+            <th>Ngày cập nhật</th>
+            <th>Trạng thái</th>
+            <th style="text-align: right;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in documents %}
+            <tr>
+              <td class="doc-table-title">
+                <a href="{% url 'document_edit' id=doc.id %}">{{ doc.title }}</a>
+              </td>
+              <td>{{ doc.category.name }}</td>
+              <td>{{ doc.updated_at|date:"d/m/Y" }}</td>
+              <td>
+                {% if doc.status == 'APPROVED' %}
+                  <span class="doc-badge doc-badge-approved">Đã duyệt</span>
+                {% elif doc.status == 'PENDING' %}
+                  <span class="doc-badge doc-badge-pending">Chờ duyệt ({{ doc.get_request_type_display }})</span>
+                {% elif doc.status == 'REJECTED' %}
+                  <span class="doc-badge doc-btn-danger">Từ chối</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                <a href="{% url 'document_edit' id=doc.id %}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 12px; font-size: 13px;">Chỉnh sửa</a>
+                <button type="button" class="doc-btn doc-btn-danger" style="height: 36px; padding: 0 12px; font-size: 13px;" onclick="openDeleteModal('{{ doc.id }}', '{{ doc.title|escapejs }}')">Xoá</button>
+              </td>
+            </tr>
+          {% empty %}
+            <!-- HIỂN THỊ TRỐNG NẾU NGƯỜI DÙNG CHƯA TẢI LÊN TÀI LIỆU NÀO -->
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--ink-soft); padding: 48px;">
+                Bạn chưa tải lên tài liệu nào.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Phân trang -->
+      <footer class="doc-table-pagination">
+        <div>Hiển thị 1 - 6 trong tổng số 6 tài liệu</div>
+        <div class="doc-page-controls">
+          <a href="#" class="doc-page-btn">&lt;</a>
+          <a href="#" class="doc-page-btn active">1</a>
+          <a href="#" class="doc-page-btn">&gt;</a>
+        </div>
+      </footer>
+    </section>
+
+  </main>
+
+{% endblock %}
