@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block content %}
+
+  <main class="survey-workspace">
+    
+    <!-- Tiêu đề trang -->
+    <header class="doc-header">
+      <div>
+        <h1 class="doc-header-title">Lịch sử khảo sát</h1>
+        <p class="doc-header-subtitle">Xem lại các biểu mẫu khảo sát bạn đã tham gia đóng góp ý kiến</p>
+      </div>
+      <a href="create.html" class="doc-btn doc-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Tạo khảo sát
+      </a>
+    </header>
+
+    <!-- Điều hướng phân hệ Tabs -->
+    <nav class="doc-tabs">
+      <a href="list.html" class="doc-tab">Khảo sát cần làm</a>
+      <a href="history.html" class="doc-tab active">Lịch sử đã làm</a>
+      <a href="approve_list.html" class="doc-tab">Duyệt khảo sát</a>
+      <a href="published.html" class="doc-tab">Báo cáo & Phản hồi</a>
+    </nav>
+
+    <!-- Thanh tìm kiếm & bộ lọc -->
+    <section class="doc-toolbar">
+      <div class="doc-search-box" style="max-width: 100%;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" placeholder="Tìm kiếm trong lịch sử khảo sát...">
+      </div>
+      <button class="doc-filter-btn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        Bộ lọc
+      </button>
+    </section>
+
+    <!-- Bảng lịch sử khảo sát -->
+    <section class="doc-table-card">
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Tiêu đề khảo sát</th>
+            <th>Thời điểm nộp</th>
+            <th>Trạng thái ghi nhận</th>
+            <th style="text-align: right;">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="doc-table-title">
+              <a href="detail.html?id=10&mode=view">Khảo sát cơ sở vật chất phòng Lab & Thư viện cơ sở 1</a>
+            </td>
+            <td>14:20 28/10/2026</td>
+            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=10&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
+            </td>
+          </tr>
+          <tr>
+            <td class="doc-table-title">
+              <a href="detail.html?id=11&mode=view">Khảo sát đánh giá mức độ hài lòng về chất lượng căn tin</a>
+            </td>
+            <td>09:15 15/10/2026</td>
+            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=11&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
+            </td>
+          </tr>
+          <tr>
+            <td class="doc-table-title">
+              <a href="detail.html?id=12&mode=view">Đánh giá chương trình Team Building mùa thu 2026</a>
+            </td>
+            <td>16:45 05/10/2026</td>
+            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=12&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
+            </td>
+          </tr>
+          <tr>
+            <td class="doc-table-title">
+              <a href="detail.html?id=13&mode=view">Khảo sát mức độ tiếp thu học phần Quản trị rủi ro lớp K23</a>
+            </td>
+            <td>11:10 20/09/2026</td>
+            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=13&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
+            </td>
+          </tr>
+          <tr>
+            <td class="doc-table-title">
+              <a href="detail.html?id=14&mode=view">Khảo sát đóng góp ý kiến quy chuẩn trang phục nhân viên</a>
+            </td>
+            <td>15:30 10/09/2026</td>
+            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=14&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
+            </td>
+          </tr>
+          <tr>
+            <td class="doc-table-title">
+              <a href="detail.html?id=15&mode=view">Khảo sát trải nghiệm sử dụng phần mềm ScotsMate phiên bản 2.0</a>
+            </td>
+            <td>08:50 25/08/2026</td>
+            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
+            <td style="text-align: right;">
+              <a href="detail.html?id=15&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Phân trang -->
+      <footer class="doc-table-pagination">
+        <div>Hiển thị 1 - 6 trong tổng số 18 khảo sát đã làm</div>
+        <div class="doc-page-controls">
+          <a href="#" class="doc-page-btn">&lt;</a>
+          <a href="#" class="doc-page-btn active">1</a>
+          <a href="#" class="doc-page-btn">2</a>
+          <a href="#" class="doc-page-btn">3</a>
+          <a href="#" class="doc-page-btn">&gt;</a>
+        </div>
+      </footer>
+    </section>
+
+  </main>
+{% endblock %}
