@@ -34,8 +34,6 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
-            full_name = user.get_full_name() or user.username
-            messages.success(request, f'Chào mừng {full_name} đã quay trở lại!')
             return redirect('home')
         else:
             error_msg = 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!'
@@ -46,7 +44,6 @@ def login_view(request):
 def logout_view(request):
     """Đăng xuất khỏi hệ thống và chuyển về trang đăng nhập"""
     logout(request)
-    messages.info(request, 'Bạn đã đăng xuất thành công.')
     return redirect('login')
 
 
