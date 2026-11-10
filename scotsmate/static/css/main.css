@@ -956,6 +956,42 @@ hr {
   line-height: 19.2px;
   font-weight: 400;
   color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.comment-action-link,
+.btn-comment-action {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  line-height: 19.2px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  transition: color 0.15s ease !important;
+  user-select: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.comment-action-link:hover,
+.btn-comment-action:hover {
+  color: #134c81 !important;
+  text-decoration: underline !important;
+}
+
+.comment-action-link.liked,
+.btn-comment-action.liked {
+  color: #134c81 !important;
+  font-weight: 700 !important;
 }
 
 .view-more-comments {

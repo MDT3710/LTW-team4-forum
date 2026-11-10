@@ -13,6 +13,48 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  <style>
+    .comment-actions {
+      font-size: 12px;
+      line-height: 19.2px;
+      font-weight: 400;
+      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      user-select: none;
+    }
+    .comment-action-link,
+    .btn-comment-action {
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      font-family: inherit !important;
+      font-size: 12px !important;
+      line-height: 19.2px !important;
+      font-weight: 600 !important;
+      color: #64748b !important;
+      cursor: pointer !important;
+      transition: color 0.15s ease !important;
+      user-select: none !important;
+      display: inline-flex !important;
+      align-items: center !important;
+    }
+    .comment-action-link:hover,
+    .btn-comment-action:hover {
+      color: #134c81 !important;
+      text-decoration: underline !important;
+    }
+    .comment-action-link.liked,
+    .btn-comment-action.liked {
+      color: #134c81 !important;
+      font-weight: 700 !important;
+    }
+  </style>
 </head>
 
 <body>

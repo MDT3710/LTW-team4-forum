@@ -1215,26 +1215,27 @@
               <div style="flex: 1;">
                 <div style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ comment.emp.get_full_name|default:comment.emp.username }}</div>
                 <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ comment.content }}</div>
-                <span class="comment-actions" style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
-                  <button type="button" 
-                          class="btn-comment-action btn-comment-like{% if comment.is_liked_by_user %} liked{% endif %}" 
-                          id="comment-like-btn-{{ comment.id }}" 
-                          onclick="handleCommentLike({{ comment.id }}, this)" 
-                          title="Thích bình luận này">
-                    <span class="comment-like-text">{% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span>
-                    <span class="comment-like-count" id="comment-like-count-{{ comment.id }}" style="{% if not comment.reaction_count %}display: none;{% endif %} margin-left: 2px;">
-                      · <span class="count-num">{{ comment.reaction_count }}</span>
-                    </span>
-                  </button>
-                  <span style="color: #94a3b8; font-size: 11px;">·</span>
-                  <button type="button" 
-                          class="btn-comment-action btn-comment-reply" 
-                          onclick="replyComment({{ post.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" 
-                          title="Trả lời bình luận này">
+                <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                  <span role="button" 
+                        tabindex="0"
+                        class="comment-action-link comment-like-link{% if comment.is_liked_by_user %} liked{% endif %}" 
+                        id="comment-like-btn-{{ comment.id }}" 
+                        onclick="handleCommentLike({{ comment.id }}, this)" 
+                        style="cursor: pointer; font-weight: {% if comment.is_liked_by_user %}700{% else %}600{% endif %}; color: {% if comment.is_liked_by_user %}#134c81{% else %}#64748b{% endif %};"
+                        title="Thích bình luận">
+                    <span class="comment-like-text">{% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span><span class="comment-like-count" id="comment-like-count-{{ comment.id }}" style="{% if not comment.reaction_count %}display: none;{% endif %} margin-left: 2px;"> (<span class="count-num">{{ comment.reaction_count }}</span>)</span>
+                  </span>
+                  <span style="color: #94a3b8;">·</span>
+                  <span role="button" 
+                        tabindex="0"
+                        class="comment-action-link comment-reply-link" 
+                        onclick="replyComment({{ post.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" 
+                        style="cursor: pointer; font-weight: 600; color: #64748b;"
+                        title="Trả lời bình luận">
                     Trả lời
-                  </button>
-                  <span style="color: #94a3b8; font-size: 11px;">·</span>
-                  <span class="comment-time" style="color: #94a3b8; font-size: 11px;">{{ comment.time_reacted }}</span>
+                  </span>
+                  <span style="color: #94a3b8;">·</span>
+                  <span class="comment-time" style="color: #94a3b8;">{{ comment.time_reacted }}</span>
                 </span>
               </div>
             </div>
@@ -1328,12 +1329,20 @@
         if (data.liked) {
           btn.style.color = '#134c81';
           btn.style.background = '#edf4fb';
-          if (svg) svg.style.stroke = '#134c81';
+          btn.style.borderColor = '#bfdbfe';
+          if (svg) {
+            svg.style.stroke = '#134c81';
+            svg.setAttribute('fill', '#134c81');
+          }
           if (btnText) btnText.innerText = 'Đã thích';
         } else {
           btn.style.color = '#64748b';
           btn.style.background = '#f8fafc';
-          if (svg) svg.style.stroke = '#64748b';
+          btn.style.borderColor = '#e2e8f0';
+          if (svg) {
+            svg.style.stroke = '#64748b';
+            svg.setAttribute('fill', 'none');
+          }
           if (btnText) btnText.innerText = 'Thích';
         }
       }
@@ -1373,26 +1382,27 @@
                 <div style="flex: 1;">
                   <div style="font-size: 13px; font-weight: 600; color: #1e293b;">${data.comment.author}</div>
                   <div style="font-size: 13px; color: #334155; margin-top: 2px;">${data.comment.content}</div>
-                  <span class="comment-actions" style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
-                    <button type="button" 
-                            class="btn-comment-action btn-comment-like" 
-                            id="comment-like-btn-${data.comment.id}" 
-                            onclick="handleCommentLike(${data.comment.id}, this)" 
-                            title="Thích bình luận này">
-                      <span class="comment-like-text">Thích</span>
-                      <span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;">
-                        · <span class="count-num">0</span>
-                      </span>
-                    </button>
-                    <span style="color: #94a3b8; font-size: 11px;">·</span>
-                    <button type="button" 
-                            class="btn-comment-action btn-comment-reply" 
-                            onclick="replyComment(${postId}, '${(data.comment.author || '').replace(/'/g, "\\'")}')" 
-                            title="Trả lời bình luận này">
+                  <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-like-link" 
+                          id="comment-like-btn-${data.comment.id}" 
+                          onclick="handleCommentLike(${data.comment.id}, this)" 
+                          style="cursor: pointer; font-weight: 600; color: #64748b;"
+                          title="Thích bình luận">
+                      <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-reply-link" 
+                          onclick="replyComment(${postId}, '${(data.comment.author || '').replace(/'/g, "\\'")}')" 
+                          style="cursor: pointer; font-weight: 600; color: #64748b;"
+                          title="Trả lời bình luận">
                       Trả lời
-                    </button>
-                    <span style="color: #94a3b8; font-size: 11px;">·</span>
-                    <span class="comment-time" style="color: #94a3b8; font-size: 11px;">${data.comment.time}</span>
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
                   </span>
                 </div>
               </div>
@@ -1541,7 +1551,14 @@
             postCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             postCard.style.opacity = '0';
             postCard.style.transform = 'translateY(-10px)';
-            setTimeout(() => postCard.remove(), 300);
+            setTimeout(() => {
+              postCard.remove();
+              const countEl = document.querySelector('.profile-meta-counts span');
+              if (countEl && countEl.innerText.includes('bài viết')) {
+                const cur = parseInt(countEl.innerText) || 0;
+                if (cur > 0) countEl.innerText = `${cur - 1} bài viết`;
+              }
+            }, 300);
           }
         } else {
           alert(data.error || 'Không thể xóa bài viết.');
@@ -1612,8 +1629,7 @@
       if (data.success) {
         const contentEl = document.getElementById(`post-content-${postId}`);
         if (contentEl) {
-          contentEl.innerHTML = data.content.replace(/
-/g, '<br />');
+          contentEl.innerHTML = data.content.replace(/\n/g, '<br />');
         }
         const badgeEl = document.getElementById(`post-edited-badge-${postId}`);
         if (badgeEl) {

@@ -288,26 +288,27 @@
                     <span class="comment-author">{{ comment.emp.get_full_name|default:comment.emp.username }}</span>
                     <span class="comment-text">{{ comment.content }}</span>
                   </div>
-                  <span class="comment-actions" style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
-                    <button type="button" 
-                            class="btn-comment-action btn-comment-like{% if comment.is_liked_by_user %} liked{% endif %}" 
-                            id="comment-like-btn-{{ comment.id }}" 
-                            onclick="handleCommentLike({{ comment.id }}, this)" 
-                            title="Thích bình luận này">
-                      <span class="comment-like-text">{% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span>
-                      <span class="comment-like-count" id="comment-like-count-{{ comment.id }}" style="{% if not comment.reaction_count %}display: none;{% endif %} margin-left: 2px;">
-                        · <span class="count-num">{{ comment.reaction_count }}</span>
-                      </span>
-                    </button>
-                    <span style="color: #94a3b8; font-size: 11px;">·</span>
-                    <button type="button" 
-                            class="btn-comment-action btn-comment-reply" 
-                            onclick="replyComment({{ post.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" 
-                            title="Trả lời bình luận này">
+                  <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-like-link{% if comment.is_liked_by_user %} liked{% endif %}" 
+                          id="comment-like-btn-{{ comment.id }}" 
+                          onclick="handleCommentLike({{ comment.id }}, this)" 
+                          style="cursor: pointer; font-weight: {% if comment.is_liked_by_user %}700{% else %}600{% endif %}; color: {% if comment.is_liked_by_user %}#134c81{% else %}#64748b{% endif %};"
+                          title="Thích bình luận">
+                      <span class="comment-like-text">{% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span><span class="comment-like-count" id="comment-like-count-{{ comment.id }}" style="{% if not comment.reaction_count %}display: none;{% endif %} margin-left: 2px;"> (<span class="count-num">{{ comment.reaction_count }}</span>)</span>
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-reply-link" 
+                          onclick="replyComment({{ post.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" 
+                          style="cursor: pointer; font-weight: 600; color: #64748b;"
+                          title="Trả lời bình luận">
                       Trả lời
-                    </button>
-                    <span style="color: #94a3b8; font-size: 11px;">·</span>
-                    <span class="comment-time" style="color: #94a3b8; font-size: 12px;">{{ comment.time_reacted }}</span>
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span class="comment-time" style="color: #94a3b8;">{{ comment.time_reacted }}</span>
                   </span>
                 </div>
               </div>
@@ -485,26 +486,27 @@
                           <span class="comment-author">${data.comment.author}</span>
                           <span class="comment-text">${data.comment.content}</span>
                         </div>
-                        <span class="comment-actions" style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
-                          <button type="button" 
-                                  class="btn-comment-action btn-comment-like" 
-                                  id="comment-like-btn-${data.comment.id}" 
-                                  onclick="handleCommentLike(${data.comment.id}, this)" 
-                                  title="Thích bình luận này">
-                            <span class="comment-like-text">Thích</span>
-                            <span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;">
-                              · <span class="count-num">0</span>
-                            </span>
-                          </button>
-                          <span style="color: #94a3b8; font-size: 11px;">·</span>
-                          <button type="button" 
-                                  class="btn-comment-action btn-comment-reply" 
-                                  onclick="replyComment(${postId}, '${escapedAuthor}')" 
-                                  title="Trả lời bình luận này">
+                        <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                          <span role="button" 
+                                tabindex="0"
+                                class="comment-action-link comment-like-link" 
+                                id="comment-like-btn-${data.comment.id}" 
+                                onclick="handleCommentLike(${data.comment.id}, this)" 
+                                style="cursor: pointer; font-weight: 600; color: #64748b;"
+                                title="Thích bình luận">
+                            <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span role="button" 
+                                tabindex="0"
+                                class="comment-action-link comment-reply-link" 
+                                onclick="replyComment(${postId}, '${escapedAuthor}')" 
+                                style="cursor: pointer; font-weight: 600; color: #64748b;"
+                                title="Trả lời bình luận">
                             Trả lời
-                          </button>
-                          <span style="color: #94a3b8; font-size: 11px;">·</span>
-                          <span class="comment-time" style="color: #94a3b8; font-size: 12px;">${data.comment.time}</span>
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
                         </span>
                       </div>
                     </div>
