@@ -7330,3 +7330,27 @@ hr {
 .option-label:hover {
   background: #f8fafc;
 }
+
+/* Full-size post photos display */
+.post-photos {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.photo {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  display: block !important;
+}
+
+.photo img {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  display: block !important;
+}

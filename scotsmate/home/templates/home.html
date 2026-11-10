@@ -216,11 +216,11 @@
               {% endif %}
             </span>
 
-                        <div class="post-photos" id="post-photos-{{ post.id }}" style="display: {% if post.attachments.all %}flex{% else %}none{% endif %}; gap: 12px; flex-wrap: wrap; margin-top: 12px;">
+                        <div class="post-photos" id="post-photos-{{ post.id }}" style="display: {% if post.attachments.all %}flex{% else %}none{% endif %}; flex-direction: column; gap: 12px; margin-top: 12px; width: 100%;">
               {% for att in post.attachments.all %}
                 {% if att.file %}
-                  <div class="photo" style="overflow: hidden; max-height: 380px; border-radius: 8px; flex: 1; min-width: 240px;">
-                    <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/post_photo_1.png' %}';" />
+                  <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; height: auto; display: block; background: #f8fafc; border: 1px solid #e2e8f0;">
+                    <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="width: 100%; height: auto; max-width: 100%; display: block; border-radius: 8px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh gốc kích thước đầy đủ" onclick="window.open(this.src, '_blank')" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" onerror="this.src='{% static 'img/post_photo_1.png' %}';" />
                   </div>
                 {% else %}
                   <div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">
@@ -951,29 +951,18 @@
           }
 
           photosContainer.style.display = 'flex';
-          const isProfilePage = photosContainer.classList.contains('post-media-frame');
-
-          if (isProfilePage) {
-            photosContainer.innerHTML = attachments.map(att => {
-              if (att.url) {
-                return `<img src="${att.url}" alt="${att.file_name}" style="max-height: 400px; width: 100%; object-fit: cover; border-radius: 8px;" onerror="this.src='/static/img/profile_post_1.png';" />`;
-              } else {
-                return `<div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">📄 <span>${att.file_name}</span></div>`;
-              }
-            }).join('');
-          } else {
-            photosContainer.innerHTML = attachments.map(att => {
-              if (att.url) {
-                return `
-                  <div class="photo" style="overflow: hidden; max-height: 380px; border-radius: 8px; flex: 1; min-width: 240px;">
-                    <img src="${att.url}" alt="${att.file_name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/static/img/post_photo_1.png';" />
-                  </div>
-                `;
-              } else {
-                return `<div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">📄 <span>${att.file_name}</span></div>`;
-              }
-            }).join('');
-          }
+          photosContainer.style.flexDirection = 'column';
+          photosContainer.innerHTML = attachments.map(att => {
+            if (att.url) {
+              return `
+                <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; height: auto; display: block; background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <img src="${att.url}" alt="${att.file_name}" style="width: 100%; height: auto; max-width: 100%; display: block; border-radius: 8px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh gốc kích thước đầy đủ" onclick="window.open(this.src, '_blank')" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" onerror="this.src='/static/img/post_photo_1.png';" />
+                </div>
+              `;
+            } else {
+              return `<div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">📄 <span>${att.file_name}</span></div>`;
+            }
+          }).join('');
         }
 
         function deleteComment(commentId, postId) {
