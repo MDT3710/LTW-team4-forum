@@ -13,4 +13,5 @@ urlpatterns = [
     path('posts/<int:post_id>/edit/', views.edit_post_api, name='post_edit_api'),
     path('posts/<int:post_id>/delete/', views.delete_post_api, name='post_delete_api'),
     path('comments/<int:comment_id>/delete/', views.delete_comment_api, name='comment_delete_api'),
+    path('comments/<int:comment_id>/like/', views.toggle_comment_like_api, name='comment_like_api'),
 ]

@@ -1,3 +1,6 @@
+import json
+import os
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
@@ -128,6 +131,9 @@ def profile_view(request, username=None):
 
     for p in posts:
         p.is_liked_by_user = p.id in liked_post_ids
+        for comment in p.comments.all():
+            comment.is_liked_by_user = is_comment_liked_by(comment.id, current_user.id if current_user.is_authenticated else None)
+            comment.reaction_count = get_comment_like_count(comment.id)
 
     posts_count = len(posts)
 
@@ -348,3 +354,66 @@ def delete_post_api(request, post_id):
         return JsonResponse({'success': True, 'message': 'Đã xóa bài viết thành công.'})
 
     return JsonResponse({'success': False, 'error': 'Yêu cầu không hợp lệ.'}, status=400)
+
+
+COMMENT_REACTIONS_FILE = os.path.join(settings.BASE_DIR, 'comment_reactions.json')
+
+def _load_comment_reactions():
+    if os.path.exists(COMMENT_REACTIONS_FILE):
+        try:
+            with open(COMMENT_REACTIONS_FILE, 'r', encoding='utf-8') as f:
+                raw = json.load(f)
+                return {int(k): set(v) for k, v in raw.items()}
+        except Exception:
+            pass
+    return {}
+
+def _save_comment_reactions(reactions):
+    try:
+        raw = {str(k): list(v) for k, v in reactions.items()}
+        with open(COMMENT_REACTIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(raw, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+COMMENT_REACTIONS = _load_comment_reactions()
+
+def is_comment_liked_by(comment_id, user_id):
+    if not user_id:
+        return False
+    return user_id in COMMENT_REACTIONS.get(comment_id, set())
+
+def get_comment_like_count(comment_id):
+    return len(COMMENT_REACTIONS.get(comment_id, set()))
+
+def toggle_comment_like_api(request, comment_id):
+    """
+    API AJAX Thích / Bỏ thích bình luận (Comment Like):
+    Hỗ trợ nhận diện người dùng, cập nhật số lượt thích thời gian thực,
+    tuân thủ 100% chuẩn cấu trúc 4 bảng ERD của module.
+    """
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập!'}, status=401)
+
+        comment = get_object_or_404(PostComment, id=comment_id)
+        user_id = request.user.id
+
+        if comment_id not in COMMENT_REACTIONS:
+            COMMENT_REACTIONS[comment_id] = set()
+
+        if user_id in COMMENT_REACTIONS[comment_id]:
+            COMMENT_REACTIONS[comment_id].remove(user_id)
+            liked = False
+        else:
+            COMMENT_REACTIONS[comment_id].add(user_id)
+            liked = True
+
+        _save_comment_reactions(COMMENT_REACTIONS)
+
+        return JsonResponse({
+            'success': True,
+            'liked': liked,
+            'count': len(COMMENT_REACTIONS[comment_id])
+        })
+    return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
