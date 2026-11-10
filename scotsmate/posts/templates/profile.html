@@ -1196,52 +1196,127 @@
           </div>
         </div>
 
-        <!-- Comments List -->
+                <!-- Comments List -->
         <div class="featured-comment" id="comments-list-{{ post.id }}" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-          {% for comment in post.comments.all %}
-          <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
-            <div style="display: flex; gap: 8px; flex: 1;">
-                            <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
-                {% if comment.emp.username == 'thuha' %}
-                  <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif comment.emp.username == 'phuonglinh' %}
-                  <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif comment.emp.username == 'ngocanh' %}
-                  <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% else %}
-                  <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+          {% for comment in post.root_comments %}
+          <div class="comment-thread" id="comment-thread-{{ comment.id }}">
+            <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
+              <div style="display: flex; gap: 8px; flex: 1;">
+                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
+                  {% if comment.emp.username == 'thuha' %}
+                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif comment.emp.username == 'phuonglinh' %}
+                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif comment.emp.username == 'ngocanh' %}
+                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% else %}
+                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% endif %}
+                </div>
+                <div style="flex: 1;">
+                  <div style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ comment.emp.get_full_name|default:comment.emp.username }}</div>
+                  <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ comment.formatted_content|safe }}</div>
+                  <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-like-link{% if comment.is_liked_by_user %} liked{% endif %}" 
+                          id="comment-like-btn-{{ comment.id }}" 
+                          onclick="handleCommentLike({{ comment.id }}, this)" 
+                          style="cursor: pointer; font-weight: {% if comment.is_liked_by_user %}700{% else %}600{% endif %}; color: {% if comment.is_liked_by_user %}#134c81{% else %}#64748b{% endif %};"
+                          title="Thích bình luận">
+                      <span class="comment-like-text">{% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span><span class="comment-like-count" id="comment-like-count-{{ comment.id }}" style="{% if not comment.reaction_count %}display: none;{% endif %} margin-left: 2px;"> (<span class="count-num">{{ comment.reaction_count }}</span>)</span>
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-reply-link" 
+                          onclick="replyComment({{ post.id }}, {{ comment.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" 
+                          style="cursor: pointer; font-weight: 600; color: #64748b;"
+                          title="Trả lời bình luận">
+                      Trả lời
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span class="comment-time" style="color: #94a3b8; font-size: 11px;">{{ comment.time_reacted }}</span>
+                  </span>
+                </div>
+              </div>
+              {% if current_user.id == comment.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+              <button type="button" onclick="deleteComment({{ comment.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+              {% endif %}
+            </div>
+
+            <!-- Nested replies under comment in profile -->
+            <div class="comment-replies" id="comment-replies-{{ comment.id }}" style="margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; display: {% if comment.child_replies %}flex{% else %}none{% endif %}; flex-direction: column; gap: 8px; margin-top: 8px;">
+              {% for reply in comment.child_replies %}
+              <div class="comment comment-reply-item" id="comment-item-{{ reply.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 6px 10px;">
+                <div style="display: flex; gap: 8px; flex: 1;">
+                  <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                    {% if reply.emp.username == 'thuha' %}
+                      <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% elif reply.emp.username == 'phuonglinh' %}
+                      <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% elif reply.emp.username == 'ngocanh' %}
+                      <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% else %}
+                      <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% endif %}
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ reply.emp.get_full_name|default:reply.emp.username }}</div>
+                    <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ reply.formatted_content|safe }}</div>
+                    <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
+                      <span role="button" 
+                            tabindex="0"
+                            class="comment-action-link comment-like-link{% if reply.is_liked_by_user %} liked{% endif %}" 
+                            id="comment-like-btn-{{ reply.id }}" 
+                            onclick="handleCommentLike({{ reply.id }}, this)" 
+                            style="cursor: pointer; font-weight: {% if reply.is_liked_by_user %}700{% else %}600{% endif %}; color: {% if reply.is_liked_by_user %}#134c81{% else %}#64748b{% endif %};"
+                            title="Thích bình luận">
+                        <span class="comment-like-text">{% if reply.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span><span class="comment-like-count" id="comment-like-count-{{ reply.id }}" style="{% if not reply.reaction_count %}display: none;{% endif %} margin-left: 2px;"> (<span class="count-num">{{ reply.reaction_count }}</span>)</span>
+                      </span>
+                      <span style="color: #94a3b8;">·</span>
+                      <span role="button" 
+                            tabindex="0"
+                            class="comment-action-link comment-reply-link" 
+                            onclick="replyComment({{ post.id }}, {{ comment.id }}, '{{ reply.emp.get_full_name|default:reply.emp.username|escapejs }}')" 
+                            style="cursor: pointer; font-weight: 600; color: #64748b;"
+                            title="Trả lời bình luận">
+                        Trả lời
+                      </span>
+                      <span style="color: #94a3b8;">·</span>
+                      <span class="comment-time" style="color: #94a3b8; font-size: 11px;">{{ reply.time_reacted }}</span>
+                    </span>
+                  </div>
+                </div>
+                {% if current_user.id == reply.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+                <button type="button" onclick="deleteComment({{ reply.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
                 {% endif %}
               </div>
-              <div style="flex: 1;">
-                <div style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ comment.emp.get_full_name|default:comment.emp.username }}</div>
-                <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ comment.content }}</div>
-                <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
-                  <span role="button" 
-                        tabindex="0"
-                        class="comment-action-link comment-like-link{% if comment.is_liked_by_user %} liked{% endif %}" 
-                        id="comment-like-btn-{{ comment.id }}" 
-                        onclick="handleCommentLike({{ comment.id }}, this)" 
-                        style="cursor: pointer; font-weight: {% if comment.is_liked_by_user %}700{% else %}600{% endif %}; color: {% if comment.is_liked_by_user %}#134c81{% else %}#64748b{% endif %};"
-                        title="Thích bình luận">
-                    <span class="comment-like-text">{% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span><span class="comment-like-count" id="comment-like-count-{{ comment.id }}" style="{% if not comment.reaction_count %}display: none;{% endif %} margin-left: 2px;"> (<span class="count-num">{{ comment.reaction_count }}</span>)</span>
-                  </span>
-                  <span style="color: #94a3b8;">·</span>
-                  <span role="button" 
-                        tabindex="0"
-                        class="comment-action-link comment-reply-link" 
-                        onclick="replyComment({{ post.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" 
-                        style="cursor: pointer; font-weight: 600; color: #64748b;"
-                        title="Trả lời bình luận">
-                    Trả lời
-                  </span>
-                  <span style="color: #94a3b8;">·</span>
-                  <span class="comment-time" style="color: #94a3b8;">{{ comment.time_reacted }}</span>
-                </span>
+              {% endfor %}
+            </div>
+
+            <!-- Inline reply box in profile -->
+            <div class="inline-reply-box" id="reply-box-{{ comment.id }}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                  {% if current_user.username == 'thuha' %}
+                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif current_user.username == 'phuonglinh' %}
+                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif current_user.username == 'ngocanh' %}
+                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% else %}
+                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+                  {% endif %}
+                </div>
+                <input type="text" 
+                       class="reply-text-input" 
+                       id="reply-input-{{ comment.id }}" 
+                       placeholder="Trả lời {{ comment.emp.get_full_name|default:comment.emp.username }}… (Enter để gửi, Esc để đóng)" 
+                       style="flex: 1; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; background: #ffffff;"
+                       onkeydown="if(event.key==='Enter'){ submitReply({{ post.id }}, {{ comment.id }}, this); } else if(event.key==='Escape'){ closeReplyBox({{ comment.id }}); }" />
               </div>
             </div>
-            {% if current_user.id == comment.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
-            <button type="button" onclick="deleteComment({{ comment.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
-            {% endif %}
           </div>
           {% endfor %}
         </div>
@@ -1350,144 +1425,265 @@
     .catch(err => console.error(err));
   }
 
-  function submitComment(postId, inputEl) {
-    const content = inputEl.value.trim();
-    if (!content) return;
-
-    const formData = new FormData();
-    formData.append('content', content);
-
-    fetch(`/posts/${postId}/comment/`, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCsrfToken()
-      },
-      body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        inputEl.value = '';
-        const countSpan = document.getElementById(`post-comment-count-${postId}`);
-        if (countSpan) countSpan.innerText = `${data.count} bình luận`;
-
-        const list = document.getElementById(`comments-list-${postId}`);
-        if (list) {
-          const newCommentHtml = `
-            <div class="comment" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px; animation: fadeIn 0.3s ease;">
-              <div style="display: flex; gap: 8px; flex: 1;">
-                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                  <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                </div>
-                <div style="flex: 1;">
-                  <div style="font-size: 13px; font-weight: 600; color: #1e293b;">${data.comment.author}</div>
-                  <div style="font-size: 13px; color: #334155; margin-top: 2px;">${data.comment.content}</div>
-                  <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
-                    <span role="button" 
-                          tabindex="0"
-                          class="comment-action-link comment-like-link" 
-                          id="comment-like-btn-${data.comment.id}" 
-                          onclick="handleCommentLike(${data.comment.id}, this)" 
-                          style="cursor: pointer; font-weight: 600; color: #64748b;"
-                          title="Thích bình luận">
-                      <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
-                    </span>
-                    <span style="color: #94a3b8;">·</span>
-                    <span role="button" 
-                          tabindex="0"
-                          class="comment-action-link comment-reply-link" 
-                          onclick="replyComment(${postId}, '${(data.comment.author || '').replace(/'/g, "\\'")}')" 
-                          style="cursor: pointer; font-weight: 600; color: #64748b;"
-                          title="Trả lời bình luận">
-                      Trả lời
-                    </span>
-                    <span style="color: #94a3b8;">·</span>
-                    <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
-                  </span>
-                </div>
-              </div>
-              <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
-            </div>
-          `;
-          list.insertAdjacentHTML('beforeend', newCommentHtml);
+          function replyComment(postId, commentId, authorName) {
+          const replyBox = document.getElementById(`reply-box-${commentId}`);
+          if (replyBox) {
+            replyBox.style.display = 'block';
+            const input = document.getElementById(`reply-input-${commentId}`);
+            if (input) {
+              const mention = `@${authorName} `;
+              if (!input.value.startsWith(mention)) {
+                input.value = mention;
+              }
+              input.focus();
+              input.setSelectionRange(input.value.length, input.value.length);
+              input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          } else {
+            const postCard = document.getElementById(`post-${postId}`);
+            if (postCard) {
+              const input = postCard.querySelector('.comment-box .text-input') || 
+                            postCard.querySelector('input.text-input');
+              if (input) {
+                input.dataset.parentId = commentId;
+                const mention = `@${authorName} `;
+                if (!input.value.startsWith(mention)) input.value = mention;
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+                input.placeholder = `Đang trả lời ${authorName}… (Nhấn Enter để gửi)`;
+                input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }
+          }
         }
-      }
-    })
-    .catch(err => console.error(err));
-  }
 
-  
-  function replyComment(postId, authorName) {
-    const list = document.getElementById(`comments-list-${postId}`);
-    const postCard = document.getElementById(`post-${postId}`) || (list ? list.closest('.post-card-item, article') : null);
-    if (!postCard) return;
+        function closeReplyBox(commentId) {
+          const replyBox = document.getElementById(`reply-box-${commentId}`);
+          if (replyBox) replyBox.style.display = 'none';
+        }
 
-    const input = postCard.querySelector('.comment-text-field') || 
-                  postCard.querySelector('input[type="text"]');
-    if (!input) return;
+        function submitReply(postId, parentCommentId, input) {
+          const content = input.value.trim();
+          if (!content) return;
 
-    const mention = `@${authorName} `;
-    if (!input.value.startsWith(mention)) {
-      input.value = mention + input.value.replace(/^@[^ ]+ /, '');
-    }
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-    input.placeholder = `Đang trả lời ${authorName}… (Nhấn Enter để gửi)`;
+          const formData = new FormData();
+          formData.append('content', content);
+          formData.append('parent_id', parentCommentId);
 
-    input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          fetch(`/posts/${postId}/comment/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              input.value = '';
+              const countEl = document.getElementById(`post-comment-count-${postId}`);
+              if (countEl) countEl.textContent = `${data.count} bình luận`;
 
-    input.style.transition = 'box-shadow 0.3s ease, border-color 0.3s ease';
-    input.style.borderColor = '#134c81';
-    input.style.boxShadow = '0 0 0 3px rgba(19, 76, 129, 0.2)';
-    setTimeout(() => {
-      input.style.borderColor = '';
-      input.style.boxShadow = '';
-    }, 1500);
-  }
+              const repliesContainer = document.getElementById(`comment-replies-${parentCommentId}`);
+              if (repliesContainer) {
+                repliesContainer.style.display = 'flex';
+                const escapedAuthor = (data.comment.author || '').replace(/'/g, "\'");
+                const replyHtml = `
+                  <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
+                    <div style="display: flex; gap: 8px; flex: 1;">
+                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                        <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                      </div>
+                      <div class="comment-body" style="flex: 1;">
+                        <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
+                          <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
+                          <span class="comment-text" style="font-size: 13px;">${data.comment.formatted_content || data.comment.content}</span>
+                        </div>
+                        <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
+                          <span role="button" tabindex="0" class="comment-action-link comment-like-link" id="comment-like-btn-${data.comment.id}" onclick="handleCommentLike(${data.comment.id}, this)" title="Thích bình luận">
+                            <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span role="button" tabindex="0" class="comment-action-link comment-reply-link" onclick="replyComment(${postId}, ${parentCommentId}, '${escapedAuthor}')" title="Trả lời bình luận">
+                            Trả lời
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+                  </div>
+                `;
+                repliesContainer.insertAdjacentHTML('beforeend', replyHtml);
+              }
+            }
+          })
+          .catch(err => console.error(err));
+        }
 
-  function handleCommentLike(commentId, btn) {
-    const textEl = btn.querySelector('.comment-like-text');
-    const countWrap = btn.querySelector('.comment-like-count');
-    const countNum = btn.querySelector('.count-num');
+        function handleCommentLike(commentId, el) {
+          const textEl = el.querySelector('.comment-like-text');
+          const countWrap = el.querySelector('.comment-like-count');
+          const countNum = el.querySelector('.count-num');
 
-    const isLiked = btn.classList.contains('liked');
-    const nextLiked = !isLiked;
+          const isLiked = el.classList.contains('liked');
+          const nextLiked = !isLiked;
 
-    btn.classList.toggle('liked', nextLiked);
-    if (textEl) textEl.textContent = nextLiked ? 'Đã thích' : 'Thích';
+          el.classList.toggle('liked', nextLiked);
+          if (textEl) textEl.textContent = nextLiked ? 'Đã thích' : 'Thích';
+          el.style.color = nextLiked ? '#134c81' : '#64748b';
+          el.style.fontWeight = nextLiked ? '700' : '600';
 
-    let count = countNum ? parseInt(countNum.textContent || '0', 10) : 0;
-    if (isNaN(count)) count = 0;
-    count = nextLiked ? count + 1 : Math.max(0, count - 1);
+          let count = countNum ? parseInt(countNum.textContent || '0', 10) : 0;
+          if (isNaN(count)) count = 0;
+          count = nextLiked ? count + 1 : Math.max(0, count - 1);
 
-    if (countNum) countNum.textContent = count;
-    if (countWrap) countWrap.style.display = count > 0 ? 'inline' : 'none';
+          if (countNum) countNum.textContent = count;
+          if (countWrap) countWrap.style.display = count > 0 ? 'inline' : 'none';
 
-    fetch(`/comments/${commentId}/like/`, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCsrfToken(),
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        btn.classList.toggle('liked', data.liked);
-        if (textEl) textEl.textContent = data.liked ? 'Đã thích' : 'Thích';
-        if (countNum) countNum.textContent = data.count;
-        if (countWrap) countWrap.style.display = data.count > 0 ? 'inline' : 'none';
-      } else {
-        btn.classList.toggle('liked', isLiked);
-        if (textEl) textEl.textContent = isLiked ? 'Đã thích' : 'Thích';
-      }
-    })
-    .catch(err => {
-      console.error('Error toggling comment like:', err);
-      btn.classList.toggle('liked', isLiked);
-      if (textEl) textEl.textContent = isLiked ? 'Đã thích' : 'Thích';
-    });
-  }
+          fetch(`/comments/${commentId}/like/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken(),
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              el.classList.toggle('liked', data.liked);
+              if (textEl) textEl.textContent = data.liked ? 'Đã thích' : 'Thích';
+              el.style.color = data.liked ? '#134c81' : '#64748b';
+              el.style.fontWeight = data.liked ? '700' : '600';
+              if (countNum) countNum.textContent = data.count;
+              if (countWrap) countWrap.style.display = data.count > 0 ? 'inline' : 'none';
+            } else {
+              el.classList.toggle('liked', isLiked);
+              if (textEl) textEl.textContent = isLiked ? 'Đã thích' : 'Thích';
+              el.style.color = isLiked ? '#134c81' : '#64748b';
+              el.style.fontWeight = isLiked ? '700' : '600';
+            }
+          })
+          .catch(err => {
+            console.error('Error toggling comment like:', err);
+            el.classList.toggle('liked', isLiked);
+            if (textEl) textEl.textContent = isLiked ? 'Đã thích' : 'Thích';
+            el.style.color = isLiked ? '#134c81' : '#64748b';
+            el.style.fontWeight = isLiked ? '700' : '600';
+          });
+        }
+
+        function submitComment(postId, input) {
+          const content = input.value.trim();
+          if (!content) return;
+
+          const formData = new FormData();
+          formData.append('content', content);
+          if (input.dataset.parentId) {
+            formData.append('parent_id', input.dataset.parentId);
+          }
+
+          fetch(`/posts/${postId}/comment/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              input.value = '';
+              input.placeholder = 'Viết bình luận… (Enter để gửi)';
+              delete input.dataset.parentId;
+
+              const countEl = document.getElementById(`post-comment-count-${postId}`);
+              if (countEl) countEl.textContent = `${data.count} bình luận`;
+
+              const parentId = data.comment.parent_id;
+              const repliesContainer = parentId ? document.getElementById(`comment-replies-${parentId}`) : null;
+
+              if (repliesContainer) {
+                repliesContainer.style.display = 'flex';
+                const escapedAuthor = (data.comment.author || '').replace(/'/g, "\'");
+                const replyHtml = `
+                  <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
+                    <div style="display: flex; gap: 8px; flex: 1;">
+                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                        <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                      </div>
+                      <div class="comment-body" style="flex: 1;">
+                        <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
+                          <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
+                          <span class="comment-text" style="font-size: 13px;">${data.comment.formatted_content || data.comment.content}</span>
+                        </div>
+                        <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
+                          <span role="button" tabindex="0" class="comment-action-link comment-like-link" id="comment-like-btn-${data.comment.id}" onclick="handleCommentLike(${data.comment.id}, this)" title="Thích bình luận">
+                            <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span role="button" tabindex="0" class="comment-action-link comment-reply-link" onclick="replyComment(${postId}, ${parentId}, '${escapedAuthor}')" title="Trả lời bình luận">
+                            Trả lời
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+                  </div>
+                `;
+                repliesContainer.insertAdjacentHTML('beforeend', replyHtml);
+              } else {
+                const list = document.getElementById(`comments-list-${postId}`);
+                if (list) {
+                  const escapedAuthor = (data.comment.author || '').replace(/'/g, "\'");
+                  const newThreadHtml = `
+                    <div class="comment-thread" id="comment-thread-${data.comment.id}" style="margin-top: 12px; animation: fadeIn 0.3s ease;">
+                      <div class="comment" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="display: flex; gap: 8px; flex: 1;">
+                          <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
+                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                          </div>
+                          <div class="comment-body" style="flex: 1;">
+                            <div class="comment-bubble">
+                              <span class="comment-author">${data.comment.author}</span>
+                              <span class="comment-text">${data.comment.formatted_content || data.comment.content}</span>
+                            </div>
+                            <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                              <span role="button" tabindex="0" class="comment-action-link comment-like-link" id="comment-like-btn-${data.comment.id}" onclick="handleCommentLike(${data.comment.id}, this)" title="Thích bình luận">
+                                <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                              </span>
+                              <span style="color: #94a3b8;">·</span>
+                              <span role="button" tabindex="0" class="comment-action-link comment-reply-link" onclick="replyComment(${postId}, ${data.comment.id}, '${escapedAuthor}')" title="Trả lời bình luận">
+                                Trả lời
+                              </span>
+                              <span style="color: #94a3b8;">·</span>
+                              <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+                      </div>
+                      <div class="comment-replies" id="comment-replies-${data.comment.id}" style="margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; display: none; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
+                      <div class="inline-reply-box" id="reply-box-${data.comment.id}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                          <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                          </div>
+                          <input type="text" class="reply-text-input" id="reply-input-${data.comment.id}" placeholder="Trả lời ${data.comment.author}… (Enter để gửi, Esc để đóng)" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; background: #ffffff;" onkeydown="if(event.key==='Enter'){ submitReply(${postId}, ${data.comment.id}, this); } else if(event.key==='Escape'){ closeReplyBox(${data.comment.id}); }" />
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                  list.insertAdjacentHTML('beforeend', newThreadHtml);
+                }
+              }
+            }
+          })
+          .catch(err => console.error(err));
+        }
 
   function deleteComment(commentId, postId) {
     if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;

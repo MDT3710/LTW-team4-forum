@@ -41,12 +41,10 @@ def HomeView(request):
         PostReaction.objects.filter(emp=current_user).values_list('post_id', flat=True)
     )
 
-    from posts.views import is_comment_liked_by, get_comment_like_count
+    from posts.views import prepare_post_comments
     for post in posts:
         post.is_liked_by_user = post.id in liked_post_ids
-        for comment in post.comments.all():
-            comment.is_liked_by_user = is_comment_liked_by(comment.id, current_user.id)
-            comment.reaction_count = get_comment_like_count(comment.id)
+        prepare_post_comments(post, current_user.id)
 
     return render(request, 'home.html', {
         'posts': posts,

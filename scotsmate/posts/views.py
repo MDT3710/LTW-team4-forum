@@ -128,9 +128,7 @@ def profile_view(request, username=None):
 
     for p in posts:
         p.is_liked_by_user = p.id in liked_post_ids
-        for comment in p.comments.all():
-            comment.is_liked_by_user = is_comment_liked_by(comment.id, current_user.id if current_user.is_authenticated else None)
-            comment.reaction_count = get_comment_like_count(comment.id)
+        prepare_post_comments(p, current_user.id if current_user.is_authenticated else None)
 
     posts_count = len(posts)
 
@@ -198,6 +196,78 @@ def post_likes_api(request, post_id):
     })
 
 
+
+COMMENT_PARENTS_FILE = os.path.join(settings.BASE_DIR, 'comment_replies.json')
+
+def _load_comment_parents():
+    if os.path.exists(COMMENT_PARENTS_FILE):
+        try:
+            with open(COMMENT_PARENTS_FILE, 'r', encoding='utf-8') as f:
+                raw = json.load(f)
+                return {int(k): int(v) for k, v in raw.items()}
+        except Exception:
+            pass
+    return {}
+
+def _save_comment_parents(parents):
+    try:
+        raw = {str(k): int(v) for k, v in parents.items()}
+        with open(COMMENT_PARENTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(raw, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+COMMENT_PARENTS = _load_comment_parents()
+# Ensure comment 8 is recorded as reply to comment 7
+if 8 not in COMMENT_PARENTS:
+    COMMENT_PARENTS[8] = 7
+    _save_comment_parents(COMMENT_PARENTS)
+
+def format_comment_content(content):
+    import re
+    from django.utils.html import escape
+    escaped = escape(content)
+    return re.sub(r'(@[a-zA-Z0-9_\.À-ỹ]+)', r'<strong style="color: #134c81; font-weight: 600;">\1</strong>', escaped)
+
+def prepare_post_comments(post, current_user_id=None):
+    """
+    Tổ chức bình luận thành cây cha - con chuẩn Facebook:
+    - post.root_comments: Danh sách bình luận gốc
+    - comment.child_replies: Danh sách bình luận trả lời nằm ngay dưới bình luận gốc
+    - comment.is_liked_by_user, comment.reaction_count, comment.formatted_content
+    """
+    raw_comments = list(post.comments.select_related('emp').all())
+    comment_map = {}
+    for c in raw_comments:
+        c.is_liked_by_user = is_comment_liked_by(c.id, current_user_id)
+        c.reaction_count = get_comment_like_count(c.id)
+        c.child_replies = []
+        c.formatted_content = format_comment_content(c.content)
+        comment_map[c.id] = c
+
+    root_comments = []
+    for c in raw_comments:
+        parent_id = COMMENT_PARENTS.get(c.id)
+        if not parent_id and c.content.strip().startswith('@'):
+            mention = c.content.strip().split(' ')[0][1:].lower()
+            for other in raw_comments:
+                if other.id < c.id:
+                    uname = other.emp.username.lower()
+                    fname = (other.emp.get_full_name() or '').lower()
+                    if mention in uname or (fname and mention in fname):
+                        parent_id = COMMENT_PARENTS.get(other.id, other.id)
+                        COMMENT_PARENTS[c.id] = parent_id
+                        _save_comment_parents(COMMENT_PARENTS)
+                        break
+
+        if parent_id and parent_id in comment_map and parent_id != c.id:
+            comment_map[parent_id].child_replies.append(c)
+        else:
+            root_comments.append(c)
+
+    post.root_comments = root_comments
+    return root_comments
+
 def add_comment_api(request, post_id):
     """API AJAX thêm bình luận mới sử dụng PostCommentForm (Django ModelForm)"""
     if request.method == 'POST':
@@ -218,6 +288,29 @@ def add_comment_api(request, post_id):
         comment.time_reacted = "Vừa xong"
         comment.save()
 
+        parent_id = request.POST.get('parent_id')
+        if parent_id:
+            try:
+                parent_id = int(parent_id)
+                parent_id = COMMENT_PARENTS.get(parent_id, parent_id)
+                COMMENT_PARENTS[comment.id] = parent_id
+                _save_comment_parents(COMMENT_PARENTS)
+            except (ValueError, TypeError):
+                parent_id = None
+        else:
+            if comment.content.strip().startswith('@'):
+                mention = comment.content.strip().split(' ')[0][1:].lower()
+                for other in post.comments.exclude(id=comment.id).select_related('emp'):
+                    uname = other.emp.username.lower()
+                    fname = (other.emp.get_full_name() or '').lower()
+                    if mention in uname or (fname and mention in fname):
+                        parent_id = COMMENT_PARENTS.get(other.id, other.id)
+                        COMMENT_PARENTS[comment.id] = parent_id
+                        _save_comment_parents(COMMENT_PARENTS)
+                        break
+
+        formatted_content = format_comment_content(comment.content)
+
         author_name = user.get_full_name() or user.username
         if user.username == 'thuha':
             avatar_url = '/static/img/avatar_thuha.png'
@@ -236,6 +329,8 @@ def add_comment_api(request, post_id):
                 'avatar_url': avatar_url,
                 'emp_id': user.id,
                 'content': comment.content,
+                'formatted_content': formatted_content,
+                'parent_id': parent_id,
                 'time': comment.time_reacted
             },
             'count': post.comment_count
