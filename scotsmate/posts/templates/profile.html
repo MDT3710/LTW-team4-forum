@@ -154,49 +154,6 @@
     box-shadow: 0 4px 12px rgba(19, 76, 129, 0.2);
   }
 
-  /* Profile Tabs */
-  .profile-nav-tabs {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    height: 60px;
-    padding: 0 32px;
-    border-top: 1px solid #e2e8f0;
-  }
-
-  .profile-nav-tab {
-    position: relative;
-    height: 100%;
-    display: inline-flex;
-    align-items: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: #64748b;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0 8px;
-    transition: color 0.2s ease;
-  }
-
-  .profile-nav-tab:hover {
-    color: #134c81;
-  }
-
-  .profile-nav-tab.active {
-    color: #134c81;
-  }
-
-  .profile-nav-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #134c81;
-    border-radius: 2px 2px 0 0;
-  }
 
   /* 2-Column Content Layout */
   .profile-layout-grid {
@@ -860,18 +817,6 @@
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="profile-nav-tabs">
-      <button type="button" class="profile-nav-tab active" onclick="switchTab(this, 'posts')">
-        Bài viết
-      </button>
-      <button type="button" class="profile-nav-tab" onclick="switchTab(this, 'about')">
-        Giới thiệu
-      </button>
-      <button type="button" class="profile-nav-tab" onclick="switchTab(this, 'followers')">
-        Người theo dõi
-      </button>
-    </div>
   </section>
 
   <!-- ======================= 2. PROFILE CONTENT (2 COLUMNS) ======================= -->
@@ -2146,10 +2091,6 @@
           }).join('');
         }
 
-  function switchTab(btn, tabName) {
-    document.querySelectorAll('.profile-nav-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-  }
 
   let isFollowing = false;
   let followerCount = 248;
