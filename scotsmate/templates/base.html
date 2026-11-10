@@ -254,5 +254,43 @@ document.addEventListener('click', function(e) {
   }
 });
 </script>
+
+  <!-- Global Image Lightbox Modal -->
+  <div id="image-lightbox-modal" style="display: none; position: fixed; inset: 0; background: rgba(10, 15, 29, 0.88); backdrop-filter: blur(6px); z-index: 999999; align-items: center; justify-content: center; padding: 20px; cursor: zoom-out;" onclick="closeImageLightbox()">
+    <div style="position: relative; max-width: 95vw; max-height: 95vh; display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
+      <img id="image-lightbox-img" src="" alt="Full view" style="max-width: 90vw; max-height: 88vh; width: auto; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);" />
+      <button type="button" onclick="closeImageLightbox()" title="Đóng (Esc)" style="position: absolute; top: -14px; right: -14px; width: 34px; height: 34px; border-radius: 50%; background: #ffffff; color: #0f172a; border: 2px solid #e2e8f0; font-size: 20px; font-weight: bold; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">&times;</button>
+      <a id="image-lightbox-open-new" href="" target="_blank" title="Mở ảnh gốc trong tab mới" style="position: absolute; bottom: -14px; right: 0; background: rgba(15, 23, 42, 0.85); color: #ffffff; padding: 6px 14px; border-radius: 20px; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); transition: background 0.15s;" onmouseover="this.style.background='#134c81'" onmouseout="this.style.background='rgba(15, 23, 42, 0.85)'">
+        <span>Xem ảnh gốc</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function openImageLightbox(src) {
+      const modal = document.getElementById('image-lightbox-modal');
+      const img = document.getElementById('image-lightbox-img');
+      const link = document.getElementById('image-lightbox-open-new');
+      if (modal && img) {
+        img.src = src;
+        if (link) link.href = src;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeImageLightbox() {
+      const modal = document.getElementById('image-lightbox-modal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeImageLightbox();
+    });
+  </script>
 </body>
 </html>

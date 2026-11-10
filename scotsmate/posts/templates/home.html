@@ -219,8 +219,8 @@
                         <div class="post-photos" id="post-photos-{{ post.id }}" style="display: {% if post.attachments.all %}flex{% else %}none{% endif %}; flex-direction: column; gap: 12px; margin-top: 12px; width: 100%;">
               {% for att in post.attachments.all %}
                 {% if att.file %}
-                  <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; height: auto; display: block; background: #f8fafc; border: 1px solid #e2e8f0;">
-                    <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="width: 100%; height: auto; max-width: 100%; display: block; border-radius: 8px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh gốc kích thước đầy đủ" onclick="window.open(this.src, '_blank')" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" onerror="this.src='{% static 'img/post_photo_1.png' %}';" />
+                  <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0;">
+                    <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="max-width: 100%; max-height: 70vh; width: auto; height: auto; object-fit: contain; display: block; border-radius: 6px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh phóng to đầy đủ" onclick="openImageLightbox(this.src)" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" onerror="this.src='{% static 'img/post_photo_1.png' %}';" />
                   </div>
                 {% else %}
                   <div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">
@@ -955,8 +955,8 @@
           photosContainer.innerHTML = attachments.map(att => {
             if (att.url) {
               return `
-                <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; height: auto; display: block; background: #f8fafc; border: 1px solid #e2e8f0;">
-                  <img src="${att.url}" alt="${att.file_name}" style="width: 100%; height: auto; max-width: 100%; display: block; border-radius: 8px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh gốc kích thước đầy đủ" onclick="window.open(this.src, '_blank')" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" onerror="this.src='/static/img/post_photo_1.png';" />
+                <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <img src="${att.url}" alt="${att.file_name}" style="max-width: 100%; max-height: 70vh; width: auto; height: auto; object-fit: contain; display: block; border-radius: 6px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh phóng to đầy đủ" onclick="openImageLightbox(this.src)" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" onerror="this.src='/static/img/post_photo_1.png';" />
                 </div>
               `;
             } else {
