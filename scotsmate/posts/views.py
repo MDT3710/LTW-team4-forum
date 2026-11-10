@@ -395,7 +395,9 @@ def edit_post_api(request, post_id):
             attachments.append({
                 'id': att.id,
                 'file_name': att.file_name,
-                'url': att.file.url if att.file else ''
+                'url': att.file.url if att.file else '',
+                'is_image': att.is_image,
+                'extension': att.extension.upper()
             })
         return JsonResponse({
             'success': True,
@@ -424,9 +426,9 @@ def edit_post_api(request, post_id):
                 if valid_ids:
                     post.attachments.filter(id__in=valid_ids).delete()
 
-            # 2. Thêm các ảnh/tệp mới được tải lên
+            # 2. Thêm các ảnh/tài liệu mới được tải lên
             new_files = []
-            for field_name in ['images', 'image', 'attachments', 'attachment']:
+            for field_name in ['images', 'image', 'docs', 'doc', 'documents', 'document', 'attachments', 'attachment', 'files']:
                 if field_name in request.FILES:
                     new_files.extend(request.FILES.getlist(field_name))
 
@@ -443,7 +445,9 @@ def edit_post_api(request, post_id):
                 updated_attachments.append({
                     'id': att.id,
                     'file_name': att.file_name,
-                    'url': att.file.url if att.file else ''
+                    'url': att.file.url if att.file else '',
+                    'is_image': att.is_image,
+                    'extension': att.extension.upper()
                 })
 
             return JsonResponse({
