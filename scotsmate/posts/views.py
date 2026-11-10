@@ -223,11 +223,67 @@ if 8 not in COMMENT_PARENTS:
     COMMENT_PARENTS[8] = 7
     _save_comment_parents(COMMENT_PARENTS)
 
-def format_comment_content(content):
+def _remove_accents(input_str):
+    import unicodedata
+    if not input_str:
+        return ''
+    nfkd = unicodedata.normalize('NFKD', input_str)
+    return ''.join([c for c in nfkd if not unicodedata.combining(c)])
+
+_MENTION_REGEX_CACHE = None
+
+def get_mention_regex(force_refresh=False):
+    global _MENTION_REGEX_CACHE
+    if _MENTION_REGEX_CACHE and not force_refresh:
+        return _MENTION_REGEX_CACHE
+
     import re
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    names = set()
+    try:
+        for user in User.objects.all():
+            full = (user.get_full_name() or '').strip()
+            if full:
+                names.add(full)
+                names.add(_remove_accents(full))
+            if user.first_name:
+                fn = user.first_name.strip()
+                names.add(fn)
+                names.add(_remove_accents(fn))
+            if user.last_name:
+                ln = user.last_name.strip()
+                names.add(ln)
+                names.add(_remove_accents(ln))
+            if user.username:
+                un = user.username.strip()
+                names.add(un)
+                names.add(_remove_accents(un))
+    except Exception:
+        pass
+
+    fallbacks = [
+        'Minh Anh Nguyễn', 'Thu Hà Nguyễn', 'Phương Linh Lê', 'Ngọc Anh Đỗ',
+        'Minh Anh', 'Thu Hà', 'Phương Linh', 'Ngọc Anh',
+        'admin', 'minhanh', 'thuha', 'phuonglinh', 'ngocanh'
+    ]
+    for n in fallbacks:
+        names.add(n)
+        names.add(_remove_accents(n))
+
+    sorted_names = sorted(names, key=len, reverse=True)
+    escaped_names = [re.escape(n) for n in sorted_names]
+    pattern_str = r'(@(?:' + '|'.join(escaped_names) + r'|[a-zA-Z0-9_\.À-ỹ]+))(?=[^\wÀ-ỹ]|$)'
+    _MENTION_REGEX_CACHE = re.compile(pattern_str, re.IGNORECASE)
+    return _MENTION_REGEX_CACHE
+
+def format_comment_content(content):
+    if not content:
+        return ''
     from django.utils.html import escape
     escaped = escape(content)
-    return re.sub(r'(@[a-zA-Z0-9_\.À-ỹ]+)', r'<strong style="color: #134c81; font-weight: 600;">\1</strong>', escaped)
+    regex = get_mention_regex()
+    return regex.sub(r'<strong style="color: #134c81; font-weight: 600;">\1</strong>', escaped)
 
 def prepare_post_comments(post, current_user_id=None):
     """
@@ -318,6 +374,8 @@ def add_comment_api(request, post_id):
             avatar_url = '/static/img/avatar_phuonglinh.png'
         elif user.username == 'ngocanh':
             avatar_url = '/static/img/avatar_ngocanh.png'
+        elif user.username == 'minhanh':
+            avatar_url = '/static/img/avatar_minhanh.png'
         else:
             avatar_url = '/static/img/profile_avatar_144.png'
 
