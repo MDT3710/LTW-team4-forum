@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Nguyễn Minh Anh · Trang cá nhân | ScotsMate{% endblock %}
+{% block title %}{{ profile_user.get_full_name|default:profile_user.username }} · Trang cá nhân | ScotsMate{% endblock %}
 
 {% block content %}
 <style>
@@ -785,10 +785,15 @@
     <div class="profile-identity-row">
       <!-- Portrait overlapping avatar -->
       <div class="profile-avatar-overlap">
-        <img
-          src="{% static 'img/profile_avatar_144.png' %}"
-          alt="Nguyễn Minh Anh"
-          onerror="this.src='{% static 'img/avatar_minhanh.png' %}'" />
+        {% if profile_user.username == 'thuha' %}
+          <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
+        {% elif profile_user.username == 'phuonglinh' %}
+          <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
+        {% elif profile_user.username == 'ngocanh' %}
+          <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
+        {% else %}
+          <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+        {% endif %}
       </div>
 
       <!-- Identity meta -->
@@ -981,7 +986,15 @@
       <div class="card-std">
         <div class="compose-entry-row">
           <div class="compose-avatar-thumb">
-            <img src="{% static 'img/profile_avatar_144.png' %}" alt="Minh Anh" />
+            {% if current_user.username == 'thuha' %}
+              <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
+            {% elif current_user.username == 'phuonglinh' %}
+              <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
+            {% elif current_user.username == 'ngocanh' %}
+              <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
+            {% else %}
+              <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+            {% endif %}
           </div>
           <div class="compose-interactive-field">
             <span class="compose-label-text">Tạo bài viết</span>
@@ -1136,7 +1149,15 @@
           </button>
           <div class="comment-input-wrap" style="flex: 1; display: flex; align-items: center; gap: 8px;">
             <div class="comment-avatar-small" style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
-              <img src="{% static 'img/profile_avatar_144.png' %}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% if current_user.username == 'thuha' %}
+                <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% elif current_user.username == 'phuonglinh' %}
+                <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% elif current_user.username == 'ngocanh' %}
+                <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% else %}
+                <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+              {% endif %}
             </div>
             <input
               type="text"

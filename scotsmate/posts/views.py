@@ -53,13 +53,9 @@ def post_create_view(request):
     Lưu dữ liệu vào bảng `post` và tệp tải lên vào bảng `post_attachment`.
     """
     if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+        return redirect('login')
 
-    current_user = request.user if request.user.is_authenticated else (
-        User.objects.filter(username='minhanh').first() or User.objects.first()
-    )
+    current_user = request.user
 
     if request.method == 'POST':
         form = PostForm(request.POST)
@@ -107,12 +103,10 @@ def profile_view(request, username=None):
     """
     Hiển thị hồ sơ cá nhân kèm danh sách bài viết động của tác giả từ database.
     Hỗ trợ xem trang của chính mình hoặc tác giả khác bằng username.
-    Mặc định tự động gắn phiên đăng nhập cho Minh Anh nếu chưa đăng nhập.
+    Bắt buộc đăng nhập trước khi xem hồ sơ.
     """
     if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+        return redirect('login')
 
     current_user = request.user
     if username:
@@ -149,9 +143,9 @@ def toggle_like_api(request, post_id):
     """API AJAX bấm Thích / Bỏ thích bài viết (bảng `post_reaction`)"""
     if request.method == 'POST':
         post = get_object_or_404(Post, id=post_id)
-        user = request.user if request.user.is_authenticated else (
-            User.objects.filter(username='minhanh').first() or User.objects.first()
-        )
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập!'}, status=401)
+        user = request.user
 
         reaction = PostReaction.objects.filter(post=post, emp=user).first()
         if reaction:
@@ -211,9 +205,9 @@ def add_comment_api(request, post_id):
             error_msg = list(form.errors.values())[0][0] if form.errors else 'Nội dung rỗng'
             return JsonResponse({'success': False, 'error': error_msg}, status=400)
 
-        user = request.user if request.user.is_authenticated else (
-            User.objects.filter(username='minhanh').first() or User.objects.first()
-        )
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập!'}, status=401)
+        user = request.user
 
         comment = form.save(commit=False)
         comment.post = post
@@ -254,9 +248,9 @@ def delete_comment_api(request, comment_id):
     if request.method == 'POST':
         comment = get_object_or_404(PostComment, id=comment_id)
         post = comment.post
-        user = request.user if request.user.is_authenticated else (
-            User.objects.filter(username='minhanh').first() or User.objects.first()
-        )
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập!'}, status=401)
+        user = request.user
 
         is_comment_author = (user and user.id == comment.emp_id)
         is_post_author = (user and user.id == post.author_id)
@@ -329,9 +323,9 @@ def delete_post_api(request, post_id):
     """
     if request.method == 'POST':
         post = get_object_or_404(Post, id=post_id)
-        user = request.user if request.user.is_authenticated else (
-            User.objects.filter(username='minhanh').first() or User.objects.first()
-        )
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập!'}, status=401)
+        user = request.user
 
         is_author = (user and user.id == post.author_id)
         is_admin = (user and (user.is_staff or user.is_superuser))
