@@ -372,7 +372,7 @@ def delete_comment_api(request, comment_id):
 def edit_post_api(request, post_id):
     """
     API AJAX chỉnh sửa bài viết sử dụng PostForm (Django ModelForm):
-    Hỗ trợ lấy dữ liệu cũ (GET) và lưu cập nhật nội dung (POST).
+    Hỗ trợ lấy dữ liệu cũ kèm hình ảnh (GET) và lưu cập nhật nội dung, thêm/xóa ảnh (POST).
     Chỉ tác giả hoặc admin mới có quyền sửa.
     """
     post = get_object_or_404(Post, id=post_id)
@@ -390,22 +390,69 @@ def edit_post_api(request, post_id):
         }, status=403)
 
     if request.method == 'GET':
+        attachments = []
+        for att in post.attachments.all():
+            attachments.append({
+                'id': att.id,
+                'file_name': att.file_name,
+                'url': att.file.url if att.file else ''
+            })
         return JsonResponse({
             'success': True,
             'title': post.title,
-            'content': post.content
+            'content': post.content,
+            'attachments': attachments
         })
 
     if request.method == 'POST':
         form = PostForm(request.POST, instance=post)
         if form.is_valid():
             post = form.save()
+
+            # 1. Xóa các tệp/ảnh cũ nếu người dùng bấm bỏ bớt ảnh
+            remove_ids = request.POST.getlist('remove_attachments') or request.POST.getlist('remove_attachment_ids')
+            if not remove_ids and request.POST.get('remove_attachment_ids'):
+                remove_ids = [x.strip() for x in request.POST.get('remove_attachment_ids').split(',') if x.strip()]
+
+            if remove_ids:
+                valid_ids = []
+                for r_id in remove_ids:
+                    try:
+                        valid_ids.append(int(r_id))
+                    except (ValueError, TypeError):
+                        pass
+                if valid_ids:
+                    post.attachments.filter(id__in=valid_ids).delete()
+
+            # 2. Thêm các ảnh/tệp mới được tải lên
+            new_files = []
+            for field_name in ['images', 'image', 'attachments', 'attachment']:
+                if field_name in request.FILES:
+                    new_files.extend(request.FILES.getlist(field_name))
+
+            for f in new_files:
+                PostAttachment.objects.create(
+                    post=post,
+                    file=f,
+                    file_name=f.name
+                )
+
+            # 3. Trả về danh sách attachments mới nhất
+            updated_attachments = []
+            for att in post.attachments.all():
+                updated_attachments.append({
+                    'id': att.id,
+                    'file_name': att.file_name,
+                    'url': att.file.url if att.file else ''
+                })
+
             return JsonResponse({
                 'success': True,
                 'message': 'Cập nhật bài viết thành công.',
                 'title': post.title,
                 'content': post.content,
-                'updated_at': post.updated_at.strftime('%H:%M %d/%m/%Y')
+                'updated_at': post.updated_at.strftime('%H:%M %d/%m/%Y'),
+                'attachments': updated_attachments
             })
         else:
             error_msg = list(form.errors.values())[0][0] if form.errors else 'Dữ liệu không hợp lệ.'

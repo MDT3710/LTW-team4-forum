@@ -1137,8 +1137,7 @@
             {% endif %}
           </span>
 
-          {% if post.attachments.all %}
-          <div class="post-media-frame" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px;">
+                    <div class="post-media-frame" id="post-photos-{{ post.id }}" style="display: {% if post.attachments.all %}flex{% else %}none{% endif %}; gap: 12px; flex-wrap: wrap; margin-top: 14px;">
             {% for att in post.attachments.all %}
               {% if att.file %}
                 <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="max-height: 400px; width: 100%; object-fit: cover; border-radius: 8px;" onerror="this.src='{% static 'img/profile_post_1.png' %}';" />
@@ -1149,7 +1148,6 @@
               {% endif %}
             {% endfor %}
           </div>
-          {% endif %}
         </div>
 
         <!-- Engagement Stats -->
@@ -1337,33 +1335,65 @@
       </div>
       {% endfor %}
 
-      <!-- Modal Chỉnh sửa bài viết -->
-      <div id="editPostModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
-        <div style="background: #ffffff; border-radius: 14px; width: 90%; max-width: 560px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
-          <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Chỉnh sửa bài viết</h3>
-            </div>
-            <button type="button" onclick="closeEditPostModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+        <!-- Modal Chỉnh sửa bài viết -->
+  <div id="editPostModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #ffffff; border-radius: 14px; width: 90%; max-width: 580px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
+      <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Chỉnh sửa bài viết</h3>
+        </div>
+        <button type="button" onclick="closeEditPostModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+      </div>
+      <div style="padding: 22px; overflow-y: auto; flex: 1;">
+        <input type="hidden" id="edit-post-id" />
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
+          <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>
+          <textarea id="edit-post-content" rows="4" placeholder="Chia sẻ suy nghĩ của bạn..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
+        </div>
+
+        <!-- Phần quản lý hình ảnh của bài viết -->
+        <div style="margin-bottom: 8px;">
+          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px;">
+            <span>Hình ảnh bài viết</span>
+          </label>
+
+          <!-- Ảnh hiện có -->
+          <div id="edit-existing-images-container" style="display: none; margin-bottom: 12px;">
+            <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Ảnh hiện có:</div>
+            <div id="edit-existing-images-list" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
           </div>
-          <div style="padding: 22px;">
-            <input type="hidden" id="edit-post-id" />
-            <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
-              <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
-            </div>
-            <div>
-              <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>
-              <textarea id="edit-post-content" rows="6" placeholder="Chia sẻ suy nghĩ của bạn..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
-            </div>
+
+          <!-- Ảnh mới chuẩn bị thêm -->
+          <div id="edit-new-images-container" style="display: none; margin-bottom: 12px;">
+            <div style="font-size: 12px; font-weight: 600; color: #10b981; margin-bottom: 6px;">Ảnh mới chọn thêm:</div>
+            <div id="edit-new-images-list" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
           </div>
-          <div style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
-            <button type="button" onclick="closeEditPostModal()" style="padding: 9px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Hủy</button>
-            <button type="button" id="btn-save-edit" onclick="submitEditPost()" style="padding: 9px 22px; border: none; border-radius: 8px; background: #134c81; color: #ffffff; font-weight: 600; font-size: 14px; cursor: pointer; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Lưu thay đổi</button>
+
+          <!-- Nút chọn thêm ảnh -->
+          <div>
+            <input type="file" id="edit-post-images-input" accept="image/*" multiple style="display: none;" onchange="handleEditPostImagesSelected(event)" />
+            <button type="button" onclick="document.getElementById('edit-post-images-input').click()" style="width: 100%; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 12px; background: #f8fafc; color: #134c81; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.borderColor='#134c81'; this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>+ Thêm hình ảnh vào bài viết</span>
+            </button>
           </div>
         </div>
       </div>
+      <div style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0;">
+        <button type="button" onclick="closeEditPostModal()" style="padding: 9px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Hủy</button>
+        <button type="button" id="btn-save-edit" onclick="submitEditPost()" style="padding: 9px 22px; border: none; border-radius: 8px; background: #134c81; color: #ffffff; font-weight: 600; font-size: 14px; cursor: pointer; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
     </main>
 
   </div>
@@ -1767,83 +1797,225 @@
     }
   }
 
-  function openEditPostModal(postId) {
-    document.querySelectorAll('.post-dropdown-menu').forEach(m => m.style.display = 'none');
-    fetch(`/posts/${postId}/edit/`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById('edit-post-id').value = postId;
-          document.getElementById('edit-post-title').value = data.title || '';
-          document.getElementById('edit-post-content').value = data.content || '';
+          let editExistingAttachments = [];
+        let editRemovedAttachmentIds = [];
+        let editNewFiles = [];
+
+        function openEditPostModal(postId) {
+          document.querySelectorAll('.post-dropdown-menu').forEach(m => m.style.display = 'none');
+          fetch(`/posts/${postId}/edit/`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                document.getElementById('edit-post-id').value = postId;
+                document.getElementById('edit-post-title').value = data.title || '';
+                document.getElementById('edit-post-content').value = data.content || '';
+
+                editExistingAttachments = data.attachments || [];
+                editRemovedAttachmentIds = [];
+                editNewFiles = [];
+                const fileInput = document.getElementById('edit-post-images-input');
+                if (fileInput) fileInput.value = '';
+
+                renderEditExistingAttachments();
+                renderEditNewFiles();
+
+                const modal = document.getElementById('editPostModal');
+                if (modal) modal.style.display = 'flex';
+              } else {
+                alert(data.error || 'Không thể lấy thông tin bài viết.');
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              alert('Đã xảy ra lỗi khi lấy thông tin bài viết.');
+            });
+        }
+
+        function closeEditPostModal() {
           const modal = document.getElementById('editPostModal');
-          modal.style.display = 'flex';
-        } else {
-          alert(data.error || 'Không thể tải thông tin bài viết.');
+          if (modal) modal.style.display = 'none';
+          editExistingAttachments = [];
+          editRemovedAttachmentIds = [];
+          editNewFiles = [];
+          const fileInput = document.getElementById('edit-post-images-input');
+          if (fileInput) fileInput.value = '';
         }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Đã xảy ra lỗi khi lấy thông tin bài viết.');
-      });
-  }
 
-  function closeEditPostModal() {
-    const modal = document.getElementById('editPostModal');
-    if (modal) modal.style.display = 'none';
-  }
+        function renderEditExistingAttachments() {
+          const container = document.getElementById('edit-existing-images-container');
+          const list = document.getElementById('edit-existing-images-list');
+          if (!container || !list) return;
 
-  function submitEditPost() {
-    const postId = document.getElementById('edit-post-id').value;
-    const title = document.getElementById('edit-post-title').value.trim();
-    const content = document.getElementById('edit-post-content').value.trim();
+          const remaining = editExistingAttachments.filter(att => !editRemovedAttachmentIds.includes(att.id));
+          if (remaining.length === 0) {
+            container.style.display = 'none';
+            list.innerHTML = '';
+            return;
+          }
 
-    if (!content) {
-      alert('Nội dung bài viết không được để trống.');
-      return;
-    }
-
-    const btn = document.getElementById('btn-save-edit');
-    btn.disabled = true;
-    btn.innerText = 'Đang lưu...';
-
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('content', content);
-
-    fetch(`/posts/${postId}/edit/`, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCsrfToken()
-      },
-      body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-      btn.disabled = false;
-      btn.innerText = 'Lưu thay đổi';
-      if (data.success) {
-        const contentEl = document.getElementById(`post-content-${postId}`);
-        if (contentEl) {
-          contentEl.innerHTML = data.content.replace(/\n/g, '<br />');
+          container.style.display = 'block';
+          list.innerHTML = remaining.map(att => `
+            <div style="position: relative; width: 84px; height: 84px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #f8fafc;">
+              ${att.url ? `<img src="${att.url}" alt="${att.file_name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/static/img/post_photo_1.png';" />` : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 24px;">📄</div>`}
+              <button type="button" onclick="removeExistingEditAttachment(${att.id})" title="Xóa ảnh này" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; font-size: 14px; font-weight: bold; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">&times;</button>
+              <div style="position: absolute; bottom: 0; inset-inline: 0; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 9px; padding: 2px 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${att.file_name}">${att.file_name}</div>
+            </div>
+          `).join('');
         }
-        const badgeEl = document.getElementById(`post-edited-badge-${postId}`);
-        if (badgeEl) {
-          badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
-          badgeEl.style.display = 'inline-block';
+
+        function removeExistingEditAttachment(attId) {
+          if (!editRemovedAttachmentIds.includes(attId)) {
+            editRemovedAttachmentIds.push(attId);
+          }
+          renderEditExistingAttachments();
         }
-        closeEditPostModal();
-      } else {
-        alert(data.error || 'Không thể cập nhật bài viết.');
-      }
-    })
-    .catch(err => {
-      btn.disabled = false;
-      btn.innerText = 'Lưu thay đổi';
-      console.error(err);
-      alert('Đã xảy ra lỗi khi lưu cập nhật.');
-    });
-  }
+
+        function handleEditPostImagesSelected(event) {
+          const files = event.target.files;
+          if (!files || files.length === 0) return;
+          for (let i = 0; i < files.length; i++) {
+            editNewFiles.push(files[i]);
+          }
+          event.target.value = '';
+          renderEditNewFiles();
+        }
+
+        function renderEditNewFiles() {
+          const container = document.getElementById('edit-new-images-container');
+          const list = document.getElementById('edit-new-images-list');
+          if (!container || !list) return;
+
+          if (editNewFiles.length === 0) {
+            container.style.display = 'none';
+            list.innerHTML = '';
+            return;
+          }
+
+          container.style.display = 'block';
+          list.innerHTML = '';
+
+          editNewFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = 'position: relative; width: 84px; height: 84px; border-radius: 8px; overflow: hidden; border: 2px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #f8fafc;';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              item.innerHTML = `
+                <img src="${e.target.result}" alt="${file.name}" style="width: 100%; height: 100%; object-fit: cover;" />
+                <span style="position: absolute; top: 4px; left: 4px; background: #10b981; color: white; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;">MỚI</span>
+                <button type="button" onclick="removeEditNewFile(${index})" title="Bỏ ảnh này" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; font-size: 14px; font-weight: bold; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">&times;</button>
+                <div style="position: absolute; bottom: 0; inset-inline: 0; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 9px; padding: 2px 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${file.name}">${file.name}</div>
+              `;
+            };
+            reader.readAsDataURL(file);
+            list.appendChild(item);
+          });
+        }
+
+        function removeEditNewFile(index) {
+          editNewFiles.splice(index, 1);
+          renderEditNewFiles();
+        }
+
+        function submitEditPost() {
+          const postId = document.getElementById('edit-post-id').value;
+          const title = document.getElementById('edit-post-title').value.trim();
+          const content = document.getElementById('edit-post-content').value.trim();
+
+          if (!content) {
+            alert('Nội dung bài viết không được để trống.');
+            return;
+          }
+
+          const btn = document.getElementById('btn-save-edit');
+          btn.disabled = true;
+          btn.innerText = 'Đang lưu...';
+
+          const formData = new FormData();
+          formData.append('title', title);
+          formData.append('content', content);
+
+          editRemovedAttachmentIds.forEach(id => {
+            formData.append('remove_attachments', id);
+          });
+
+          editNewFiles.forEach(file => {
+            formData.append('images', file);
+          });
+
+          fetch(`/posts/${postId}/edit/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            if (data.success) {
+              const contentEl = document.getElementById(`post-content-${postId}`);
+              if (contentEl) {
+                contentEl.innerHTML = data.content.replace(/\n/g, '<br />');
+              }
+              const badgeEl = document.getElementById(`post-edited-badge-${postId}`);
+              if (badgeEl) {
+                badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
+                badgeEl.style.display = 'inline-block';
+              }
+
+              updatePostPhotosDOM(postId, data.attachments || []);
+
+              closeEditPostModal();
+            } else {
+              alert(data.error || 'Không thể cập nhật bài viết.');
+            }
+          })
+          .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            console.error(err);
+            alert('Đã xảy ra lỗi khi lưu cập nhật.');
+          });
+        }
+
+        function updatePostPhotosDOM(postId, attachments) {
+          const photosContainer = document.getElementById(`post-photos-${postId}`);
+          if (!photosContainer) return;
+
+          if (!attachments || attachments.length === 0) {
+            photosContainer.style.display = 'none';
+            photosContainer.innerHTML = '';
+            return;
+          }
+
+          photosContainer.style.display = 'flex';
+          const isProfilePage = photosContainer.classList.contains('post-media-frame');
+
+          if (isProfilePage) {
+            photosContainer.innerHTML = attachments.map(att => {
+              if (att.url) {
+                return `<img src="${att.url}" alt="${att.file_name}" style="max-height: 400px; width: 100%; object-fit: cover; border-radius: 8px;" onerror="this.src='/static/img/profile_post_1.png';" />`;
+              } else {
+                return `<div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">📄 <span>${att.file_name}</span></div>`;
+              }
+            }).join('');
+          } else {
+            photosContainer.innerHTML = attachments.map(att => {
+              if (att.url) {
+                return `
+                  <div class="photo" style="overflow: hidden; max-height: 380px; border-radius: 8px; flex: 1; min-width: 240px;">
+                    <img src="${att.url}" alt="${att.file_name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/static/img/post_photo_1.png';" />
+                  </div>
+                `;
+              } else {
+                return `<div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">📄 <span>${att.file_name}</span></div>`;
+              }
+            }).join('');
+          }
+        }
 
   function switchTab(btn, tabName) {
     document.querySelectorAll('.profile-nav-tab').forEach(t => t.classList.remove('active'));
