@@ -3,6 +3,51 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 
+def format_time_ago_vi(dt):
+    """
+    Chuyển đổi thời gian sang tiếng Việt tự nhiên:
+    - Vừa xong (< 1 phút)
+    - X phút trước (< 60 phút)
+    - X giờ trước (< 24 giờ)
+    - X ngày trước (< 7 ngày)
+    - X tuần trước (< 30 ngày)
+    - X tháng trước (< 365 ngày)
+    - X năm trước (>= 365 ngày)
+    """
+    if not dt:
+        return ""
+    from django.utils import timezone
+    now = timezone.now()
+    diff = now - dt
+    total_seconds = int(diff.total_seconds())
+
+    if total_seconds < 60:
+        return "Vừa xong"
+
+    minutes = total_seconds // 60
+    if minutes < 60:
+        return f"{minutes} phút trước"
+
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours} giờ trước"
+
+    days = hours // 24
+    if days < 7:
+        return f"{days} ngày trước"
+
+    weeks = days // 7
+    if days < 30:
+        return f"{weeks} tuần trước"
+
+    months = days // 30
+    if months < 12:
+        return f"{months} tháng trước"
+
+    years = days // 365
+    return f"{years} năm trước"
+
+
 class Post(models.Model):
     """
     Bảng: post
@@ -45,6 +90,10 @@ class Post(models.Model):
 
     def __str__(self):
         return f"Post #{self.id} - {self.title or self.content[:30]}"
+
+    @property
+    def created_at_vi(self):
+        return format_time_ago_vi(self.created_at)
 
     @property
     def reaction_count(self):

@@ -167,13 +167,9 @@
               <div class="author-info">
                 <span class="author-name">
                   <a href="/profile/{{ post.author.username }}/" class="author-profile-link" style="color: inherit; text-decoration: none; font-weight: inherit; transition: color 0.15s;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='inherit'; this.style.textDecoration='none';" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">{{ post.author.get_full_name|default:post.author.username }}</a>
-                  {% if post.title and post.title != post.content %}
-                    <span class="author-topic-arrow">▶</span>
-                    <span class="author-topic">{{ post.title }}</span>
-                  {% endif %}
                 </span>
                 <span class="author-meta" style="display: flex; align-items: center; gap: 6px;">
-                  <span>{{ post.created_at|timesince }} trước · Scots English</span>
+                  <span>{{ post.created_at_vi }} · Scots English</span>
                   <span id="post-vis-badge-{{ post.id }}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b;" title="Phạm vi: {{ post.visibility|default:'Toàn công ty' }}">
                     <span>·</span>
                     {% if post.visibility == 'Chỉ mình tôi' %}
@@ -1200,10 +1196,7 @@
       </div>
       <div style="padding: 22px; overflow-y: auto; flex: 1;">
         <input type="hidden" id="edit-post-id" />
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
-          <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
-        </div>
+        <input type="hidden" id="edit-post-title" value="" />
         <div style="margin-bottom: 16px;">
           <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Phạm vi hiển thị bài viết</label>
           <select id="edit-post-visibility" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; background: #ffffff; color: #1e293b; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'">
