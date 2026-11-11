@@ -72,6 +72,11 @@ class PostAttachment(models.Model):
         return any(name.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico'])
 
     @property
+    def is_video(self):
+        name = (self.file_name or (self.file.name if self.file else '')).lower()
+        return any(name.endswith(ext) for ext in ['.mp4', '.mov', '.webm', '.ogg', '.m4v', '.avi'])
+
+    @property
     def extension(self):
         name = (self.file_name or (self.file.name if self.file else '')).lower()
         return name.split('.')[-1] if '.' in name else ''

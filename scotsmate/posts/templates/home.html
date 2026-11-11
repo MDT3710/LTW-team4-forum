@@ -222,6 +222,10 @@
                   <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0;">
                     <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="max-width: 100%; max-height: 70vh; width: auto; height: auto; object-fit: contain; display: block; border-radius: 6px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh phóng to đầy đủ" onclick="openImageLightbox(this.src)" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" />
                   </div>
+                {% elif att.is_video %}
+                  <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; background: #000; border: 1px solid #e2e8f0;">
+                    <video src="{{ att.file.url }}" controls style="max-width: 100%; max-height: 70vh; width: 100%; height: auto; border-radius: 6px; display: block;"></video>
+                  </div>
                 {% else %}
                   <div class="attachment-doc-card" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; width: 100%; box-sizing: border-box; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#134c81'" onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'">
                     <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">

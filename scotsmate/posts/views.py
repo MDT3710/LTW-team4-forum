@@ -78,6 +78,8 @@ def post_create_view(request):
                 uploaded_files.extend(request.FILES.getlist('image'))
             if 'doc' in request.FILES:
                 uploaded_files.extend(request.FILES.getlist('doc'))
+            if 'video' in request.FILES:
+                uploaded_files.extend(request.FILES.getlist('video'))
 
             for f in uploaded_files:
                 PostAttachment.objects.create(
@@ -87,6 +89,9 @@ def post_create_view(request):
                 )
 
             messages.success(request, 'Chúc mừng! Bài viết của bạn đã được đăng thành công.')
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
             return redirect('home')
         else:
             messages.error(request, 'Nội dung bài viết không được để trống hoặc không hợp lệ.')
