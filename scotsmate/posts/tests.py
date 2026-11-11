@@ -173,3 +173,41 @@ class PostViewTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.json()['success'])
         self.assertFalse(Post.objects.filter(id=self.post.id).exists())
+
+    def test_update_profile_bio_api(self):
+        res = self.client.post(reverse('update_profile_bio_api'), {
+            'bio': 'Đây là lời giới thiệu kiểm thử mới.'
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['bio'], 'Đây là lời giới thiệu kiểm thử mới.')
+
+    def test_update_profile_avatar_api(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        avatar_file = SimpleUploadedFile("avatar.png", b"fake image bytes", content_type="image/png")
+        res = self.client.post(reverse('update_profile_avatar_api'), {
+            'avatar': avatar_file
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertIn('/media/avatars/', data['avatar_url'])
+
+    def test_update_profile_cover_api(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        cover_file = SimpleUploadedFile("cover.jpg", b"fake cover image bytes", content_type="image/jpeg")
+        res = self.client.post(reverse('update_profile_cover_api'), {
+            'cover': cover_file
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertIn('/media/covers/', data['cover_url'])
+
+    def test_profile_view_no_following_section(self):
+        res = self.client.get(reverse('profile'))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'id="sidebar-following-count"')
+        self.assertNotContains(res, 'id="following-modal"')
+        self.assertContains(res, 'id="btn-edit-bio"')

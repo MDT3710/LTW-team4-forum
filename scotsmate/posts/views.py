@@ -661,3 +661,113 @@ def toggle_comment_like_api(request, comment_id):
             'count': len(COMMENT_REACTIONS[comment_id])
         })
     return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
+
+
+def update_profile_avatar_api(request):
+    """
+    API AJAX cập nhật ảnh đại diện của người dùng.
+    Lưu tệp vào MEDIA_ROOT/avatars và ghi nhận đường dẫn vào user_profiles.json.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập.'}, status=401)
+    if request.method != 'POST' or 'avatar' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'Không tìm thấy tệp ảnh tải lên.'}, status=400)
+
+    avatar_file = request.FILES['avatar']
+    ext = os.path.splitext(avatar_file.name)[1].lower()
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
+        return JsonResponse({'success': False, 'error': 'Định dạng ảnh không hợp lệ (JPG, PNG, WEBP, GIF, SVG).'}, status=400)
+
+    import time
+    save_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
+    os.makedirs(save_dir, exist_ok=True)
+    safe_filename = f"{request.user.username}_{int(time.time())}{ext}"
+    save_path = os.path.join(save_dir, safe_filename)
+
+    with open(save_path, 'wb+') as destination:
+        for chunk in avatar_file.chunks():
+            destination.write(chunk)
+
+    avatar_url = f"/media/avatars/{safe_filename}"
+
+    from .colleagues import load_user_custom_profiles, save_user_custom_profiles
+    custom_profiles = load_user_custom_profiles()
+    uname = request.user.username
+    if uname not in custom_profiles:
+        custom_profiles[uname] = {}
+    custom_profiles[uname]['avatar'] = avatar_url
+    save_user_custom_profiles(custom_profiles)
+
+    return JsonResponse({
+        'success': True,
+        'avatar_url': avatar_url,
+        'message': 'Cập nhật ảnh đại diện thành công.'
+    })
+
+
+def update_profile_cover_api(request):
+    """
+    API AJAX cập nhật ảnh bìa trang cá nhân của người dùng.
+    Lưu tệp vào MEDIA_ROOT/covers và ghi nhận đường dẫn vào user_profiles.json.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập.'}, status=401)
+    if request.method != 'POST' or 'cover' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'Không tìm thấy tệp ảnh bìa tải lên.'}, status=400)
+
+    cover_file = request.FILES['cover']
+    ext = os.path.splitext(cover_file.name)[1].lower()
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
+        return JsonResponse({'success': False, 'error': 'Định dạng ảnh không hợp lệ (JPG, PNG, WEBP, GIF, SVG).'}, status=400)
+
+    import time
+    save_dir = os.path.join(settings.MEDIA_ROOT, 'covers')
+    os.makedirs(save_dir, exist_ok=True)
+    safe_filename = f"{request.user.username}_{int(time.time())}{ext}"
+    save_path = os.path.join(save_dir, safe_filename)
+
+    with open(save_path, 'wb+') as destination:
+        for chunk in cover_file.chunks():
+            destination.write(chunk)
+
+    cover_url = f"/media/covers/{safe_filename}"
+
+    from .colleagues import load_user_custom_profiles, save_user_custom_profiles
+    custom_profiles = load_user_custom_profiles()
+    uname = request.user.username
+    if uname not in custom_profiles:
+        custom_profiles[uname] = {}
+    custom_profiles[uname]['cover'] = cover_url
+    save_user_custom_profiles(custom_profiles)
+
+    return JsonResponse({
+        'success': True,
+        'cover_url': cover_url,
+        'message': 'Cập nhật ảnh bìa thành công.'
+    })
+
+
+def update_profile_bio_api(request):
+    """
+    API AJAX cập nhật phần giới thiệu (bio) của người dùng.
+    Ghi nhận vào user_profiles.json.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập.'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Phương thức không hợp lệ.'}, status=405)
+
+    bio = request.POST.get('bio', '').strip()
+    from .colleagues import load_user_custom_profiles, save_user_custom_profiles
+    custom_profiles = load_user_custom_profiles()
+    uname = request.user.username
+    if uname not in custom_profiles:
+        custom_profiles[uname] = {}
+    custom_profiles[uname]['bio'] = bio
+    save_user_custom_profiles(custom_profiles)
+
+    return JsonResponse({
+        'success': True,
+        'bio': bio,
+        'message': 'Cập nhật giới thiệu thành công.'
+    })

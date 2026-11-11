@@ -2,6 +2,27 @@
 """
 Dữ liệu hồ sơ đồng nghiệp Scots English (36 đồng nghiệp trong danh sách Following + các tài khoản hệ thống)
 """
+import os
+import json
+from django.conf import settings
+
+USER_PROFILES_FILE = os.path.join(settings.BASE_DIR, 'user_profiles.json')
+
+def load_user_custom_profiles():
+    if os.path.exists(USER_PROFILES_FILE):
+        try:
+            with open(USER_PROFILES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_user_custom_profiles(data):
+    try:
+        with open(USER_PROFILES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving custom profiles:", e)
 
 COLLEAGUES_DATA = {
     "thuha": {
@@ -534,6 +555,7 @@ def get_user_department(user_or_username):
 def get_profile_details(user):
     """
     Trả về thông tin chi tiết hồ sơ cá nhân của user dựa trên username hoặc thông tin tài khoản.
+    Hỗ trợ nạp các tùy chỉnh ảnh đại diện, ảnh bìa, giới thiệu từ file `user_profiles.json`.
     """
     if not user:
         return {}
@@ -546,21 +568,37 @@ def get_profile_details(user):
         if full_name:
             data['name'] = full_name
         data['department'] = get_user_department(uname)
-        return data
+    else:
+        # Fallback cho user ngoài danh sách
+        full_name = user.get_full_name() or uname
+        is_admin = getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False)
+        data = {
+            "name": full_name,
+            "username": uname,
+            "role": "Quản trị viên hệ thống" if is_admin else "Giáo viên · Scots English",
+            "job_title": "Quản trị viên" if is_admin else "Giáo viên tiếng Anh",
+            "department": get_user_department(uname),
+            "branch": "Hội sở Scots English",
+            "email": getattr(user, 'email', '') or f"{uname}@scotsenglish.edu.vn",
+            "phone": "090 123 4567",
+            "join_date": "15/08/2022",
+            "bio": "Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.",
+            "avatar": "/static/img/profile_avatar_144.png",
+            "cover": "/static/img/profile_cover.png",
+        }
 
-    # Fallback cho user ngoài danh sách
-    full_name = user.get_full_name() or uname
-    is_admin = getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False)
-    return {
-        "name": full_name,
-        "username": uname,
-        "role": "Quản trị viên hệ thống" if is_admin else "Giáo viên · Scots English",
-        "job_title": "Quản trị viên" if is_admin else "Giáo viên tiếng Anh",
-        "department": get_user_department(uname),
-        "branch": "Hội sở Scots English",
-        "email": getattr(user, 'email', '') or f"{uname}@scotsenglish.edu.vn",
-        "phone": "090 123 4567",
-        "join_date": "15/08/2022",
-        "bio": "Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.",
-        "avatar": "/static/img/profile_avatar_144.png",
-    }
+    # Áp dụng các thay đổi tùy chỉnh từ user_profiles.json
+    custom_profiles = load_user_custom_profiles()
+    if uname in custom_profiles:
+        custom_data = custom_profiles[uname]
+        if custom_data.get('avatar'):
+            data['avatar'] = custom_data['avatar']
+        if custom_data.get('cover'):
+            data['cover'] = custom_data['cover']
+        if custom_data.get('bio'):
+            data['bio'] = custom_data['bio']
+
+    if 'cover' not in data:
+        data['cover'] = '/static/img/profile_cover.png'
+
+    return data
