@@ -3,6 +3,12 @@
 {% block content %}
 
   <main class="doc-workspace">
+    <!-- Hiển thị thông báo ở đầu trang Tài liệu của tôi -->
+    {% for message in messages %}
+      <p style="background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 16px;">
+        <em>{{ message.level_tag|title }}:</em> {{ message }}
+      </p>
+    {% endfor %}
     
     <!-- Tiêu đề trang & Nút tải lên -->
     <header class="doc-header">
@@ -10,7 +16,7 @@
         <h1 class="doc-header-title">Tài liệu của tôi</h1>
         <p class="doc-header-subtitle">Theo dõi các tài liệu bạn đã tạo, trạng thái phê duyệt và lịch sử sửa đổi</p>
       </div>
-      <a href="documents_create.html" class="doc-btn doc-btn-primary">
+      <a href="{% url 'document_create' %}" class="doc-btn doc-btn-primary">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -20,27 +26,21 @@
 
     <!-- Điều hướng phân hệ (Tabs) -->
     <nav class="doc-tabs">
-      <a href="documents.html" class="doc-tab">Danh mục tài liệu</a>
-      <a href="documents_approve.html" class="doc-tab">Tài liệu chờ duyệt (6)</a>
-      <a href="documents_my_docs.html" class="doc-tab active">Tài liệu của tôi</a>
+      <a href="{% url 'documents' %}" class="doc-tab">Danh mục tài liệu</a>
+      <a href="{% url 'document_approve' %}" class="doc-tab">Tài liệu chờ duyệt ({{ pending_count|default:0 }})</a>
+      <a href="{% url 'document_my_docs' %}" class="doc-tab active">Tài liệu của tôi</a>
     </nav>
 
-    <!-- Thanh tìm kiếm & bộ lọc -->
-    <section class="doc-toolbar">
+    <!-- Thanh tìm kiếm -->
+    <form method="get" action="{% url 'document_my_docs' %}" class="doc-toolbar">
       <div class="doc-search-box">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" placeholder="Tìm kiếm tài liệu cá nhân đã đăng tải...">
+        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm tài liệu cá nhân đã đăng tải...">
       </div>
-      <button class="doc-filter-btn" type="button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-        </svg>
-        Bộ lọc
-      </button>
-    </section>
+    </form>
 
     <!-- Bảng danh sách tài liệu cá nhân -->
     <section class="doc-table-card">
@@ -60,26 +60,31 @@
               <td class="doc-table-title">
                 <a href="{% url 'document_edit' id=doc.id %}">{{ doc.title }}</a>
               </td>
-              <td>{{ doc.category.name }}</td>
+              <td>{{ doc.category.name|default:"--" }}</td>
               <td>{{ doc.updated_at|date:"d/m/Y" }}</td>
               <td>
                 {% if doc.status == 'APPROVED' %}
                   <span class="doc-badge doc-badge-approved">Đã duyệt</span>
                 {% elif doc.status == 'PENDING' %}
-                  <span class="doc-badge doc-badge-pending">Chờ duyệt ({{ doc.get_request_type_display }})</span>
+                  <span class="doc-badge doc-badge-pending">Chờ duyệt ({{ doc.get_request_type_display|default:doc.request_type }})</span>
                 {% elif doc.status == 'REJECTED' %}
-                  <span class="doc-badge doc-btn-danger">Từ chối</span>
+                  <span class="doc-badge" style="background: #fee2e2; color: #991b1b;">Từ chối</span>
                 {% endif %}
               </td>
               <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
                 <a href="{% url 'document_edit' id=doc.id %}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 12px; font-size: 13px;">Chỉnh sửa</a>
-                <button type="button" class="doc-btn doc-btn-danger" style="height: 36px; padding: 0 12px; font-size: 13px;" onclick="openDeleteModal('{{ doc.id }}', '{{ doc.title|escapejs }}')">Xoá</button>
+
+                <form method="POST" action="{% url 'document_my_docs' %}" onsubmit="return confirm('Bạn có chắc chắn muốn xoá tài liệu này?');" style="margin:0;">
+                  {% csrf_token %}
+                  <input type="hidden" name="delete_doc_id" value="{{ doc.id }}">
+                  <button type="submit" class="doc-btn" style="height: 36px; padding: 0 12px; font-size: 13px; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer;">Xoá</button>
+                </form>
+
               </td>
             </tr>
           {% empty %}
-            <!-- HIỂN THỊ TRỐNG NẾU NGƯỜI DÙNG CHƯA TẢI LÊN TÀI LIỆU NÀO -->
             <tr>
-              <td colspan="6" style="text-align: center; color: var(--ink-soft); padding: 48px;">
+              <td colspan="5" style="text-align: center; color: var(--ink-soft); padding: 48px;">
                 Bạn chưa tải lên tài liệu nào.
               </td>
             </tr>
@@ -88,14 +93,36 @@
       </table>
 
       <!-- Phân trang -->
-      <footer class="doc-table-pagination">
-        <div>Hiển thị 1 - 6 trong tổng số 6 tài liệu</div>
-        <div class="doc-page-controls">
-          <a href="#" class="doc-page-btn">&lt;</a>
-          <a href="#" class="doc-page-btn active">1</a>
-          <a href="#" class="doc-page-btn">&gt;</a>
-        </div>
-      </footer>
+      {% if page_obj.has_other_pages %}
+        <footer class="doc-table-pagination">
+          <div>Hiển thị <strong>{{ page_obj.start_index }} - {{ page_obj.end_index }}</strong> trong tổng số <strong>{{ page_obj.paginator.count }}</strong> tài liệu</div>
+          <div class="doc-page-controls">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&lt;</a>
+            {% else %}
+              <span class="doc-page-btn" style="opacity: 0.5; cursor: not-allowed;">&lt;</span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <span class="doc-page-btn active">{{ num }}</span>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&gt;</a>
+            {% else %}
+              <span class="doc-page-btn" style="opacity: 0.5; cursor: not-allowed;">&gt;</span>
+            {% endif %}
+          </div>
+        </footer>
+      {% else %}
+         <footer class="doc-table-pagination">
+            <div>Tổng số: <strong>{{ documents|length }}</strong> tài liệu</div>
+         </footer>
+      {% endif %}
     </section>
 
   </main>

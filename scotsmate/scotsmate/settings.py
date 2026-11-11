@@ -132,6 +132,15 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Kích thước tối đa giữ trên RAM trước khi ghi ra file tạm (5 MB)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+
+# Kích thước tối đa cho một request body (nếu cho phép tải nhiều file cùng lúc)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

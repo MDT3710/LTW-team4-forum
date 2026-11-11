@@ -1,7 +1,6 @@
 from django import forms
 from .models import Document, DocumentCategory
 
-
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
 
@@ -17,7 +16,7 @@ class MultipleFileField(forms.FileField):
             return [single_file_clean(d, initial) for d in data]
         return [single_file_clean(data, initial)]
 
-
+#form tải tl lên
 class DocumentCreateForm(forms.ModelForm):
     file = MultipleFileField(
         label="Tệp văn bản đính kèm",
@@ -52,26 +51,6 @@ class DocumentCreateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Tự động tạo 6 danh mục mặc định nếu bảng DocumentCategory đang trống
-        if not DocumentCategory.objects.exists():
-            default_cats = [
-                ('workflow', 'Quy trình làm việc', 'grid'),
-                ('training', 'Đào tạo & Giảng dạy', 'graduation-cap'),
-                ('hr', 'Nhân sự & Hành chính', 'users'),
-                ('student-care', 'Chăm sóc học viên', 'message'),
-                ('marketing', 'Marketing & Tuyển sinh', 'megaphone'),
-                ('tech', 'Công nghệ & Hệ thống', 'monitor'),
-            ]
-            for order, (code, name, icon) in enumerate(default_cats, start=1):
-                DocumentCategory.objects.get_or_create(
-                    code=code,
-                    defaults={
-                        'name': name,
-                        'description': f'Tài liệu thuộc danh mục {name}',
-                        'icon_name': icon,
-                        'display_order': order,
-                    }
-                )
         self.fields['category'].queryset = DocumentCategory.objects.all()
         self.fields['category'].empty_label = "-- Chọn danh mục --"
 
@@ -95,3 +74,60 @@ class DocumentCreateForm(forms.ModelForm):
                     f"Tập tin '{f.name}' ({size_mb:.2f} MB) vượt quá giới hạn tối đa 20 MB."
                 )
         return files
+
+#form tạo danh mục
+class DocumentCategoryForm(forms.ModelForm):
+    class Meta:
+        model = DocumentCategory
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'doc-form-input',
+                'id': 'cat-name',
+                'placeholder': 'Nhập tên danh mục',
+                'required': True,
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'doc-form-textarea',
+                'id': 'cat-desc',
+                'rows': 5,
+                'placeholder': 'Nhập mô tả về nội dung và mục đích của danh mục...',
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Cho phép phần mô tả có thể bỏ trống (không có dấu * đỏ trên giao diện)
+        self.fields['description'].required = False
+
+# form chỉnh sửa tài liệu
+class DocumentEditForm(forms.ModelForm):
+    file = forms.FileField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'id': 'edit-file',
+            'style': 'position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;',
+            'onchange': 'updateFileName(this)',
+        })
+    )
+
+    class Meta:
+        model = Document
+        fields = ['title', 'category', 'file']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'doc-form-input',
+                'id': 'edit-title',
+                'required': True,
+            }),
+            'category': forms.Select(attrs={
+                'class': 'doc-form-select',
+                'id': 'edit-cat',
+                'required': True,
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].queryset = DocumentCategory.objects.all()
+        self.fields['category'].empty_label = None
