@@ -226,3 +226,46 @@ class PostViewTest(TestCase):
         self.assertNotContains(res, 'id="sidebar-following-count"')
         self.assertNotContains(res, 'id="following-modal"')
         self.assertContains(res, 'id="btn-edit-bio"')
+
+    def test_avatar_synchronized_everywhere(self):
+        """Kiểm tra ảnh đại diện sau khi cập nhật được đồng bộ ở tất cả mọi nơi"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from posts.colleagues import get_profile_details, save_user_custom_profiles
+
+        avatar_file = SimpleUploadedFile("my_avatar.png", b"test_image_bytes", content_type="image/png")
+        upload_res = self.client.post(reverse('update_profile_avatar_api'), {'avatar': avatar_file})
+        self.assertEqual(upload_res.status_code, 200)
+        new_avatar_url = upload_res.json()['avatar_url']
+
+        # 1. get_profile_details phản ánh đúng
+        details = get_profile_details(self.user)
+        self.assertEqual(details['avatar'], new_avatar_url)
+
+        # 2. Tạo bài viết & bình luận của user
+        post = Post.objects.create(author=self.user, content="Post with updated avatar", visibility="Toàn công ty")
+        comment = PostComment.objects.create(post=post, emp=self.user, content="Comment with updated avatar")
+        reaction = PostReaction.objects.create(post=post, emp=self.user)
+
+        # 3. Kiểm tra trang newfeeds (home)
+        home_res = self.client.get(reverse('home'))
+        self.assertEqual(home_res.status_code, 200)
+        self.assertContains(home_res, new_avatar_url)
+
+        # 4. Kiểm tra trang profile
+        prof_res = self.client.get(reverse('profile'))
+        self.assertEqual(prof_res.status_code, 200)
+        self.assertContains(prof_res, new_avatar_url)
+
+        # 5. Kiểm tra API likes
+        likes_res = self.client.get(reverse('post_likes_api', args=[post.id]))
+        self.assertEqual(likes_res.status_code, 200)
+        users = likes_res.json()['users']
+        self.assertTrue(any(u['username'] == self.user.username and u['avatar'] == new_avatar_url for u in users))
+
+        # 6. Kiểm tra API add comment trả về avatar_url mới
+        comment_res = self.client.post(reverse('post_comment_api', args=[post.id]), {'content': 'Another comment'})
+        self.assertEqual(comment_res.status_code, 200)
+        self.assertEqual(comment_res.json()['comment']['avatar_url'], new_avatar_url)
+
+        # Clean up
+        save_user_custom_profiles({})

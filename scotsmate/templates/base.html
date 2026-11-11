@@ -158,7 +158,7 @@
         <div class="avatar avatar-profile" style="border-radius: 50%; overflow: hidden; width: 36px; height: 36px;">
           <img
             id="topbar-user-avatar"
-            class="current-user-avatar-sync"
+            class="current-user-avatar-sync user-avatar-sync-{{ request.user.username }}"
             src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}"
             alt="{{ request.user.get_full_name|default:request.user.username }}"
             style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;"

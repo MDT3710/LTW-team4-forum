@@ -107,15 +107,7 @@
       <section class="card create-post">
         <div class="composer">
           <div class="avatar avatar-lg" style="border-radius: 50%; overflow: hidden;">
-            {% if current_user.username == 'thuha' %}
-              <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% elif current_user.username == 'phuonglinh' %}
-              <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% elif current_user.username == 'ngocanh' %}
-              <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% else %}
-              <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-            {% endif %}
+            <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
           </div>
           <div class="composer-body">
             <span class="composer-label">Chia sẻ với đồng nghiệp</span>
@@ -152,17 +144,7 @@
           <div class="post-body">
             <div class="author-row">
               <a href="/profile/{{ post.author.username }}/" class="avatar" style="border-radius: 50%; overflow: hidden; width: 44px; height: 44px; display: block; flex-shrink: 0; cursor: pointer; text-decoration: none;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
-                {% if post.author_avatar %}
-                  <img src="{{ post.author_avatar }}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
-                {% elif post.author.username == 'thuha' %}
-                  <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif post.author.username == 'phuonglinh' %}
-                  <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif post.author.username == 'ngocanh' %}
-                  <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% else %}
-                  <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% endif %}
+                <img class="user-avatar-sync-{{ post.author.username }}" src="{{ post.author_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
               </a>
               <div class="author-info">
                 <span class="author-name">
@@ -278,15 +260,7 @@
               </button>
               <div class="comment-box">
                 <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden;">
-                  {% if current_user.username == 'thuha' %}
-                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif current_user.username == 'phuonglinh' %}
-                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif current_user.username == 'ngocanh' %}
-                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% else %}
-                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-                  {% endif %}
+                  <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                 </div>
                 <input class="text-input" type="text" placeholder="Viết bình luận… (Enter để gửi)" aria-label="Bình luận" onkeydown="if(event.key==='Enter'){ submitComment({{ post.id }}, this); }" />
               </div>
@@ -300,15 +274,7 @@
                 <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="display: flex; gap: 8px; flex: 1;">
                     <a href="/profile/{{ comment.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">
-                      {% if comment.emp.username == 'thuha' %}
-                        <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif comment.emp.username == 'phuonglinh' %}
-                        <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif comment.emp.username == 'ngocanh' %}
-                        <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% else %}
-                        <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% endif %}
+                      <img class="user-avatar-sync-{{ comment.emp.username }}" src="{{ comment.emp_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                     </a>
                     <div class="comment-body" style="flex: 1;">
                       <div class="comment-bubble">
@@ -350,15 +316,7 @@
                   <div class="comment comment-reply-item" id="comment-item-{{ reply.id }}" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="display: flex; gap: 8px; flex: 1;">
                       <a href="/profile/{{ reply.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">
-                        {% if reply.emp.username == 'thuha' %}
-                          <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% elif reply.emp.username == 'phuonglinh' %}
-                          <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% elif reply.emp.username == 'ngocanh' %}
-                          <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% else %}
-                          <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% endif %}
+                        <img class="user-avatar-sync-{{ reply.emp.username }}" src="{{ reply.emp_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                       </a>
                       <div class="comment-body" style="flex: 1;">
                         <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
@@ -400,15 +358,7 @@
                 <div class="inline-reply-box" id="reply-box-{{ comment.id }}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                      {% if current_user.username == 'thuha' %}
-                        <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif current_user.username == 'phuonglinh' %}
-                        <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif current_user.username == 'ngocanh' %}
-                        <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% else %}
-                        <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-                      {% endif %}
+                      <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                     </div>
                     <input type="text" 
                            class="reply-text-input" 
@@ -724,7 +674,7 @@
                       <div class="inline-reply-box" id="reply-box-${data.comment.id}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                           <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                            <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                           </div>
                           <input type="text" class="reply-text-input" id="reply-input-${data.comment.id}" placeholder="Trả lời ${data.comment.author}… (Enter để gửi, Esc để đóng)" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; background: #ffffff;" onkeydown="if(event.key==='Enter'){ submitReply(${postId}, ${data.comment.id}, this); } else if(event.key==='Escape'){ closeReplyBox(${data.comment.id}); }" />
                         </div>

@@ -206,17 +206,11 @@ def post_likes_api(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     reactions = post.reactions.select_related('emp').all()
     user_list = []
+    from .colleagues import get_profile_details
     for r in reactions:
         u = r.emp
         name = u.get_full_name() or u.username
-        if u.username == 'thuha':
-            avatar = '/static/img/avatar_thuha.png'
-        elif u.username == 'phuonglinh':
-            avatar = '/static/img/avatar_phuonglinh.png'
-        elif u.username == 'ngocanh':
-            avatar = '/static/img/avatar_ngocanh.png'
-        else:
-            avatar = '/static/img/profile_avatar_144.png'
+        avatar = get_profile_details(u).get('avatar', '/static/img/profile_avatar_144.png')
         user_list.append({
             'id': u.id,
             'name': name,
@@ -327,6 +321,7 @@ def prepare_post_comments(post, current_user_id=None):
     - comment.child_replies: Danh sách bình luận trả lời nằm ngay dưới bình luận gốc
     - comment.is_liked_by_user, comment.reaction_count, comment.formatted_content
     """
+    from .colleagues import get_profile_details
     raw_comments = list(post.comments.select_related('emp').all())
     comment_map = {}
     for c in raw_comments:
@@ -334,6 +329,7 @@ def prepare_post_comments(post, current_user_id=None):
         c.reaction_count = get_comment_like_count(c.id)
         c.child_replies = []
         c.formatted_content = format_comment_content(c.content)
+        c.emp_avatar = get_profile_details(c.emp).get('avatar', '/static/img/profile_avatar_144.png')
         comment_map[c.id] = c
 
     root_comments = []
@@ -403,16 +399,8 @@ def add_comment_api(request, post_id):
         formatted_content = format_comment_content(comment.content)
 
         author_name = user.get_full_name() or user.username
-        if user.username == 'thuha':
-            avatar_url = '/static/img/avatar_thuha.png'
-        elif user.username == 'phuonglinh':
-            avatar_url = '/static/img/avatar_phuonglinh.png'
-        elif user.username == 'ngocanh':
-            avatar_url = '/static/img/avatar_ngocanh.png'
-        elif user.username == 'minhanh':
-            avatar_url = '/static/img/avatar_minhanh.png'
-        else:
-            avatar_url = '/static/img/profile_avatar_144.png'
+        from .colleagues import get_profile_details
+        avatar_url = get_profile_details(user).get('avatar', '/static/img/profile_avatar_144.png')
 
         return JsonResponse({
             'success': True,

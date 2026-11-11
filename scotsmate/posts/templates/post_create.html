@@ -721,15 +721,7 @@
         <input type="hidden" name="title" id="post-title-input" value="" />
         <section class="create-card profile-card">
           <div class="profile-avatar-wrap" style="width: 48px; height: 48px; border-radius: 50%; overflow: hidden;">
-            {% if current_user.username == 'thuha' %}
-              <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% elif current_user.username == 'phuonglinh' %}
-              <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% elif current_user.username == 'ngocanh' %}
-              <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% else %}
-              <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-            {% endif %}
+            <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
           </div>
           <div class="profile-details">
             <span class="profile-author-name">{{ current_user.get_full_name|default:current_user.username }}</span>
