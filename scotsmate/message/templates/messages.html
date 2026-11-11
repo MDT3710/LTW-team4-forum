@@ -2,12 +2,12 @@
 
 {% block content %}
 <!-- Khung nền ngoài cùng: Đã loại bỏ class .staff-workspace để tránh bị ép xếp dọc -->
-<div class="w-full min-h-[calc(100vh-80px)] bg-[#f8fafc] px-10 py-6 flex justify-center">
+<div class="msg-index-page w-full min-h-[calc(100vh-80px)] bg-[#f8fafc] px-10 py-6 flex justify-center">
     <!-- Khung bọc 2 cột theo chiều ngang (flex-row) -->
-    <div class="w-full max-w-[1400px] flex flex-row gap-6 items-stretch">
+    <div class="msg-index-layout w-full max-w-[1400px] flex flex-row gap-6 items-stretch">
 
         <!-- CỘT 1 (BÊN TRÁI): Danh sách cuộc trò chuyện -->
-        <aside class="w-[320px] bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col shrink-0">
+        <aside class="msg-sidebar-wide w-[320px] bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col shrink-0">
             <!-- Tiêu đề Hộp thư & Nút thêm mới -->
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-bold text-slate-800">Hộp thư</h2>
@@ -18,80 +18,57 @@
 
             <!-- Ô tìm kiếm -->
             <div class="relative mb-4">
-                <input type="text" placeholder="Tìm cuộc trò chuyện"
+                <input id="index-convo-search" type="text" placeholder="Tìm cuộc trò chuyện"
                        class="w-full bg-[#f1f5f9] text-sm text-slate-700 pl-9 pr-3 py-2 rounded-xl border border-transparent focus:outline-none focus:bg-white focus:border-blue-400">
-                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg width="16" height="16" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <circle cx="11" cy="11" r="8" stroke-width="2"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65" stroke-width="2"></line>
                 </svg>
             </div>
 
-            <!-- Danh sách hội thoại -->
-            <div class="flex flex-col gap-1 overflow-y-auto pr-1">
-                <!-- Mục 1: Tư vấn Cầu Giấy -->
-                <a href="{% url 'group_detail' 1 %}" class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        TV
+            <!-- Danh sách hội thoại động từ SQLite -->
+            <div id="index-convo-list" class="flex flex-col gap-1 overflow-y-auto pr-1">
+                {% for convo in conversations %}
+                    {% if convo.convo_type == 'group' %}
+                        <a href="{% url 'group_detail' convo.id %}" data-convo-name="{{ convo.display_name|lower }}" class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                                {{ convo.display_initials }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-semibold text-slate-800">{{ convo.display_name }}</div>
+                                <div class="text-xs text-slate-400 mt-0.5">{% if convo.last_msg %}{{ convo.last_msg.content|default:"[Tệp đính kèm]" }}{% else %}Nhóm • {{ convo.member_count }} thành viên{% endif %}</div>
+                                <div class="text-[11px] text-blue-600 font-medium mt-1">
+                                    {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Nhóm mới{% endif %}
+                                    {% if convo.is_muted %} • Đã tắt thông báo{% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'inbox_detail' convo.target_user_id %}" data-convo-name="{{ convo.display_name|lower }}" class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                                {{ convo.display_initials }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-semibold text-slate-800">{{ convo.display_name }}</div>
+                                <div class="text-xs text-slate-400 mt-0.5 truncate">{{ convo.last_msg.content|default:"Trò chuyện 1-1" }}</div>
+                                <div class="text-[11px] text-slate-400 mt-1">
+                                    {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Mới{% endif %}
+                                    {% if convo.is_muted %} • Đã tắt thông báo{% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    {% endif %}
+                {% empty %}
+                    <div class="msg-index-empty">
+                        Chưa có cuộc trò chuyện nào. Bấm "+ Thêm mới" để tạo nhóm hoặc
+                        <a href="{% url 'inbox_create' %}" style="color: #134c81; font-weight: 600;">nhắn tin 1-1</a>!
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-slate-800">Tư vấn Cầu Giấy</div>
-                        <div class="text-xs text-slate-400 mt-0.5">Nhóm • 8 thành viên</div>
-                        <div class="text-[11px] text-blue-600 font-medium mt-1">09:45 • 2 tin mới</div>
-                    </div>
-                </a>
-
-                <!-- Mục 2: Trần Minh Đức -->
-                <a href="{% url 'inbox_detail' 1 %}" class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        MD
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-slate-800">Trần Minh Đức</div>
-                        <div class="text-xs text-slate-400 mt-0.5 truncate">Gửi bạn tài liệu bài học nhé.</div>
-                        <div class="text-[11px] text-slate-400 mt-1">09:32</div>
-                    </div>
-                </a>
-
-                <!-- Mục 3: Lê Thu Hà -->
-                <a href="{% url 'inbox_detail' 2 %}" class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        TH
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-slate-800">Lê Thu Hà</div>
-                        <div class="text-xs text-slate-400 mt-0.5 truncate">Lịch đào tạo đã cập nhật.</div>
-                        <div class="text-[11px] text-slate-400 mt-1">08:50</div>
-                    </div>
-                </a>
-
-                <!-- Mục 4: Nguyễn Hoài An -->
-                <a href="{% url 'inbox_detail' 3 %}" class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        HA
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-slate-800">Nguyễn Hoài An</div>
-                        <div class="text-xs text-slate-400 mt-0.5 truncate">Cảm ơn cả nhóm!</div>
-                        <div class="text-[11px] text-slate-400 mt-1">Hôm qua</div>
-                    </div>
-                </a>
-
-                <!-- Mục 5: Đào tạo tháng 10 -->
-                <a href="{% url 'group_detail' 2 %}" class="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        ĐT
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-slate-800">Đào tạo tháng 10</div>
-                        <div class="text-xs text-slate-400 mt-0.5">Nhóm • 24 thành viên</div>
-                        <div class="text-[11px] text-slate-400 mt-1">Hôm qua</div>
-                    </div>
-                </a>
+                {% endfor %}
             </div>
         </aside>
 
         <!-- CỘT 2 (BÊN PHẢI): Empty State chuẩn Figma -->
-        <main class="flex-1 bg-[#F0F6FC] rounded-2xl flex flex-col items-center justify-center p-12 text-center min-h-[640px] border border-blue-50/50">
+        <main class="msg-empty-panel flex-1 bg-[#F0F6FC] rounded-2xl flex flex-col items-center justify-center p-12 text-center min-h-[640px] border border-blue-50/50">
             <!-- Icon 2 bong bóng chat lồng nhau nét mảnh -->
             <div class="mb-6 text-[#5b7a9c]/80">
                 <svg width="84" height="84" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
@@ -112,4 +89,18 @@
 
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("index-convo-search");
+    if (!input) return;
+    input.addEventListener("input", function () {
+        const q = this.value.trim().toLowerCase();
+        document.querySelectorAll("#index-convo-list > a").forEach(function (item) {
+            const name = (item.getAttribute("data-convo-name") || item.textContent || "").toLowerCase();
+            item.style.display = !q || name.indexOf(q) !== -1 ? "" : "none";
+        });
+    });
+});
+</script>
 {% endblock %}

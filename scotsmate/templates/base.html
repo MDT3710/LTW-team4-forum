@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=20261112b" />
   <style>
     .comment-actions {
       font-size: 12px;
@@ -140,7 +140,7 @@
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
       </button>
-      <button class="round-btn" aria-label="Messenger" title="Tin nhắn">
+      <button class="round-btn" aria-label="Messenger" onclick="window.location.href='{% url 'messages_list' %}'" title="Tin nhắn" style="cursor: pointer;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>

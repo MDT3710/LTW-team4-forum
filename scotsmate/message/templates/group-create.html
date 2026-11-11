@@ -4,162 +4,125 @@
 
   <!-- Bỏ staff-workspace để không bị ép flex-direction: column -->
   <div class="messages-workspace flex flex-col gap-6 px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto bg-[#f8fafc]">
-    
-    <!-- CARD 1: Thông tin nhóm chuẩn Figma -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-      <h2 class="text-base font-bold text-slate-900 m-0">Thông tin nhóm</h2>
-      <div class="flex flex-col gap-2">
-        <label class="text-xs font-semibold text-slate-700">
-          Tên nhóm <span class="text-rose-500">*</span>
-        </label>
-        <input type="text" value="Đào tạo Chăm sóc học viên" placeholder="Nhập tên nhóm..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-[#134c81]" />
-      </div>
-    </div>
 
-    <!-- CARD 2: Chọn thành viên chuẩn Figma -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
-      <h2 class="text-base font-bold text-slate-900 m-0">Chọn thành viên</h2>
-      
-      <!-- Thanh tìm kiếm & bộ lọc -->
-      <div class="flex items-center gap-3">
-        <div class="relative flex-1">
-          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" placeholder="Tìm nhân viên theo tên hoặc email..." class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]" />
-        </div>
-        
-        <div class="relative">
-          <select class="appearance-none pl-4 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-[#134c81] cursor-pointer">
-            <option>Chi nhánh Cầu Giấy</option>
-            <option>Chi nhánh Hà Đông</option>
-            <option>Chi nhánh Đống Đa</option>
-          </select>
-          <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-
-        <button type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
-          Bộ lọc
-        </button>
-      </div>
-
-      <!-- Danh sách thành viên chuẩn Figma -->
-      <div class="flex flex-col divide-y divide-slate-100">
-        
-        <!-- 1: Trần Minh Đức (Trainer) - Đã chọn -->
-        <label class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-blue-100 text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0">
-              MD
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 m-0">Trần Minh Đức</p>
-              <p class="text-[11px] text-slate-400 m-0 mt-0.5">Trainer</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" checked class="w-4 h-4 rounded text-[#134c81] accent-[#134c81] cursor-pointer" />
-            <span class="text-xs text-slate-600 font-medium select-none">Chọn</span>
-          </div>
-        </label>
-
-        <!-- 2: Lê Thu Hà (Phòng Nhân sự) - Đã chọn -->
-        <label class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0">
-              TH
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 m-0">Lê Thu Hà</p>
-              <p class="text-[11px] text-slate-400 m-0 mt-0.5">Phòng Nhân sự</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" checked class="w-4 h-4 rounded text-[#134c81] accent-[#134c81] cursor-pointer" />
-            <span class="text-xs text-slate-600 font-medium select-none">Chọn</span>
-          </div>
-        </label>
-
-        <!-- 3: Phạm Hoàng Nam (Tư vấn) - Đã chọn -->
-        <label class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center shrink-0">
-              HN
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 m-0">Phạm Hoàng Nam</p>
-              <p class="text-[11px] text-slate-400 m-0 mt-0.5">Tư vấn</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" checked class="w-4 h-4 rounded text-[#134c81] accent-[#134c81] cursor-pointer" />
-            <span class="text-xs text-slate-600 font-medium select-none">Chọn</span>
-          </div>
-        </label>
-
-        <!-- 4: Nguyễn Hoài An (Quản lý chi nhánh) - Chưa chọn -->
-        <label class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center shrink-0">
-              HA
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 m-0">Nguyễn Hoài An</p>
-              <p class="text-[11px] text-slate-400 m-0 mt-0.5">Quản lý chi nhánh</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" class="w-4 h-4 rounded text-[#134c81] accent-[#134c81] cursor-pointer" />
-            <span class="text-xs text-slate-600 font-medium select-none">Chọn</span>
-          </div>
-        </label>
-
-        <!-- 5: Lê Phương Thảo (Giảng viên) - Chưa chọn -->
-        <label class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-blue-50 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
-              PT
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 m-0">Lê Phương Thảo</p>
-              <p class="text-[11px] text-slate-400 m-0 mt-0.5">Giảng viên</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" class="w-4 h-4 rounded text-[#134c81] accent-[#134c81] cursor-pointer" />
-            <span class="text-xs text-slate-600 font-medium select-none">Chọn</span>
-          </div>
-        </label>
-
-        <!-- 6: Đỗ Ngọc Linh (Quản lý Mỹ Đình) - Chưa chọn -->
-        <label class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
-              NL
-            </div>
-            <div>
-              <p class="text-xs font-bold text-slate-900 m-0">Đỗ Ngọc Linh</p>
-              <p class="text-[11px] text-slate-400 m-0 mt-0.5">Quản lý Mỹ Đình</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" class="w-4 h-4 rounded text-[#134c81] accent-[#134c81] cursor-pointer" />
-            <span class="text-xs text-slate-600 font-medium select-none">Chọn</span>
-          </div>
-        </label>
-
-      </div>
-
-      <!-- Nút Hủy và Tạo nhóm ở góc phải -->
-      <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-        <a href="{% url 'messages_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition no-underline">
-          Hủy
+    <!-- Thanh chuyển chế độ: Tạo nhóm / Nhắn tin cá nhân (1-1) -->
+    <div class="flex items-center justify-between">
+      <div class="inline-flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs">
+        <a href="{% url 'group_create' %}" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#134c81] text-white shadow-xs no-underline">
+          Tạo nhóm trò chuyện
         </a>
-        <a href="{% url 'group_detail' 1 %}" class="px-6 py-2.5 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm no-underline">
-          Tạo nhóm
+        <a href="{% url 'inbox_create' %}" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-[#134c81] hover:bg-slate-50 transition no-underline">
+          Nhắn tin cá nhân (1-1)
         </a>
       </div>
-
+      <a href="{% url 'messages_list' %}" class="text-xs font-semibold text-slate-500 hover:text-[#134c81] transition no-underline">
+        ← Quay lại hộp thư
+      </a>
     </div>
+
+    <form method="POST" action="{% url 'group_create' %}" class="flex flex-col gap-6">
+      {% csrf_token %}
+
+      <!-- CARD 1: Thông tin nhóm chuẩn Figma -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+        <h2 class="text-base font-bold text-slate-900 m-0">Thông tin nhóm</h2>
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-semibold text-slate-700">
+            Tên nhóm <span class="text-rose-500">*</span>
+          </label>
+          <input type="text" name="title" required placeholder="Nhập tên nhóm..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-[#134c81]" />
+        </div>
+      </div>
+
+      <!-- CARD 2: Chọn thành viên chuẩn Figma -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+        <h2 class="text-base font-bold text-slate-900 m-0">Chọn thành viên</h2>
+
+        <!-- Thanh tìm kiếm & bộ lọc -->
+        <div class="flex items-center gap-3">
+          <div class="relative flex-1">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input id="group-member-search" type="text" placeholder="Tìm nhân viên theo tên hoặc email..." class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]" />
+          </div>
+
+          <div class="relative">
+            <select id="group-branch-select" name="branch" class="appearance-none pl-4 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-[#134c81] cursor-pointer">
+              <option value="Chi nhánh Cầu Giấy">Chi nhánh Cầu Giấy</option>
+              <option value="Chi nhánh Hà Đông">Chi nhánh Hà Đông</option>
+              <option value="Chi nhánh Đống Đa">Chi nhánh Đống Đa</option>
+            </select>
+            <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+
+          <button id="group-filter-btn" type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+            Bộ lọc
+          </button>
+        </div>
+
+        <!-- Danh sách thành viên động từ database -->
+        <div id="group-member-list" class="flex flex-col divide-y divide-slate-100">
+          {% for u in users %}
+            <label data-member-search="{{ u.display_info.display_name|lower }} {{ u.username|lower }} {{ u.email|default:''|lower }} {{ u.display_info.position|lower }}" class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full {{ u.display_info.avatar_color }} font-bold text-xs flex items-center justify-center shrink-0">
+                  {{ u.display_info.initials }}
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-slate-900 m-0">{{ u.display_info.display_name }}</p>
+                  <p class="text-[11px] text-slate-400 m-0 mt-0.5">{{ u.display_info.position }}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="checkbox" name="members" value="{{ u.id }}" class="w-4 h-4 rounded text-[#134c81] accent-[#134c81] cursor-pointer" />
+                <span class="text-xs text-slate-600 font-medium select-none">Chọn</span>
+              </div>
+            </label>
+          {% empty %}
+            <div class="py-6 text-center text-xs text-slate-400">
+              Chưa có thành viên khác trong hệ thống. Bạn vẫn có thể bấm "Tạo nhóm" để tạo phòng chat mới.
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Nút Hủy và Tạo nhóm ở góc phải -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <a href="{% url 'messages_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition no-underline">
+            Hủy
+          </a>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+            Tạo nhóm
+          </button>
+        </div>
+
+      </div>
+
+    </form>
 
   </div>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("group-member-search");
+    const filterBtn = document.getElementById("group-filter-btn");
+    const list = document.getElementById("group-member-list");
+    if (!searchInput || !list) return;
+
+    function filterMembers() {
+      const q = searchInput.value.trim().toLowerCase();
+      list.querySelectorAll("label").forEach(function (row) {
+        const txt = (row.getAttribute("data-member-search") || row.textContent || "").toLowerCase();
+        row.style.display = !q || txt.indexOf(q) !== -1 ? "" : "none";
+      });
+    }
+
+    searchInput.addEventListener("input", filterMembers);
+    if (filterBtn) {
+      filterBtn.addEventListener("click", function () {
+        searchInput.focus();
+        filterMembers();
+      });
+    }
+  });
+  </script>
 
 {% endblock %}

@@ -155,6 +155,10 @@ class Conversation(models.Model):
     def is_group(self):
         return self.conversation_type == self.TYPE_GROUP
 
+    @property
+    def convo_type(self):
+        return 'group' if self.conversation_type == self.TYPE_GROUP else 'direct'
+
     def get_initials(self):
         """Lấy 2 chữ cái viết tắt cho avatar nhóm (ví dụ: Tư vấn Cầu Giấy -> TV, Đào tạo -> ĐT)"""
         if self.title:
@@ -271,6 +275,18 @@ class Message(models.Model):
 
     def has_attachments(self):
         return self.attachments.exists()
+
+    @property
+    def primary_attachment(self):
+        """Trả về bản ghi Attachment đầu tiên (tận dụng prefetch_related nếu có)."""
+        attachments = list(self.attachments.all())
+        return attachments[0] if attachments else None
+
+    @property
+    def attachment(self):
+        """Trả về FieldFile đính kèm đầu tiên để dùng trực tiếp {{ msg.attachment.url }}."""
+        att = self.primary_attachment
+        return att.file if att else None
 
 
 class Attachment(models.Model):
