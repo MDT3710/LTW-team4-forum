@@ -17,10 +17,10 @@ from .forms import PostForm, PostCommentForm, PostAttachmentForm, ScotsmateAuthe
 class ScotsmateLoginView(auth_views.LoginView):
     """
     View đăng nhập kế thừa Django contrib.auth.views.LoginView (Chương 7 MIS3010).
-    Sử dụng ScotsmateAuthenticationForm và template dual_column.html.
+    Sử dụng ScotsmateAuthenticationForm và template login.html.
     Tự động chuyển hướng người dùng đã xác thực (redirect_authenticated_user=True).
     """
-    template_name = 'dual_column.html'
+    template_name = 'login.html'
     authentication_form = ScotsmateAuthenticationForm
     redirect_authenticated_user = True
 
@@ -91,7 +91,7 @@ def post_create_view(request):
             next_url = request.POST.get('next')
             if next_url:
                 return redirect(next_url)
-            return redirect('newfeeds')
+            return redirect('home')
         else:
             messages.error(request, 'Nội dung bài viết không được để trống hoặc không hợp lệ.')
     else:

@@ -8,11 +8,11 @@ def index_view(request):
     """
     Điều hướng khi truy cập trang web (đường dẫn gốc /):
     - Luôn vào trang đăng nhập trước nếu chưa đăng nhập.
-    - Sau khi đăng nhập mới vào được trang newfeeds.
+    - Sau khi đăng nhập mới vào được trang home (Bảng tin).
     """
     if not request.user.is_authenticated:
         return redirect('login')
-    return redirect('newfeeds')
+    return redirect('home')
 
 
 def HomeView(request):

@@ -68,37 +68,37 @@ class PostViewTest(TestCase):
         self.post = Post.objects.create(author=self.user, title='Bài viết test', content='Nội dung thử nghiệm')
 
     def test_home_feed_view(self):
-        # Khi đã đăng nhập, truy cập /newfeeds/ tải trang Bảng tin (home.html)
-        response = self.client.get(reverse('newfeeds'))
+        # Khi đã đăng nhập, truy cập /home/ tải trang Bảng tin (home.html)
+        response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'home.html')
 
-        # Khi đã đăng nhập, truy cập / sẽ chuyển hướng sang /newfeeds/
+        # Khi đã đăng nhập, truy cập / sẽ chuyển hướng sang /home/
         response_root = self.client.get('/')
         self.assertEqual(response_root.status_code, 302)
-        self.assertRedirects(response_root, reverse('newfeeds'))
+        self.assertRedirects(response_root, reverse('home'))
 
     def test_unauthenticated_user_redirected_to_login(self):
-        # Chưa đăng nhập: khi truy cập trang web (/) hoặc (/newfeeds/) đều vào trang đăng nhập trước
+        # Chưa đăng nhập: khi truy cập trang web (/) hoặc (/home/) đều vào trang đăng nhập trước
         anonymous_client = Client()
 
         res_root = anonymous_client.get('/')
         self.assertEqual(res_root.status_code, 302)
         self.assertRedirects(res_root, reverse('login'))
 
-        res_feed = anonymous_client.get(reverse('newfeeds'))
+        res_feed = anonymous_client.get(reverse('home'))
         self.assertEqual(res_feed.status_code, 302)
         self.assertRedirects(res_feed, reverse('login'))
 
-    def test_login_success_redirects_to_newfeeds(self):
-        # Sau khi đăng nhập thành công, người dùng mới vào được trang newfeeds
+    def test_login_success_redirects_to_home(self):
+        # Sau khi đăng nhập thành công, người dùng mới vào được trang home
         anonymous_client = Client()
         response = anonymous_client.post(reverse('login'), {
             'username': 'minhanh',
             'password': 'password123'
         })
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('newfeeds'))
+        self.assertRedirects(response, reverse('home'))
 
     def test_login_with_next_param(self):
         anonymous_client = Client()
@@ -113,7 +113,7 @@ class PostViewTest(TestCase):
         # Người dùng đã đăng nhập vào /login/ sẽ tự động chuyển hướng theo redirect_authenticated_user
         response = self.client.get(reverse('login'))
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('newfeeds'))
+        self.assertRedirects(response, reverse('home'))
 
     def test_login_invalid_credentials(self):
         anonymous_client = Client()
@@ -146,7 +146,7 @@ class PostViewTest(TestCase):
             'content': 'Nội dung bài viết mới tạo qua form'
         })
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('newfeeds'))
+        self.assertRedirects(response, reverse('home'))
         new_post = Post.objects.filter(title='Chủ đề mới').first()
         self.assertIsNotNone(new_post)
         self.assertEqual(new_post.author, self.user)
