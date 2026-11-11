@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-6 md:px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <!-- Thanh điều hướng đầu trang -->
+    <header class="page-heading flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div class="flex flex-wrap items-center gap-3">
+        <a href="/courses/trainee/courses/{{ course.id }}/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#134c81] hover:underline" style="text-decoration: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          Quay lại chi tiết khóa học
+        </a>
+        <span class="text-slate-300">|</span>
+        <h1 class="text-lg md:text-xl font-bold text-slate-900">Bài {{ material.order }}: {{ material.name|default:"Tài liệu bài giảng" }}</h1>
+      </div>
+
+      <div class="flex items-center gap-3">
+        {% if latest_response or enrollment.is_pass %}
+          <a href="/courses/trainee/course/{{ course.id }}/exam/result/" class="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-300 text-xs md:text-sm font-semibold hover:bg-emerald-100 transition shadow-sm" style="text-decoration: none;">
+            ✓ Đã hoàn thành ({% if latest_response %}{{ latest_response.score|floatformat:0 }}{% else %}100{% endif %}/100) • Xem kết quả
+          </a>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Layout 2 cột: Khung bài giảng & Danh mục bài học -->
+    <section class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      
+      <!-- Cột chính: Nội dung bài học (3 cột) -->
+      <div class="lg:col-span-3 flex flex-col gap-6">
+        <div class="lesson-presentation bg-white border border-slate-200 rounded-xl p-6 md:p-8 shadow-sm flex flex-col gap-6">
+          
+          <div class="lesson-header border-b border-slate-100 pb-4">
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-xs font-semibold text-[#134c81] uppercase tracking-wider">{{ course.title }}</span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {% if material.file_type == 'video' %}bg-purple-50 text-purple-700 border border-purple-200{% else %}bg-blue-50 text-[#134c81] border border-blue-200{% endif %}">
+                {% if material.file_type == 'video' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Video bài giảng
+                {% else %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Tài liệu đào tạo
+                {% endif %}
+              </span>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-900 mt-2">{{ material.name|default:"Nội dung bài giảng" }}</h2>
+          </div>
+
+          <div class="lesson-body text-slate-700 leading-relaxed flex flex-col gap-5 text-sm">
+            
+            {% if material.file_type == 'video' %}
+              {% if material.file %}
+                <!-- Trình phát Video bài giảng thực tế với tệp đã upload -->
+                <div class="video-wrapper rounded-xl overflow-hidden bg-black border border-slate-800 shadow-md">
+                  <video controls playsinline preload="metadata" class="w-full max-h-[520px] bg-black aspect-video">
+                    <source src="{{ material.file.url }}" type="video/mp4">
+                    Trình duyệt của bạn không hỗ trợ thẻ video HTML5.
+                  </video>
+                  <div class="bg-slate-900 px-4 py-2.5 flex items-center justify-between text-xs text-slate-300 border-t border-slate-800">
+                    <span class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded bg-purple-600 font-bold text-[10px] text-white">VIDEO MP4</span>
+                      <span class="font-mono text-slate-400 truncate max-w-sm">{{ material.file.name }}</span>
+                    </span>
+                    <a href="{{ material.file.url }}" target="_blank" download class="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
+                      <span>Tải video về máy</span>
+                      <span>↗</span>
+                    </a>
+                  </div>
+                </div>
+              {% else %}
+                <!-- Video Player Mock nếu chưa tải file MP4 -->
+                <div class="video-container relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shadow-md aspect-video flex flex-col justify-between p-4 group">
+                  <div class="flex items-center justify-between text-xs text-white/80 z-10">
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded bg-red-600 font-bold text-[10px] tracking-wider text-white uppercase">HD Video</span>
+                      <span class="font-semibold text-white truncate max-w-md">{{ material.name }}</span>
+                    </div>
+                  </div>
+
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-16 h-16 rounded-full bg-[#134c81]/90 text-white flex items-center justify-center pl-1 shadow-2xl hover:scale-105 transition cursor-pointer border border-white/20">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between text-xs text-white/70 z-10 bg-gradient-to-t from-black/80 to-transparent pt-6 -mx-4 -mb-4 px-4 pb-3">
+                    <div class="flex items-center gap-3">
+                      <span class="text-xs text-white/90">Scots E-Learning Studio</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs">
+                      <span class="px-1.5 py-0.5 rounded bg-white/20 text-[10px] font-bold text-white">1080p Full HD</span>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+
+            {% elif material.file_type == 'pdf' and material.file %}
+              <!-- Khung xem tài liệu PDF trực tuyến nhúng trực tiếp -->
+              <div class="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm flex flex-col">
+                <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs">
+                  <span class="font-semibold text-slate-800 flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-rose-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Tài liệu PDF: <strong class="text-slate-900 font-mono">{{ material.file.name }}</strong>
+                  </span>
+                  <a href="{{ material.file.url }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-300 rounded font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition shadow-xs">
+                    Mở toàn màn hình / Tải xuống ↗
+                  </a>
+                </div>
+                <!-- Object / Iframe tương thích mọi trình duyệt -->
+                <object data="{{ material.file.url }}" type="application/pdf" class="w-full h-[680px] border-0 rounded-b-xl">
+                  <iframe src="{{ material.file.url }}" class="w-full h-[680px] border-0" title="{{ material.name }}">
+                    <p class="p-6 text-center text-slate-500 text-xs">
+                      Trình duyệt không hỗ trợ xem trước PDF. <a href="{{ material.file.url }}" target="_blank" class="text-blue-600 underline font-semibold">Bấm vào đây để tải về tệp tin</a>.
+                    </p>
+                  </iframe>
+                </object>
+              </div>
+
+            {% elif material.file_type == 'doc' and material.file %}
+              <!-- Thẻ đính kèm tài liệu Microsoft Word chuyên biệt -->
+              <div class="p-5 rounded-xl border border-indigo-200 bg-indigo-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+                    W
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold text-[10px] uppercase">Văn bản Word (DOC/DOCX)</span>
+                      <span class="text-xs font-semibold text-slate-800">Tài liệu hướng dẫn tác nghiệp</span>
+                    </div>
+                    <span class="text-xs text-slate-600 font-mono block mt-1">{{ material.file.name }}</span>
+                  </div>
+                </div>
+                <a href="{{ material.file.url }}" target="_blank" download class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-sm shrink-0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Tải về văn bản Word ↗
+                </a>
+              </div>
+
+            {% elif material.file_type == 'slide' and material.file %}
+              <!-- Thẻ đính kèm Slide thuyết trình PowerPoint chuyên biệt -->
+              <div class="p-5 rounded-xl border border-amber-200 bg-amber-50/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-12 h-12 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+                    P
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px] uppercase">Slide bài giảng (PPT/PPTX)</span>
+                      <span class="text-xs font-semibold text-slate-800">Giáo trình trình chiếu</span>
+                    </div>
+                    <span class="text-xs text-slate-600 font-mono block mt-1">{{ material.file.name }}</span>
+                  </div>
+                </div>
+                <a href="{{ material.file.url }}" target="_blank" download class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-sm shrink-0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Tải về Slide thuyết trình ↗
+                </a>
+              </div>
+
+            {% elif material.file %}
+              <!-- Thẻ đính kèm tài liệu học tập khác (Interactive / Tương tác) -->
+              <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-lg bg-[#134c81] text-white flex items-center justify-center font-bold shrink-0">
+                    📎
+                  </div>
+                  <div>
+                    <span class="text-xs font-bold text-slate-800 block">Tài liệu học tập đính kèm ({{ material.file_type|upper }})</span>
+                    <span class="text-[11px] text-slate-500 font-mono">{{ material.file.name }}</span>
+                  </div>
+                </div>
+                <a href="{{ material.file.url }}" target="_blank" download class="px-4 py-2 bg-[#134c81] text-white rounded-lg text-xs font-bold hover:bg-[#0e3b65] transition shadow-sm text-center shrink-0">
+                  Mở / Tải về tài liệu ↗
+                </a>
+              </div>
+            {% endif %}
+
+            <!-- Tóm tắt bài học nếu có -->
+            {% if material.summary %}
+              <p class="text-slate-700 leading-relaxed font-normal text-base">{{ material.summary }}</p>
+            {% endif %}
+
+            <!-- 4 Nguyên tắc cốt lõi (2x2 Grid) -->
+            {% if material.key_points %}
+              <div class="key-points grid grid-cols-1 md:grid-cols-2 gap-4 my-1">
+                {% for point in material.key_points %}
+                  <div class="p-4 rounded-xl bg-[#edf4fb] border border-blue-100 flex flex-col justify-start">
+                    <h3 class="font-bold text-[#134c81] mb-1.5 text-sm">{{ point.title }}</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">{{ point.desc }}</p>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- Nội dung chuyên sâu bài học -->
+            {% if material.content %}
+              <div class="lesson-deep-dive p-5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs leading-relaxed flex flex-col gap-2">
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  Nội dung chi tiết & Hướng dẫn tác nghiệp chuẩn:
+                </h4>
+                <div class="prose max-w-none text-slate-700 leading-relaxed">
+                  {{ material.content|safe }}
+                </div>
+              </div>
+            {% endif %}
+
+            <!-- Tình huống thực hành mẫu: Gọn gàng, xúc tích, không thừa chữ -->
+            {% if material.scenario_content or material.scenario_title %}
+              <div class="example-scenario rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-xs flex flex-col gap-2.5">
+                
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-bold text-[10px] uppercase tracking-wider">Tình huống thực tế</span>
+                    <h4 class="font-bold text-slate-900 text-xs sm:text-sm">
+                      💡 {{ material.scenario_title|default:"Tình huống xử lý nghiệp vụ tại cơ sở" }}
+                    </h4>
+                  </div>
+                  
+                  <button type="button" 
+                          onclick="toggleScenarioAnswer(this)" 
+                          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition cursor-pointer select-none">
+                    <span id="scenarioBtnText">Xem gợi ý xử lý ▾</span>
+                  </button>
+                </div>
+
+                {% if material.scenario_problem %}
+                  <p class="text-xs text-slate-700 leading-relaxed bg-white/90 border border-amber-200/70 rounded-lg p-3">
+                    <strong class="text-amber-950 font-semibold">Tình huống:</strong> {{ material.scenario_problem }}
+                  </p>
+                {% endif %}
+
+                <!-- Khối gợi ý cách xử lý (Ẩn mặc định) -->
+                <div id="scenarioAnswerBox" class="hidden">
+                  <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 leading-relaxed">
+                    <strong class="text-emerald-800 font-bold block mb-1">Gợi ý xử lý chuẩn:</strong>
+                    {% if material.scenario_solution %}
+                      {{ material.scenario_solution }}
+                    {% else %}
+                      {{ material.scenario_content }}
+                    {% endif %}
+                  </div>
+                </div>
+
+              </div>
+
+              <script>
+                /**
+                 * Bật/tắt hiển thị cách xử lý chuẩn của tình huống mẫu
+                 */
+                function toggleScenarioAnswer(button) {
+                  const box = document.getElementById('scenarioAnswerBox');
+                  const text = document.getElementById('scenarioBtnText');
+                  if (!box) return;
+
+                  const isHidden = box.classList.contains('hidden');
+                  if (isHidden) {
+                    box.classList.remove('hidden');
+                    text.textContent = 'Ẩn gợi ý ▴';
+                    button.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+                    button.classList.add('bg-slate-700', 'hover:bg-slate-800');
+                  } else {
+                    box.classList.add('hidden');
+                    text.textContent = 'Xem gợi ý xử lý ▾';
+                    button.classList.remove('bg-slate-700', 'hover:bg-slate-800');
+                    button.classList.add('bg-amber-600', 'hover:bg-amber-700');
+                  }
+                }
+              </script>
+            {% endif %}
+
+          </div>
+
+          <!-- Lesson footer: Điều hướng bài trước / bài sau -->
+          <div class="lesson-footer flex flex-wrap justify-between items-center gap-4 border-t border-slate-100 pt-5 mt-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-emerald-600 font-medium">✓ Đang học: Bài {{ material.order }} • {{ material.name|truncatechars:35 }}</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              {% if prev_material %}
+                <a href="/courses/trainee/course/{{ course.id }}/{{ prev_material.id }}/" class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition shadow-sm" style="text-decoration: none;">
+                  ← Bài trước: Bài {{ prev_material.order }}
+                </a>
+              {% endif %}
+
+              {% if next_material %}
+                <a href="/courses/trainee/course/{{ course.id }}/{{ next_material.id }}/" class="px-5 py-2.5 rounded-lg bg-[#134c81] text-white text-xs md:text-sm font-semibold hover:bg-[#0e3b65] transition shadow-sm flex items-center gap-1.5" style="text-decoration: none;">
+                  <span>Học tiếp Bài {{ next_material.order }}: {{ next_material.name|truncatechars:28 }}</span>
+                  <span>→</span>
+                </a>
+              {% else %}
+                {% if latest_response or enrollment.is_pass %}
+                  <a href="/courses/trainee/course/{{ course.id }}/exam/result/" class="px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-xs md:text-sm font-semibold hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5" style="text-decoration: none;">
+                    <span>Xem kết quả & chi tiết bài làm</span>
+                    <span>→</span>
+                  </a>
+                {% elif course.exam %}
+                  <a href="/courses/trainee/course/{{ course.id }}/exam/" class="px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-xs md:text-sm font-semibold hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5" style="text-decoration: none;">
+                    <span>Hoàn thành bài giảng cuối • Đến phòng thi</span>
+                    <span>→</span>
+                  </a>
+                {% else %}
+                  <a href="/courses/trainee/courses/{{ course.id }}/" class="px-5 py-2.5 rounded-lg bg-[#134c81] text-white text-xs md:text-sm font-semibold hover:bg-[#0e3b65] transition shadow-sm" style="text-decoration: none;">
+                    Hoàn thành khóa học ✓
+                  </a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột phụ: Danh mục bài học (1 cột) -->
+      <aside class="flex flex-col gap-6">
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm">Danh mục bài giảng</h3>
+            <span class="text-xs text-slate-400 font-mono">{{ all_materials|length }} bài</span>
+          </div>
+          
+          <nav class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+            {% for m in all_materials %}
+              <a href="/courses/trainee/course/{{ course.id }}/{{ m.id }}/" class="p-3 rounded-lg text-xs font-medium flex items-center justify-between transition {% if m.id == material.id %}bg-[#edf4fb] text-[#134c81] font-bold border border-blue-200 shadow-xs{% else %}text-slate-600 hover:bg-slate-50 border border-transparent{% endif %}" style="text-decoration: none;">
+                <div class="flex items-start gap-2 max-w-[200px]">
+                  <span class="shrink-0 font-bold">Bài {{ m.order }}:</span>
+                  <span class="line-clamp-2">{{ m.name }}</span>
+                </div>
+                <span class="text-slate-400 font-mono text-[11px] shrink-0 ml-1">{{ m.duration_minutes }}p</span>
+              </a>
+            {% empty %}
+              <p class="text-xs text-slate-400">Không có bài giảng khác</p>
+            {% endfor %}
+          </nav>
+        </div>
+
+        {% if latest_response or enrollment.is_pass %}
+          <div class="p-5 rounded-xl {% if latest_response.is_passed or enrollment.is_pass %}bg-emerald-50/70 border-emerald-200{% else %}bg-slate-50 border-slate-200{% endif %} border shadow-sm flex flex-col gap-3">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">{% if latest_response.is_passed or enrollment.is_pass %}🏆{% else %}📋{% endif %}</span>
+              <h4 class="font-bold {% if latest_response.is_passed or enrollment.is_pass %}text-emerald-900{% else %}text-slate-900{% endif %} text-sm">
+                {% if latest_response.is_passed or enrollment.is_pass %}Đã hoàn thành khóa học{% else %}Đã kết thúc bài thi{% endif %}
+              </h4>
+            </div>
+            <p class="text-xs {% if latest_response.is_passed or enrollment.is_pass %}text-emerald-800{% else %}text-slate-600{% endif %} leading-relaxed">
+              Kết quả bài thi ghi nhận: <strong>{% if latest_response %}{{ latest_response.score|floatformat:0 }}{% else %}100{% endif %}/100 điểm</strong>.
+            </p>
+            <a href="/courses/trainee/course/{{ course.id }}/exam/result/" class="w-full py-2.5 rounded-lg {% if latest_response.is_passed or enrollment.is_pass %}bg-emerald-600 hover:bg-emerald-700{% else %}bg-[#134c81] hover:bg-[#0c375f]{% endif %} text-white text-xs font-bold text-center transition shadow-sm" style="text-decoration: none;">
+              Xem chi tiết kết quả bài thi →
+            </a>
+          </div>
+        {% elif course.exam %}
+          {% if not all_materials_completed %}
+            <!-- KHI CHƯA HỌC XONG HẾT BÀI GIẢNG: KHÓA PHÒNG THI, KHÔNG CÓ NÚT VÀO THI -->
+            <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 shadow-sm flex flex-col gap-2.5">
+              <div class="flex items-center gap-2 text-slate-700 font-bold text-xs">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Phòng thi chưa mở khóa</span>
+              </div>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                Bạn cần hoàn thành toàn bộ <strong>{{ all_materials|length }} bài giảng</strong> để đủ điều kiện mở khóa bài thi đánh giá.
+              </p>
+              <div class="text-[11px] text-[#134c81] font-semibold bg-blue-50/60 p-2 rounded-lg border border-blue-100 flex items-center justify-between">
+                <span>Tiến độ bài học:</span>
+                <span>{{ learned_count|default:1 }} / {{ all_materials|length }} bài</span>
+              </div>
+            </div>
+          {% else %}
+            <!-- KHI ĐÃ HỌC XONG HẾT BÀI GIẢNG: MỞ NÚT VÀO PHÒNG THI (CẦN PASSCODE) -->
+            <div class="p-5 rounded-xl bg-emerald-50/70 border border-emerald-200 shadow-sm flex flex-col gap-3">
+              <div class="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Đủ điều kiện làm bài thi</span>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Bạn đã hoàn thành toàn bộ bài giảng. Nhập mã Passcode để mở đề thi.
+              </p>
+              <a href="/courses/trainee/course/{{ course.id }}/exam/" class="w-full py-2.5 rounded-lg bg-[#134c81] hover:bg-[#0c375f] text-white text-xs font-bold text-center transition shadow-sm" style="text-decoration: none;">
+                Vào làm bài thi (Cần Passcode) →
+              </a>
+            </div>
+          {% endif %}
+        {% endif %}
+      </aside>
+
+    </section>
+
+  </div>
+
+{% endblock %}

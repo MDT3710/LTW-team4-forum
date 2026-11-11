@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <div class="staff-workspace messages-workspace flex flex-col px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <header class="page-heading flex items-center justify-between pb-4 border-b border-slate-200">
+      <div class="flex items-center gap-3">
+        <a href="scotsmate_messages.html" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#134c81] hover:underline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          Quay lại hộp thư
+        </a>
+        <span class="text-slate-300">|</span>
+        <h1 class="text-2xl font-bold text-slate-900 m-0">Tạo nhóm trò chuyện mới</h1>
+      </div>
+    </header>
+
+    <!-- Form tạo nhóm -->
+    <form action="scotsmate_messages_group_{id}.html" method="GET" class="workspace-card bg-white border border-slate-200 rounded-xl p-8 shadow-sm max-w-3xl flex flex-col gap-6">
+      
+      <!-- Tên nhóm -->
+      <div class="form-field flex flex-col gap-2">
+        <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+          Tên nhóm trò chuyện <span class="text-rose-500">*</span>
+        </label>
+        <input type="text" value="Đào tạo Chăm sóc học viên" required placeholder="Nhập tên nhóm..." class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+      </div>
+
+      <!-- Chọn thành viên -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider m-0">Chọn thành viên tham gia</h2>
+          <span class="text-xs text-[#134c81] font-semibold">Đã chọn 3 thành viên</span>
+        </div>
+
+        <!-- Bộ lọc và tìm kiếm thành viên -->
+        <div class="search-filters flex gap-3 items-center">
+          <div class="search-field relative flex-1">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Tìm nhân viên theo tên hoặc email..." class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81]">
+          </div>
+          <select class="px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+            <option selected>Chi nhánh Cầu Giấy</option>
+            <option>Chi nhánh Hà Đông</option>
+            <option>Chi nhánh Đống Đa</option>
+          </select>
+          <button type="button" class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50">
+            Bộ lọc
+          </button>
+        </div>
+
+        <!-- Danh sách thành viên chọn lựa -->
+        <div class="member-picker divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-[300px] overflow-y-auto">
+          
+          <label class="flex items-center justify-between p-3.5 hover:bg-slate-50 cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-blue-100 text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0">
+                MD
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-800 m-0">Trần Minh Đức</p>
+                <p class="text-[11px] text-slate-500 m-0">Trainer • Phòng Đào tạo</p>
+              </div>
+            </div>
+            <input type="checkbox" checked class="rounded text-[#134c81]">
+          </label>
+
+          <label class="flex items-center justify-between p-3.5 hover:bg-slate-50 cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0">
+                TH
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-800 m-0">Lê Thu Hà</p>
+                <p class="text-[11px] text-slate-500 m-0">Phòng Nhân sự</p>
+              </div>
+            </div>
+            <input type="checkbox" checked class="rounded text-[#134c81]">
+          </label>
+
+          <label class="flex items-center justify-between p-3.5 hover:bg-slate-50 cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center shrink-0">
+                HN
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-800 m-0">Phạm Hoàng Nam</p>
+                <p class="text-[11px] text-slate-500 m-0">Tư vấn tuyển sinh</p>
+              </div>
+            </div>
+            <input type="checkbox" checked class="rounded text-[#134c81]">
+          </label>
+
+          <label class="flex items-center justify-between p-3.5 hover:bg-slate-50 cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center shrink-0">
+                HA
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-800 m-0">Nguyễn Hoài An</p>
+                <p class="text-[11px] text-slate-500 m-0">Quản lý chi nhánh Cầu Giấy</p>
+              </div>
+            </div>
+            <input type="checkbox" class="rounded text-[#134c81]">
+          </label>
+
+        </div>
+      </section>
+
+      <!-- Hành động -->
+      <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+        <a href="scotsmate_messages.html" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50">
+          Hủy bỏ
+        </a>
+        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+          Tạo nhóm trò chuyện
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+{% endblock %}

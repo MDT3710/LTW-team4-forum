@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <header class="page-heading flex justify-between items-center">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <a href="/courses/trainer/courses/" class="hover:underline text-[#134c81]">Quản lý đào tạo</a>
+          <span>/</span>
+          <span class="text-slate-800 font-medium">Khởi tạo khóa học</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Phân công học viên & Nhân sự cơ sở</h1>
+        <p class="text-sm text-slate-500 mt-1">Bước 2: Lựa chọn nhân sự / giáo viên bắt buộc hoàn thành khóa đào tạo này</p>
+      </div>
+
+      <a href="/courses/trainer/courses/create/info/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
+        ← Quay lại bước 1
+      </a>
+    </header>
+
+    <!-- Stepper 3 bước -->
+    <nav class="creation-steps flex border-b border-slate-200 gap-8">
+      <a href="/courses/trainer/courses/create/info/" class="step-item text-emerald-600 font-bold text-sm py-3 flex items-center gap-2" style="text-decoration:none;">
+        <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs flex items-center justify-center font-bold">✓</span>
+        <span>1. Thông tin khóa học</span>
+      </a>
+      <div class="step-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-[#134c81] text-white text-xs flex items-center justify-center font-bold">2</span>
+        <span>2. Phân công học viên</span>
+      </div>
+      <div class="step-item text-slate-400 font-medium text-sm py-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center font-bold">3</span>
+        <span>3. Xem lại & Xuất bản</span>
+      </div>
+    </nav>
+
+    <form method="POST" action="/courses/trainer/courses/create/assign/" class="workspace-card bg-white border border-slate-200 rounded-xl p-8 shadow-sm max-w-4xl flex flex-col gap-6">
+      {% csrf_token %}
+      
+      <!-- Thông tin tóm tắt khóa học từ Bước 1 -->
+      <div class="p-4 rounded-xl bg-[#edf4fb] border border-blue-100 flex justify-between items-center text-xs">
+        <div>
+          <span class="font-bold text-[#134c81] text-sm">
+            {{ draft.title|default:"Khóa học đào tạo mới" }} ({{ draft.code|default:"KH-MỚI" }})
+          </span>
+          <p class="text-slate-600 mt-0.5">
+            Thời hạn: <strong>{{ draft.date_start }}</strong> đến <strong>{{ draft.date_end }}</strong>
+            • Trạng thái ban đầu: <span class="font-semibold uppercase text-[#134c81]">{% if draft.status == 'ongoing' %}Đang triển khai{% else %}Bản nháp{% endif %}</span>
+          </p>
+        </div>
+        <a href="/courses/trainer/courses/create/info/" class="text-xs text-[#134c81] font-semibold hover:underline">Chỉnh sửa bước 1</a>
+      </div>
+
+      <!-- Danh sách nhân sự / học viên hệ thống -->
+      <section class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Danh sách nhân viên (Trainee)</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Chọn từng cá nhân hoặc lọc nhanh theo từng phòng ban để phân công</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs flex-wrap">
+            <button type="button" onclick="toggleSelectCurrentVisible(true)" class="px-3 py-1.5 rounded-lg bg-blue-50 text-[#134c81] border border-blue-200 hover:bg-blue-100 font-semibold transition cursor-pointer">
+              Chọn phòng ban này
+            </button>
+            <button type="button" onclick="toggleSelectAll(true)" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition cursor-pointer">
+              Chọn tất cả
+            </button>
+            <button type="button" onclick="toggleSelectAll(false)" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition cursor-pointer">
+              Bỏ chọn
+            </button>
+          </div>
+        </div>
+
+        <!-- Bộ lọc nhanh theo Phòng ban (Department Filter) -->
+        <div class="flex flex-wrap items-center gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+          <span class="text-slate-600 font-semibold shrink-0">🏢 Phòng ban:</span>
+          <button type="button" onclick="filterDepartment('all', this)" class="dept-filter-btn px-3 py-1 rounded-full bg-[#134c81] text-white font-semibold cursor-pointer transition text-xs">
+            Tất cả ({{ trainees|length }})
+          </button>
+          {% for d in departments %}
+            <button type="button" onclick="filterDepartment('{{ d.id }}', this)" class="dept-filter-btn px-3 py-1 rounded-full bg-white hover:bg-blue-50 text-slate-700 border border-slate-200 hover:border-blue-300 font-medium cursor-pointer transition text-xs">
+              {{ d.name }}
+            </button>
+          {% endfor %}
+        </div>
+
+        <!-- Ô tìm kiếm nhân viên nhanh -->
+        <div>
+          <input type="text" id="traineeFilterInput" placeholder="Tìm kiếm theo tên nhân viên, phòng ban, username hoặc email..." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81]">
+        </div>
+
+        <!-- Danh sách checkbox học viên -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto p-1" id="traineesListContainer">
+          {% for t in trainees %}
+            <label class="trainee-item flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-[#134c81] hover:bg-slate-50/80 cursor-pointer transition" 
+                   data-dept="{{ t.employee_info.dep.id|default:'none' }}"
+                   data-name="{{ t.get_full_name|lower }} {{ t.username|lower }} {{ t.email|lower }} {{ t.employee_info.dep.name|lower }}">
+              <div class="flex items-center gap-3">
+                <input type="checkbox" name="trainee_ids" value="{{ t.id }}" {% if t.id|stringformat:"s" in selected_ids or not selected_ids %}checked{% endif %} class="trainee-checkbox rounded text-[#134c81] w-4 h-4 cursor-pointer">
+                <div>
+                  <span class="font-semibold text-slate-900 text-xs block">
+                    {{ t.get_full_name|default:t.username }}
+                  </span>
+                  <span class="text-[11px] text-slate-500 block">
+                    @{{ t.username }} • <strong class="text-slate-700">{{ t.employee_info.dep.name|default:"Phòng Đào tạo" }}</strong>
+                  </span>
+                </div>
+              </div>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-[#134c81] shrink-0 border border-blue-100">
+                {{ t.employee_info.branch.name|default:"Hà Nội"|slice:":10" }}
+              </span>
+            </label>
+          {% empty %}
+            <div class="col-span-2 p-6 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-xs">
+              Chưa có tài khoản học viên nào trong hệ thống. Bạn có thể xuất bản khóa học trước và phân công sau.
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <div class="flex justify-between items-center pt-6 border-t border-slate-100">
+        <a href="/courses/trainer/courses/create/info/" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">
+          ← Quay lại Bước 1
+        </a>
+        <button type="submit" class="inline-flex items-center gap-2 px-7 py-2.5 rounded-lg bg-[#134c81] text-white text-sm font-semibold hover:bg-[#0e3b65] transition shadow-sm cursor-pointer">
+          Tiếp tục sang xem lại →
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+  <script>
+    let activeDeptFilter = 'all';
+
+    function toggleSelectAll(select) {
+      const checkboxes = document.querySelectorAll('.trainee-checkbox');
+      checkboxes.forEach(cb => cb.checked = select);
+    }
+
+    function toggleSelectCurrentVisible(select) {
+      const items = document.querySelectorAll('#traineesListContainer .trainee-item');
+      items.forEach(item => {
+        if (item.style.display !== 'none') {
+          const cb = item.querySelector('.trainee-checkbox');
+          if (cb) cb.checked = select;
+        }
+      });
+    }
+
+    function filterDepartment(deptId, btn) {
+      activeDeptFilter = deptId;
+      document.querySelectorAll('.dept-filter-btn').forEach(b => {
+        b.classList.remove('bg-[#134c81]', 'text-white');
+        b.classList.add('bg-white', 'text-slate-700');
+      });
+      if (btn) {
+        btn.classList.remove('bg-white', 'text-slate-700');
+        btn.classList.add('bg-[#134c81]', 'text-white');
+      }
+      applyAllFilters();
+    }
+
+    function applyAllFilters() {
+      const q = document.getElementById('traineeFilterInput') ? document.getElementById('traineeFilterInput').value.toLowerCase().trim() : '';
+      const items = document.querySelectorAll('#traineesListContainer .trainee-item');
+      items.forEach(item => {
+        const itemDept = item.getAttribute('data-dept') || '';
+        const name = item.getAttribute('data-name') || '';
+        const matchDept = (activeDeptFilter === 'all' || itemDept === activeDeptFilter);
+        const matchQuery = (q === '' || name.includes(q));
+
+        if (matchDept && matchQuery) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+
+    document.getElementById('traineeFilterInput')?.addEventListener('input', applyAllFilters);
+  </script>
+
+{% endblock %}

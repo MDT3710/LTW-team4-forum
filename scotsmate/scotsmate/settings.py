@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'courses',
     'message',
     'posts',
@@ -158,3 +159,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
+
+# Bảo mật phiên làm việc và cấu hình nhúng iframe
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 86400
+
+# SAMEORIGIN cho phép nhúng tài liệu PDF / tài liệu nội bộ trong website Scots English
+X_FRAME_OPTIONS = 'SAMEORIGIN'

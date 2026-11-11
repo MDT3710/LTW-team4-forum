@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Header thanh điều hướng đồng bộ người dùng -->
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-6 md:px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <!-- Tiêu đề trang & Thanh điều hướng (Breadcrumb) -->
+    <header class="page-heading flex justify-between items-center">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <a href="/courses/trainer/courses/" class="hover:underline text-[#134c81]">Quản lý đào tạo</a>
+          <span>/</span>
+          <a href="/courses/trainer/courses/{{ course.id }}/" class="hover:underline text-[#134c81] font-semibold">{{ course.title }}</a>
+          <span>/</span>
+          <span class="text-slate-800 font-medium">Thiết lập bài thi</span>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 leading-tight">Cấu hình bài kiểm tra năng lực: {{ course.title }}</h1>
+      </div>
+    </header>
+
+    <!-- Sub-tabs đồng nhất 5 phân hệ khóa học -->
+    <nav class="section-tabs flex border-b border-slate-200 gap-6">
+      <a href="/courses/trainer/courses/{{ course.id }}/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tổng quan khóa học
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tài liệu & Bài giảng ({{ materials_count }})
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/exam/setup/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
+        Thiết lập bài thi {% if exam %}<span class="text-emerald-600 font-bold">✓</span>{% endif %}
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Ghi danh học viên ({{ total_enrolled }})
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tiến độ học viên ({{ total_enrolled }})
+      </a>
+    </nav>
+
+    <!-- Thông báo kết quả xử lý từ Django messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="px-4 py-3 rounded-lg {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-800{% else %}bg-rose-50 border border-rose-200 text-rose-800{% endif %} text-xs font-medium flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Cột chính: Form cài đặt quy chuẩn bài thi & Quản lý ngân hàng câu hỏi trắc nghiệm -->
+      <form method="POST" action="/courses/trainer/courses/{{ course.id }}/exam/setup/" id="examForm" class="lg:col-span-2 workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-6">
+        {% csrf_token %}
+
+        <!-- Phần 1: Cấu hình quy chuẩn bài thi (thời lượng, điểm chuẩn, passcode bảo mật) -->
+        <section class="space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">1. Quy chuẩn bài thi trắc nghiệm</h2>
+            {% if exam %}
+              <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Đã có đề thi</span>
+            {% else %}
+              <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">Chưa cấu hình</span>
+            {% endif %}
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Tiêu đề bài kiểm tra <span class="text-rose-500">*</span></label>
+              <input type="text" name="title" required value="{{ exam.title|default:course.title|add:' - Bài kiểm tra năng lực cuối khóa' }}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Thời gian làm bài (Phút) <span class="text-rose-500">*</span></label>
+              <input type="number" name="duration" required min="5" max="180" value="{{ exam.duration|default:45 }}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Điểm đạt tối thiểu (Thang 100) <span class="text-rose-500">*</span></label>
+              <input type="number" name="passing_score" required min="1" max="100" value="{{ exam.passing_score|floatformat:0|default:80 }}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Mã Passcode mở bài thi <span class="text-rose-500">*</span></label>
+              <input type="text" name="passcode" required value="{{ exam.passcode|default:'SCOTS2026' }}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:border-[#134c81]">
+            </div>
+          </div>
+        </section>
+
+        <!-- Phần 2: Điều kiện bảo mật phòng thi -->
+        <section class="space-y-3 pt-2">
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">2. Quy định an ninh phòng thi</h2>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-2">
+            <p class="flex items-center gap-2">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-600"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Khóa phòng thi tuyệt đối:</strong> Học viên đã thi đạt tiêu chuẩn sẽ tự động bị khóa phòng thi để bảo toàn kết quả, chuyển thẳng về trang kết quả vinh danh.</span>
+            </p>
+            <p class="flex items-center gap-2">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#134c81]"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Chấm điểm tự động:</strong> Hệ thống tự động đối soát đáp án chính xác và ghi nhận điểm thi vào hồ sơ nhân sự ngay khi nộp bài.</span>
+            </p>
+          </div>
+        </section>
+
+        <!-- Phần 3: Ngân hàng câu hỏi trắc nghiệm (Đã bỏ dòng ghi chú theo yêu cầu, nút có đúng 1 dấu +) -->
+        <section class="space-y-4 pt-2">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">3. Ngân hàng câu hỏi trắc nghiệm</h2>
+            </div>
+            <!-- Nút thêm câu hỏi: Chỉ có đúng 1 dấu +, không dùng SVG trùng lặp -->
+            <button type="button" onclick="addQuestionBlock()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#edf4fb] text-[#134c81] border border-blue-200 text-xs font-bold hover:bg-blue-100 transition cursor-pointer">
+              + Thêm câu hỏi
+            </button>
+          </div>
+
+          <!-- Hidden input lưu tổng số câu hỏi gửi lên server -->
+          <input type="hidden" name="total_questions" id="totalQuestionsInput" value="{{ questions|length|default:0 }}">
+
+          <!-- Container chứa danh sách câu hỏi -->
+          <div id="questionsContainer" class="flex flex-col gap-4">
+            {% for q in questions %}
+              <div class="question-card p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col gap-3 relative" id="question_card_{{ forloop.counter }}" data-qnum="{{ forloop.counter }}">
+                <div class="flex justify-between items-center border-b border-slate-200/80 pb-2">
+                  <span class="text-xs font-bold text-[#134c81] uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="w-5 h-5 rounded-full bg-[#134c81] text-white text-[10px] flex items-center justify-center font-bold question-badge">{{ forloop.counter }}</span>
+                    <span class="question-title">Câu hỏi {{ forloop.counter }}</span>
+                  </span>
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1.5 text-xs">
+                      <span class="font-medium text-slate-600">Đáp án đúng:</span>
+                      <select name="question_{{ forloop.counter }}_correct" class="question-correct-select px-2 py-1 rounded border border-slate-200 bg-white font-bold text-[#134c81] text-xs">
+                        {% for c in q.choices.all|dictsort:"choice_number" %}
+                          <option value="{{ c.choice_number }}" {% if q.correct_choice == c.choice_number %}selected{% endif %}>
+                            Phương án {% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% else %}E{% endif %}
+                          </option>
+                        {% empty %}
+                          <option value="1">Phương án A</option>
+                          <option value="2">Phương án B</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <button type="button" onclick="removeQuestionCard({{ forloop.counter }})" class="remove-card-btn text-rose-500 hover:text-rose-700 text-xs font-semibold cursor-pointer">
+                      Xóa câu hỏi
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Nội dung câu hỏi: <span class="text-rose-500">*</span></label>
+                  <input type="text" name="question_{{ forloop.counter }}_caption" required value="{{ q.caption }}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                </div>
+
+                <!-- Các phương án lựa chọn (2 đến 5 phương án) -->
+                <div class="space-y-2 pt-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-600">Các phương án trả lời (Tối thiểu 2, tối đa 5):</span>
+                    <button type="button" onclick="addChoiceToCard(this)" class="add-choice-btn text-xs font-bold text-[#134c81] hover:underline cursor-pointer flex items-center gap-1">
+                      + Thêm phương án
+                    </button>
+                  </div>
+
+                  <div class="choices-grid grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {% for c in q.choices.all|dictsort:"choice_number" %}
+                      <div class="choice-item flex items-center gap-2">
+                        <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                          {% if forloop.counter == 1 %}A{% elif forloop.counter == 2 %}B{% elif forloop.counter == 3 %}C{% elif forloop.counter == 4 %}D{% else %}E{% endif %}
+                        </span>
+                        <input type="text" name="question_{{ forloop.parentloop.counter }}_choice_{{ forloop.counter }}" {% if forloop.counter <= 2 %}required{% endif %} value="{{ c.content }}" class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                        {% if forloop.counter > 2 %}
+                          <button type="button" onclick="removeChoiceItem(this)" class="del-choice-btn text-slate-400 hover:text-rose-600 px-1.5 py-1 text-xs cursor-pointer font-bold" title="Xóa phương án này">✕</button>
+                        {% endif %}
+                      </div>
+                    {% empty %}
+                      <div class="choice-item flex items-center gap-2">
+                        <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">A</span>
+                        <input type="text" name="question_{{ forloop.parentloop.counter }}_choice_1" required class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                      </div>
+                      <div class="choice-item flex items-center gap-2">
+                        <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">B</span>
+                        <input type="text" name="question_{{ forloop.parentloop.counter }}_choice_2" required class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                      </div>
+                      <div class="choice-item flex items-center gap-2">
+                        <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">C</span>
+                        <input type="text" name="question_{{ forloop.parentloop.counter }}_choice_3" class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                        <button type="button" onclick="removeChoiceItem(this)" class="del-choice-btn text-slate-400 hover:text-rose-600 px-1.5 py-1 text-xs cursor-pointer font-bold" title="Xóa phương án này">✕</button>
+                      </div>
+                      <div class="choice-item flex items-center gap-2">
+                        <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">D</span>
+                        <input type="text" name="question_{{ forloop.parentloop.counter }}_choice_4" class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                        <button type="button" onclick="removeChoiceItem(this)" class="del-choice-btn text-slate-400 hover:text-rose-600 px-1.5 py-1 text-xs cursor-pointer font-bold" title="Xóa phương án này">✕</button>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Thông báo khi chưa có câu hỏi nào -->
+          <div id="noQuestionNotice" class="{% if questions %}hidden{% endif %} p-8 rounded-xl border border-dashed border-slate-300 text-center text-slate-400 text-xs">
+            Chưa có câu hỏi nào trong đề thi. Nhấn <strong>"+ Thêm câu hỏi"</strong> phía trên để tạo câu hỏi đầu tiên.
+          </div>
+        </section>
+
+        <!-- Nút lưu toàn bộ cấu hình bài thi và câu hỏi -->
+        <div class="flex justify-end pt-4 border-t border-slate-100">
+          <button type="submit" class="inline-flex items-center gap-2 h-11 px-8 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm cursor-pointer">
+            Lưu cấu hình & Ngân hàng câu hỏi ✓
+          </button>
+        </div>
+
+      </form>
+
+      <!-- Cột phụ: Bảng tóm tắt ngân hàng câu hỏi & Thao tác nhanh -->
+      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4 self-start sticky top-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Ngân hàng câu hỏi</h2>
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#134c81]" id="statBadgeCount">{{ questions|length|default:0 }} câu</span>
+        </div>
+        
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2.5 text-xs">
+          <p class="flex justify-between">
+            <span class="text-slate-500">Số câu hỏi hiện có:</span>
+            <strong class="text-slate-800" id="statQuestionCount">{{ questions|length|default:0 }} câu</strong>
+          </p>
+          <p class="flex justify-between">
+            <span class="text-slate-500">Phân bổ thang điểm:</span>
+            <strong class="text-emerald-700 font-bold" id="statPointPerQuestion">
+              {% if questions %}{% widthratio 100 questions|length 1 %}.0 đ/câu{% else %}0 đ{% endif %}
+            </strong>
+          </p>
+          <p class="flex justify-between">
+            <span class="text-slate-500">Số phương án mỗi câu:</span>
+            <strong class="text-[#134c81]">Từ 2 đến 5 phương án</strong>
+          </p>
+          <p class="flex justify-between">
+            <span class="text-slate-500">Cơ chế chấm điểm:</span>
+            <strong class="text-emerald-600">Tự động đối soát</strong>
+          </p>
+          <p class="flex justify-between">
+            <span class="text-slate-500">Trạng thái đề thi:</span>
+            {% if exam and exam.is_active %}
+              <strong class="text-emerald-600">Đang kích hoạt ✓</strong>
+            {% else %}
+              <strong class="text-amber-600">Bản nháp / Chưa mở</strong>
+            {% endif %}
+          </p>
+        </div>
+
+        <!-- Điều hướng nhanh tới từng câu hỏi trong đề -->
+        <div class="space-y-2">
+          <span class="text-xs font-semibold text-slate-700 block">Điều hướng câu hỏi nhanh:</span>
+          <div id="quickQuestionNav" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
+            <!-- JS tự động render các nút bấm số câu hỏi -->
+          </div>
+        </div>
+
+        <!-- Các nút thao tác nhanh trên sidebar -->
+        <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="addQuestionBlock()" class="w-full inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-[#edf4fb] text-[#134c81] border border-blue-200 text-xs font-bold hover:bg-blue-100 transition cursor-pointer">
+            + Thêm câu hỏi nhanh
+          </button>
+          <button type="button" onclick="document.getElementById('examForm').requestSubmit()" class="w-full inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-[#134c81] text-white text-xs font-bold hover:bg-[#0e3b65] transition cursor-pointer shadow-xs">
+            Lưu thay đổi đề thi ✓
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- SCRIPT QUẢN LÝ CÂU HỎI VÀ ĐÁP ÁN ĐỘNG TRÊN TRANG (CÓ CHÚ THÍCH ĐẦY ĐỦ CHI TIẾT) -->
+  <script>
+    // Mảng ký tự chữ cái đại diện cho các phương án trắc nghiệm
+    const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+
+    /**
+     * Hàm đồng bộ và cập nhật lại danh sách phương án lựa chọn trong 1 thẻ câu hỏi:
+     * - Đánh số thứ tự A, B, C, D, E
+     * - Ẩn nút thêm phương án khi đã đạt tối đa 5 phương án
+     * - Cập nhật danh sách đáp án đúng trong dropdown select
+     */
+    function refreshCardChoices(card) {
+      const qNum = card.getAttribute('data-qnum');
+      const grid = card.querySelector('.choices-grid');
+      if (!grid) return;
+
+      const items = grid.querySelectorAll('.choice-item');
+      const addBtn = card.querySelector('.add-choice-btn');
+      if (addBtn) {
+        addBtn.style.display = items.length >= 5 ? 'none' : 'inline-flex';
+      }
+
+      const select = card.querySelector('.question-correct-select');
+      const currentSelected = select ? parseInt(select.value) || 1 : 1;
+
+      items.forEach((item, idx) => {
+        const letter = LETTERS[idx];
+        const letterBadge = item.querySelector('.choice-letter');
+        if (letterBadge) letterBadge.textContent = letter;
+
+        const inp = item.querySelector('input');
+        if (inp) {
+          inp.name = `question_${qNum}_choice_${idx + 1}`;
+          inp.required = (idx < 2); // Tối thiểu phương án A và B là bắt buộc
+        }
+
+        // Tạo nút xóa (✕) cho các phương án từ C trở đi (A và B cố định)
+        let delBtn = item.querySelector('.del-choice-btn');
+        if (idx >= 2) {
+          if (!delBtn) {
+            delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'del-choice-btn text-slate-400 hover:text-rose-600 px-1.5 py-1 text-xs cursor-pointer font-bold';
+            delBtn.title = 'Xóa phương án này';
+            delBtn.innerHTML = '✕';
+            delBtn.setAttribute('onclick', 'removeChoiceItem(this)');
+            item.appendChild(delBtn);
+          }
+        } else {
+          if (delBtn) delBtn.remove();
+        }
+      });
+
+      // Cập nhật lại các lựa chọn trong ô chọn đáp án đúng
+      if (select) {
+        select.innerHTML = '';
+        items.forEach((item, idx) => {
+          const opt = document.createElement('option');
+          opt.value = (idx + 1).toString();
+          opt.textContent = `Phương án ${LETTERS[idx]}`;
+          if (currentSelected === (idx + 1)) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+        if (currentSelected > items.length && items.length > 0) {
+          select.value = '1';
+        }
+      }
+    }
+
+    /**
+     * Thêm một phương án lựa chọn mới vào câu hỏi (tối đa 5 phương án A-E)
+     */
+    function addChoiceToCard(btn) {
+      const card = btn.closest('.question-card');
+      const grid = card.querySelector('.choices-grid');
+      const items = grid.querySelectorAll('.choice-item');
+      if (items.length >= 5) return;
+
+      const nextLetter = LETTERS[items.length];
+      const div = document.createElement('div');
+      div.className = 'choice-item flex items-center gap-2';
+      div.innerHTML = `
+        <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">${nextLetter}</span>
+        <input type="text" class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+        <button type="button" onclick="removeChoiceItem(this)" class="del-choice-btn text-slate-400 hover:text-rose-600 px-1.5 py-1 text-xs cursor-pointer font-bold" title="Xóa phương án này">✕</button>
+      `;
+      grid.appendChild(div);
+      refreshCardChoices(card);
+    }
+
+    /**
+     * Xóa một phương án lựa chọn khỏi câu hỏi
+     */
+    function removeChoiceItem(btn) {
+      const card = btn.closest('.question-card');
+      const item = btn.closest('.choice-item');
+      if (item) {
+        item.remove();
+        refreshCardChoices(card);
+      }
+    }
+
+    /**
+     * Đánh lại số thứ tự cho toàn bộ câu hỏi trên trang sau khi thêm hoặc xóa câu hỏi
+     */
+    function updateAllQuestionCards() {
+      const cards = document.querySelectorAll('#questionsContainer .question-card');
+      const totalCount = cards.length;
+      document.getElementById('totalQuestionsInput').value = totalCount;
+      
+      const statElem = document.getElementById('statQuestionCount');
+      if (statElem) statElem.textContent = totalCount + ' câu';
+
+      const statBadge = document.getElementById('statBadgeCount');
+      if (statBadge) statBadge.textContent = totalCount + ' câu';
+
+      const pointElem = document.getElementById('statPointPerQuestion');
+      if (pointElem) {
+        pointElem.textContent = totalCount > 0 ? (100 / totalCount).toFixed(1) + ' đ/câu' : '0 đ';
+      }
+
+      // Cập nhật các nút điều hướng câu hỏi nhanh trên thanh sidebar
+      const navContainer = document.getElementById('quickQuestionNav');
+      if (navContainer) {
+        navContainer.innerHTML = '';
+        cards.forEach((card, idx) => {
+          const num = idx + 1;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#134c81] hover:text-white text-slate-700 text-xs font-bold transition flex items-center justify-center cursor-pointer shadow-2xs';
+          btn.textContent = num;
+          btn.title = `Chuyển tới Câu hỏi ${num}`;
+          btn.onclick = () => {
+            const targetCard = document.getElementById('question_card_' + num);
+            if (targetCard) {
+              targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              targetCard.classList.add('ring-2', 'ring-[#134c81]');
+              setTimeout(() => targetCard.classList.remove('ring-2', 'ring-[#134c81]'), 1500);
+            }
+          };
+          navContainer.appendChild(btn);
+        });
+      }
+
+      const notice = document.getElementById('noQuestionNotice');
+      if (notice) {
+        notice.classList.toggle('hidden', totalCount > 0);
+      }
+
+      cards.forEach((card, idx) => {
+        const num = idx + 1;
+        card.setAttribute('data-qnum', num);
+        card.id = 'question_card_' + num;
+
+        const badge = card.querySelector('.question-badge');
+        if (badge) badge.textContent = num;
+        
+        const titleSpan = card.querySelector('.question-title');
+        if (titleSpan) titleSpan.textContent = 'Câu hỏi ' + num;
+
+        const captionInput = card.querySelector('input[name*="_caption"]');
+        if (captionInput) captionInput.name = `question_${num}_caption`;
+
+        const select = card.querySelector('.question-correct-select');
+        if (select) select.name = `question_${num}_correct`;
+
+        const removeBtn = card.querySelector('.remove-card-btn');
+        if (removeBtn) removeBtn.setAttribute('onclick', `removeQuestionCard(${num})`);
+
+        refreshCardChoices(card);
+      });
+    }
+
+    /**
+     * Thêm một khối câu hỏi trắc nghiệm mới vào cuối danh sách
+     */
+    function addQuestionBlock() {
+      const container = document.getElementById('questionsContainer');
+      const nextNum = container.querySelectorAll('.question-card').length + 1;
+
+      const html = `
+        <div class="question-card p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col gap-3 relative" id="question_card_${nextNum}" data-qnum="${nextNum}">
+          <div class="flex justify-between items-center border-b border-slate-200/80 pb-2">
+            <span class="text-xs font-bold text-[#134c81] uppercase tracking-wider flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-[#134c81] text-white text-[10px] flex items-center justify-center font-bold question-badge">${nextNum}</span>
+              <span class="question-title">Câu hỏi ${nextNum}</span>
+            </span>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-1.5 text-xs">
+                <span class="font-medium text-slate-600">Đáp án đúng:</span>
+                <select name="question_${nextNum}_correct" class="question-correct-select px-2 py-1 rounded border border-slate-200 bg-white font-bold text-[#134c81] text-xs">
+                  <option value="1">Phương án A</option>
+                  <option value="2">Phương án B</option>
+                  <option value="3">Phương án C</option>
+                  <option value="4">Phương án D</option>
+                </select>
+              </div>
+              <button type="button" onclick="removeQuestionCard(${nextNum})" class="remove-card-btn text-rose-500 hover:text-rose-700 text-xs font-semibold cursor-pointer">
+                Xóa câu hỏi
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nội dung câu hỏi: <span class="text-rose-500">*</span></label>
+            <input type="text" name="question_${nextNum}_caption" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+          </div>
+
+          <div class="space-y-2 pt-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-600">Các phương án trả lời (Tối thiểu 2, tối đa 5):</span>
+              <button type="button" onclick="addChoiceToCard(this)" class="add-choice-btn text-xs font-bold text-[#134c81] hover:underline cursor-pointer flex items-center gap-1">
+                + Thêm phương án
+              </button>
+            </div>
+
+            <div class="choices-grid grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div class="choice-item flex items-center gap-2">
+                <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">A</span>
+                <input type="text" name="question_${nextNum}_choice_1" required class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+              </div>
+              <div class="choice-item flex items-center gap-2">
+                <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">B</span>
+                <input type="text" name="question_${nextNum}_choice_2" required class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+              </div>
+              <div class="choice-item flex items-center gap-2">
+                <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">C</span>
+                <input type="text" name="question_${nextNum}_choice_3" class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                <button type="button" onclick="removeChoiceItem(this)" class="del-choice-btn text-slate-400 hover:text-rose-600 px-1.5 py-1 text-xs cursor-pointer font-bold" title="Xóa phương án này">✕</button>
+              </div>
+              <div class="choice-item flex items-center gap-2">
+                <span class="choice-letter w-6 h-6 rounded bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">D</span>
+                <input type="text" name="question_${nextNum}_choice_4" class="w-full px-3 py-1.5 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:border-[#134c81]">
+                <button type="button" onclick="removeChoiceItem(this)" class="del-choice-btn text-slate-400 hover:text-rose-600 px-1.5 py-1 text-xs cursor-pointer font-bold" title="Xóa phương án này">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.insertAdjacentHTML('beforeend', html);
+      updateAllQuestionCards();
+    }
+
+    /**
+     * Xóa một khối câu hỏi khỏi đề thi
+     */
+    function removeQuestionCard(target) {
+      const card = (typeof target === 'object' && target !== null) ? target.closest('.question-card') : document.getElementById('question_card_' + target);
+      if (card && confirm('Bạn có chắc muốn xóa câu hỏi này khỏi đề thi?')) {
+        card.remove();
+        updateAllQuestionCards();
+      }
+    }
+
+    // Tự động chuẩn hóa số thứ tự và đáp án khi tải trang
+    document.addEventListener('DOMContentLoaded', function() {
+      updateAllQuestionCards();
+    });
+  </script>
+
+{% endblock %}

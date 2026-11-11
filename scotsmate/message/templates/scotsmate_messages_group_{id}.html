@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <div class="staff-workspace messages-workspace flex gap-6 px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto">
+    
+    
+    <!-- Sidebar danh sách cuộc trò chuyện (248px) -->
+    <aside class="conversation-list w-[248px] bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-4 shrink-0 shadow-sm self-start min-h-[680px]">
+      <div class="convo-header flex items-center justify-between w-full">
+        <h2 class="convo-title text-lg font-bold text-slate-900 m-0">Hộp thư</h2>
+        <a href="scotsmate_messages_group_create.html" class="convo-add-btn inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+          + Thêm mới
+        </a>
+      </div>
+
+      <!-- Tìm kiếm -->
+      <div class="convo-search flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+        <svg class="text-slate-400 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" placeholder="Tìm cuộc trò chuyện..." class="bg-transparent border-none outline-none text-xs w-full text-slate-700">
+      </div>
+
+      <!-- Danh sách hội thoại -->
+      <nav class="convo-items flex flex-col gap-2 flex-1">
+        
+        <!-- Hội thoại 1: Nhóm Tư vấn Cầu Giấy -->
+        <a href="scotsmate_messages_group_{id}.html" class="convo-item active p-2.5 rounded-lg flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-[#edf4fb] text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0">
+              TV
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Tư vấn Cầu Giấy</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Nhóm • 8 thành viên</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-[#134c81] font-semibold self-end">09:45 • 2 tin mới</span>
+        </a>
+
+        <!-- Hội thoại 2: Trần Minh Đức (1-1) -->
+        <a href="scotsmate_messages_inbox_{id}.html" class="convo-item  p-2.5 rounded-lg flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-blue-100 text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0">
+              MD
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Trần Minh Đức</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Gửi bạn tài liệu bài học nhé.</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">09:32</span>
+        </a>
+
+        <!-- Hội thoại 3: Lê Thu Hà -->
+        <a href="scotsmate_messages_inbox_{id}.html" class="convo-item p-2.5 rounded-lg flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0">
+              TH
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Lê Thu Hà</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Lịch đào tạo đã cập nhật.</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">08:50</span>
+        </a>
+
+        <!-- Hội thoại 4: Nguyễn Hoài An -->
+        <a href="#" class="convo-item p-2.5 rounded-lg flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center shrink-0">
+              HA
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Nguyễn Hoài An</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Cảm ơn cả nhóm!</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">Hôm qua</span>
+        </a>
+
+        <!-- Hội thoại 5: Đào tạo tháng 10 -->
+        <a href="scotsmate_messages_group_{id}.html" class="convo-item p-2.5 rounded-lg flex flex-col gap-1.5 hover:bg-[#edf4fb] transition border border-transparent">
+          <div class="convo-identity flex items-center gap-2.5">
+            <div class="convo-avatar w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center shrink-0">
+              ĐT
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">Đào tạo tháng 10</p>
+              <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">Nhóm • 24 thành viên</p>
+            </div>
+          </div>
+          <span class="convo-time text-[10px] text-slate-400 self-end">Hôm qua</span>
+        </a>
+
+      </nav>
+
+      <a href="scotsmate_messages_group_create.html" class="w-full inline-flex items-center justify-center h-9 rounded-lg border border-slate-200 bg-white text-[#134c81] text-xs font-semibold hover:bg-slate-50 transition mt-2">
+        + Tạo cuộc trò chuyện
+      </a>
+    </aside>
+    
+
+    <!-- Cột giữa: Cửa sổ nhóm trò chuyện -->
+    <main class="workspace-card flex-1 bg-white border border-slate-200 rounded-xl p-6 flex flex-col justify-between shadow-sm min-h-[680px]">
+      
+      <!-- Group Header -->
+      <div>
+        <header class="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-[#edf4fb] text-[#134c81] font-bold text-sm flex items-center justify-center shrink-0">
+              TV
+            </div>
+            <div>
+              <h1 class="text-base font-bold text-slate-900 m-0 leading-none">Tư vấn Cầu Giấy</h1>
+              <p class="text-xs text-slate-500 m-0 mt-1">8 thành viên • 3 đang hoạt động</p>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-[#edf4fb] text-[#134c81]">
+              Nhóm nội bộ
+            </span>
+          </div>
+        </header>
+
+        <!-- Mốc thời gian -->
+        <div class="text-center my-4">
+          <span class="text-[11px] text-slate-400 bg-slate-50 px-3 py-1 rounded-full">Hôm nay, 06/10/2026</span>
+        </div>
+
+        <!-- Dòng tin nhắn trong nhóm -->
+        <div class="flex flex-col gap-4 overflow-y-auto max-h-[460px] pr-2">
+          
+          <!-- Tin nhắn nhận 1 (Lê Thu Hà) -->
+          <div class="message received flex flex-col gap-1 items-start max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Lê Thu Hà (Nhân sự) • 09:15</span>
+            <div class="p-3.5 rounded-2xl rounded-tl-sm bg-[#edf4fb] text-slate-800 text-sm leading-relaxed">
+              Chào cả nhóm, lịch workshop chăm sóc học viên chiều nay 14h tại phòng 302 nhé!
+            </div>
+          </div>
+
+          <!-- Tin nhắn nhận 2 (Phạm Hoàng Nam) -->
+          <div class="message received flex flex-col gap-1 items-start max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Phạm Hoàng Nam (Tư vấn) • 09:20</span>
+            <div class="p-3.5 rounded-2xl rounded-tl-sm bg-[#edf4fb] text-slate-800 text-sm leading-relaxed">
+              Mình đã nhận được thông tin, sẽ chuẩn bị case study phụ huynh cơ sở Cầu Giấy.
+            </div>
+          </div>
+
+          <!-- Tin nhắn gửi (Bạn) -->
+          <div class="message sent flex flex-col gap-1 items-end self-end max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Bạn • 09:25</span>
+            <div class="p-3.5 rounded-2xl rounded-tr-sm bg-[#1bc1a0] text-white text-sm leading-relaxed">
+              Em sẽ chuẩn bị tình huống về điều chỉnh lịch học. Hẹn gặp cả nhóm!
+            </div>
+            <span class="text-[10px] text-slate-400">Đã xem ✓</span>
+          </div>
+
+          <!-- Tin nhắn nhận 3 (Trần Minh Đức) -->
+          <div class="message received flex flex-col gap-1 items-start max-w-xl">
+            <span class="text-[11px] font-semibold text-slate-500">Trần Minh Đức (Trainer) • 09:45</span>
+            <div class="p-3.5 rounded-2xl rounded-tl-sm bg-[#edf4fb] text-slate-800 text-sm leading-relaxed">
+              Tài liệu mẫu anh đã gửi trong kho tài liệu chung của nhóm rồi nhé. Các bạn kiểm tra xem có tải được không.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Composer -->
+      <footer class="mt-4 pt-3 border-t border-slate-200 flex flex-col gap-2">
+        <textarea rows="2" placeholder="Nhập tin nhắn vào nhóm..." class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] resize-none"></textarea>
+        
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 text-slate-400">
+            <button type="button" class="hover:text-[#134c81] transition" title="Đính kèm tệp">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <button type="button" class="hover:text-[#134c81] transition" title="Gửi hình ảnh">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </button>
+            <button type="button" class="hover:text-[#134c81] transition" title="Emoji">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </button>
+          </div>
+
+          <button type="button" class="inline-flex items-center gap-2 h-9 px-5 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+            Gửi tin nhắn
+          </button>
+        </div>
+      </footer>
+
+    </main>
+
+    <!-- Cột phải: Thông tin nhóm (200px) -->
+    <aside class="chat-sidebar w-[200px] bg-white border border-slate-200 rounded-xl p-5 flex flex-col items-center gap-4 shrink-0 shadow-sm self-start">
+      <div class="w-16 h-16 rounded-full bg-[#edf4fb] text-[#134c81] font-extrabold text-xl flex items-center justify-center shrink-0 mt-2 shadow-xs">
+        TV
+      </div>
+      
+      <div class="text-center">
+        <h3 class="text-sm font-bold text-slate-900 m-0">Tư vấn Cầu Giấy</h3>
+        <p class="text-xs text-slate-500 m-0 mt-0.5">8 thành viên</p>
+      </div>
+
+      <hr class="w-full border-slate-100 my-1">
+
+      <div class="w-full flex flex-col gap-2.5 text-xs">
+        <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Thành viên nhóm</span>
+        <div class="flex items-center gap-2 text-slate-700">
+          <span class="w-6 h-6 rounded-full bg-blue-100 text-[#134c81] font-bold text-[10px] flex items-center justify-center">MD</span>
+          <span class="truncate">Trần Minh Đức (Admin)</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-700">
+          <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center">TH</span>
+          <span class="truncate">Lê Thu Hà</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-700">
+          <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] flex items-center justify-center">HN</span>
+          <span class="truncate">Phạm Hoàng Nam</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-700">
+          <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-800 font-bold text-[10px] flex items-center justify-center">HA</span>
+          <span class="truncate">Nguyễn Hoài An</span>
+        </div>
+      </div>
+
+      <hr class="w-full border-slate-100 my-1">
+
+      <a href="scotsmate_messages_group_create.html" class="w-full text-center py-2 rounded-lg border border-slate-200 text-xs font-semibold text-[#134c81] hover:bg-slate-50 transition">
+        + Thêm thành viên
+      </a>
+    </aside>
+
+  </div>
+
+{% endblock %}

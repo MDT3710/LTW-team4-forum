@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <header class="page-heading flex justify-between items-center">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <a href="/courses/trainer/courses/" class="hover:underline text-[#134c81]">Quản lý đào tạo</a>
+          <span>/</span>
+          <span class="text-slate-800 font-medium">Khởi tạo khóa học</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Tạo khóa học đào tạo mới</h1>
+        <p class="text-sm text-slate-500 mt-1">Bước 1: Thiết lập thông tin định danh, thời hạn và trạng thái khóa học</p>
+      </div>
+
+      <a href="/courses/trainer/courses/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm">
+        ← Hủy bỏ & Quay lại
+      </a>
+    </header>
+
+    <!-- Thanh tiến trình Stepper (3 bước chuẩn Enterprise) -->
+    <nav class="creation-steps flex border-b border-slate-200 gap-8">
+      <div class="step-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-[#134c81] text-white text-xs flex items-center justify-center font-bold">1</span>
+        <span>1. Thông tin khóa học</span>
+      </div>
+      <div class="step-item text-slate-400 font-medium text-sm py-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center font-bold">2</span>
+        <span>2. Phân công học viên</span>
+      </div>
+      <div class="step-item text-slate-400 font-medium text-sm py-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center font-bold">3</span>
+        <span>3. Xem lại & Xuất bản</span>
+      </div>
+    </nav>
+
+    {% if errors %}
+      <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium space-y-1">
+        <div class="font-bold flex items-center gap-1.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Vui lòng kiểm tra lại các thông tin sau:
+        </div>
+        <ul class="list-disc list-inside space-y-0.5 pl-1">
+          {% for field, err in errors.items %}
+            <li>{{ err }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <!-- Form nhập liệu thông tin khóa học -->
+    <form method="POST" action="/courses/trainer/courses/create/info/" class="workspace-card bg-white border border-slate-200 rounded-xl p-8 shadow-sm max-w-4xl flex flex-col gap-6">
+      {% csrf_token %}
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tên / Tiêu đề khóa học <span class="text-rose-500">*</span></label>
+          <input type="text" name="title" required value="{{ form_data.title|default:'' }}" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+          {% if errors.title %}<p class="text-rose-500 text-xs mt-1">{{ errors.title }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Mã khóa học <span class="text-rose-500">*</span></label>
+          <input type="text" name="code" required value="{{ form_data.code|default:'' }}" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:border-[#134c81]">
+          {% if errors.code %}<p class="text-rose-500 text-xs mt-1">{{ errors.code }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Trạng thái khóa học ban đầu</label>
+          <select name="status" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] bg-white text-slate-700">
+            <option value="draft" {% if form_data.status == 'draft' %}selected{% endif %}>Bản nháp (Chưa phát hành)</option>
+            <option value="ongoing" {% if form_data.status == 'ongoing' or not form_data.status %}selected{% endif %}>Đang triển khai (Kích hoạt ngay)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Ngày bắt đầu khóa học <span class="text-rose-500">*</span></label>
+          <input type="date" name="date_start" required value="{{ form_data.date_start|default:'' }}" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+          {% if errors.date_start %}<p class="text-rose-500 text-xs mt-1">{{ errors.date_start }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Ngày kết thúc / Hạn hoàn thành <span class="text-rose-500">*</span></label>
+          <input type="date" name="date_end" required value="{{ form_data.date_end|default:'' }}" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+          {% if errors.date_end %}<p class="text-rose-500 text-xs mt-1">{{ errors.date_end }}</p>{% endif %}
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Mô tả tóm tắt nội dung & Mục tiêu đào tạo</label>
+          <textarea name="description" rows="4" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] resize-y">{{ form_data.description|default:'' }}</textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center pt-6 border-t border-slate-100">
+        <a href="/courses/trainer/courses/" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">
+          Hủy bỏ
+        </a>
+        <button type="submit" class="inline-flex items-center gap-2 px-7 py-2.5 rounded-lg bg-[#134c81] text-white text-sm font-semibold hover:bg-[#0e3b65] transition shadow-sm cursor-pointer">
+          Tiếp tục: Phân công học viên →
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+{% endblock %}
