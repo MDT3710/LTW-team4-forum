@@ -767,7 +767,14 @@ def update_profile_bio_api(request):
     if join_date is not None:
         custom_profiles[uname]['join_date'] = join_date.strip()
     if email is not None:
-        custom_profiles[uname]['email'] = email.strip()
+        email_clean = email.strip()
+        custom_profiles[uname]['email'] = email_clean
+        if request.user.is_authenticated:
+            request.user.email = email_clean
+            try:
+                request.user.save(update_fields=['email'])
+            except Exception:
+                pass
     if phone is not None:
         custom_profiles[uname]['phone'] = phone.strip()
 

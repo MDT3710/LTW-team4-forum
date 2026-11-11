@@ -176,7 +176,7 @@
         <div id="user-header-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); width: 220px; z-index: 1000; overflow: hidden; padding: 6px 0;">
           <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
             <div style="font-weight: 600; font-size: 14px; color: #0f172a;">{{ request.user.get_full_name|default:request.user.username }}</div>
-            <div style="font-size: 12px; color: #64748b;">{{ request.user.email|default:'user@scotsenglish.edu.vn' }}</div>
+            <div id="topbar-user-email" style="font-size: 12px; color: #64748b;">{{ current_user_profile.email|default:request.user.email|default:'user@scotsenglish.edu.vn' }}</div>
           </div>
           <a href="{% url 'profile' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #334155; text-decoration: none;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>

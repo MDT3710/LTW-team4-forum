@@ -227,6 +227,33 @@ class PostViewTest(TestCase):
         self.assertNotContains(res, 'id="following-modal"')
         self.assertContains(res, 'id="btn-edit-bio"')
 
+    def test_other_profile_view_no_follow_button(self):
+        other_user = User.objects.create_user(username='otheruser_test', password='password123')
+        res = self.client.get(reverse('user_profile', args=[other_user.username]))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'btn-follow-toggle')
+        self.assertNotContains(res, 'Theo dõi')
+        self.assertContains(res, 'Nhắn tin')
+
+    def test_update_profile_bio_updates_email(self):
+        from posts.colleagues import save_user_custom_profiles
+        res = self.client.post(reverse('update_profile_bio_api'), {
+            'bio': 'Test Bio',
+            'job_title': 'Developer',
+            'branch': 'Hanoi',
+            'join_date': '01/01/2024',
+            'email': 'new_email@scotsenglish.edu.vn',
+            'phone': '0123456789'
+        })
+        self.assertEqual(res.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, 'new_email@scotsenglish.edu.vn')
+
+        prof_res = self.client.get(reverse('profile'))
+        self.assertEqual(prof_res.status_code, 200)
+        self.assertContains(prof_res, 'new_email@scotsenglish.edu.vn')
+        save_user_custom_profiles({})
+
     def test_avatar_synchronized_everywhere(self):
         """Kiểm tra ảnh đại diện sau khi cập nhật được đồng bộ ở tất cả mọi nơi"""
         from django.core.files.uploadedfile import SimpleUploadedFile

@@ -831,18 +831,15 @@
         <div class="profile-meta-counts">
           <span style="font-weight: 600; color: #134c81;">{{ posts_count }} bài viết</span>
           <span>·</span>
-          <span id="profile-header-email">Email: {{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span>
+          <span id="profile-header-email">Email: <span id="profile-header-email-val">{{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span></span>
         </div>
       </div>
 
       <!-- Actions (Ẩn khi vào trang cá nhân của chính mình) -->
       {% if current_user.id != profile_user.id %}
       <div class="profile-actions-wrap">
-        <button type="button" class="btn-profile-secondary" onclick="alert('Mở hộp thoại nhắn tin với {{ profile_user.get_full_name|default:profile_user.username }}')">
+        <button type="button" class="btn-profile-primary" onclick="alert('Mở hộp thoại nhắn tin với {{ profile_user.get_full_name|default:profile_user.username }}')">
           Nhắn tin
-        </button>
-        <button type="button" class="btn-profile-primary" id="btn-follow-toggle" onclick="toggleFollow()">
-          Theo dõi
         </button>
       </div>
       {% endif %}
@@ -919,7 +916,7 @@
               </svg>
               <div class="info-detail-content">
                 <span class="info-detail-label">Email</span>
-                <a class="info-detail-val info-detail-link" id="profile-display-email" href="mailto:{{ profile_details.email|default:'minhanh.nguyen@scotsmate.vn' }}">{{ profile_details.email|default:"minhanh.nguyen@scotsmate.vn" }}</a>
+                <a class="info-detail-val info-detail-link" id="profile-display-email" href="mailto:{{ profile_details.email|default:profile_user.email|default:'user@scotsenglish.edu.vn' }}">{{ profile_details.email|default:profile_user.email|default:"user@scotsenglish.edu.vn" }}</a>
               </div>
             </div>
 
@@ -2152,27 +2149,7 @@
         }
 
 
-  let isFollowing = false;
-  let followerCount = 248;
-  function toggleFollow() {
-    const btn = document.getElementById('btn-follow-toggle');
-    const countEl = document.getElementById('followers-count-text');
-    isFollowing = !isFollowing;
-    if (isFollowing) {
-      btn.textContent = 'Đang theo dõi';
-      btn.style.background = '#edf4fb';
-      btn.style.color = '#134c81';
-      btn.style.borderColor = '#134c81';
-      followerCount++;
-    } else {
-      btn.textContent = 'Theo dõi';
-      btn.style.background = '#134c81';
-      btn.style.color = '#ffffff';
-      btn.style.borderColor = '#134c81';
-      followerCount--;
-    }
-    if (countEl) countEl.textContent = followerCount + ' người theo dõi';
-  }
+
 
   function showLikesModal(postId) {
     fetch(`/posts/${postId}/likes/`)
@@ -2500,7 +2477,13 @@
         }
 
         const headerEmailEl = document.getElementById('profile-header-email');
-        if (headerEmailEl) headerEmailEl.textContent = 'Email: ' + data.email;
+        if (headerEmailEl) headerEmailEl.textContent = 'Email: ' + (data.email || '');
+
+        const headerEmailVal = document.getElementById('profile-header-email-val');
+        if (headerEmailVal) headerEmailVal.textContent = data.email || '';
+
+        const topbarEmailEl = document.getElementById('topbar-user-email');
+        if (topbarEmailEl) topbarEmailEl.textContent = data.email || '';
 
         const phoneEl = document.getElementById('profile-display-phone');
         if (phoneEl) phoneEl.textContent = data.phone;

@@ -604,7 +604,7 @@ def get_profile_details(user):
             data['branch'] = custom_data['branch']
         if custom_data.get('join_date'):
             data['join_date'] = custom_data['join_date']
-        if custom_data.get('email'):
+        if custom_data.get('email') is not None:
             data['email'] = custom_data['email']
         if custom_data.get('phone'):
             data['phone'] = custom_data['phone']
