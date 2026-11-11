@@ -778,7 +778,9 @@
     <div class="profile-identity-row">
       <!-- Portrait overlapping avatar -->
       <div class="profile-avatar-overlap">
-        {% if profile_user.username == 'thuha' %}
+        {% if profile_details.avatar %}
+          <img src="{{ profile_details.avatar }}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
+        {% elif profile_user.username == 'thuha' %}
           <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
         {% elif profile_user.username == 'phuonglinh' %}
           <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
@@ -793,16 +795,12 @@
       <div class="profile-meta-block">
         <h1 class="profile-meta-name">{{ profile_user.get_full_name|default:profile_user.username }}</h1>
         <span class="profile-meta-role">
-          {% if profile_user.is_superuser or profile_user.is_staff %}
-            Quản trị viên hệ thống
-          {% else %}
-            Giáo viên · Scots English
-          {% endif %}
+          {{ profile_details.role|default:"Giáo viên · Scots English" }}
         </span>
         <div class="profile-meta-counts">
           <span style="font-weight: 600; color: #134c81;">{{ posts_count }} bài viết</span>
           <span>·</span>
-          <span>Email: {{ profile_user.email|default:profile_user.username }}</span>
+          <span>Email: {{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span>
         </div>
       </div>
 
@@ -830,7 +828,7 @@
       <!-- Card 1: Giới thiệu -->
       <div class="card-std">
         <h2 class="card-sec-title">Giới thiệu</h2>
-        <p class="bio-text">Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.</p>
+        <p class="bio-text">{{ profile_details.bio|default:"Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh." }}</p>
         <hr class="divider-line" />
         <div class="info-detail-list">
           <div class="info-detail-item">
@@ -840,7 +838,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Chức vụ</span>
-              <span class="info-detail-val">Giáo viên tiếng Anh</span>
+              <span class="info-detail-val">{{ profile_details.job_title|default:"Giáo viên tiếng Anh" }}</span>
             </div>
           </div>
 
@@ -851,7 +849,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Chi nhánh</span>
-              <span class="info-detail-val">Cầu Giấy, Hà Nội</span>
+              <span class="info-detail-val">{{ profile_details.branch|default:"Cầu Giấy, Hà Nội" }}</span>
             </div>
           </div>
 
@@ -864,7 +862,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Ngày tham gia</span>
-              <span class="info-detail-val">15/08/2022</span>
+              <span class="info-detail-val">{{ profile_details.join_date|default:"15/08/2022" }}</span>
             </div>
           </div>
 
@@ -875,7 +873,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Email</span>
-              <a class="info-detail-val info-detail-link" href="mailto:minhanh.nguyen@scotsmate.vn">minhanh.nguyen@scotsmate.vn</a>
+              <a class="info-detail-val info-detail-link" href="mailto:{{ profile_details.email|default:'minhanh.nguyen@scotsmate.vn' }}">{{ profile_details.email|default:"minhanh.nguyen@scotsmate.vn" }}</a>
             </div>
           </div>
 
@@ -885,7 +883,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Phone</span>
-              <span class="info-detail-val">090 123 4567</span>
+              <span class="info-detail-val">{{ profile_details.phone|default:"090 123 4567" }}</span>
             </div>
           </div>
         </div>
@@ -908,44 +906,44 @@
           </a>
 
           <!-- 2. Hoàng Nam -->
-          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
+          <a href="/profile/hoangnam/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Hoàng Nam">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_hoangnam.png' %}" alt="Hoàng Nam" />
             </div>
             <span class="following-person-name">Hoàng Nam</span>
-          </div>
+          </a>
 
           <!-- 3. Lan Phương -->
-          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
+          <a href="/profile/lanphuong/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Lan Phương">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_lanphuong.png' %}" alt="Lan Phương" />
             </div>
             <span class="following-person-name">Lan Phương</span>
-          </div>
+          </a>
 
           <!-- 4. Đức Anh -->
-          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
+          <a href="/profile/ducanh/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Đức Anh">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_ducanh.png' %}" alt="Đức Anh" />
             </div>
             <span class="following-person-name">Đức Anh</span>
-          </div>
+          </a>
 
           <!-- 5. Mai Linh -->
-          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
+          <a href="/profile/mailinh/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Mai Linh">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_mailinh.png' %}" alt="Mai Linh" />
             </div>
             <span class="following-person-name">Mai Linh</span>
-          </div>
+          </a>
 
           <!-- 6. Quang Huy -->
-          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
+          <a href="/profile/quanghuy/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Quang Huy">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_quanghuy.png' %}" alt="Quang Huy" />
             </div>
             <span class="following-person-name">Quang Huy</span>
-          </div>
+          </a>
         </div>
 
         <hr class="divider-line" />
@@ -1043,7 +1041,9 @@
         <!-- Post Header -->
         <div class="post-author-row" style="position: relative;">
           <a href="/profile/{{ post.author.username }}/" class="post-author-avatar" style="display: block; text-decoration: none; cursor: pointer;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
-            {% if post.author.username == 'thuha' %}
+            {% if post.author_avatar %}
+              <img src="{{ post.author_avatar }}" alt="{{ post.author.get_full_name|default:post.author.username }}" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
+            {% elif post.author.username == 'thuha' %}
               <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" />
             {% elif post.author.username == 'phuonglinh' %}
               <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" />
@@ -2354,41 +2354,41 @@
   // Danh sách 36 đồng nghiệp đang theo dõi
   const FOLLOWING_COLLEAGUES = [
     { id: 1, name: "Thu Hà Nguyễn", username: "thuha", role: "Giáo viên tiếng Anh · Scots English Cầu Giấy", avatar: "/static/img/avatar_thuha_colleague.png", isFollowing: true },
-    { id: 2, name: "Hoàng Nam", username: "", role: "Quản lý học vụ · Scots English Đống Đa", avatar: "/static/img/avatar_hoangnam.png", isFollowing: true },
-    { id: 3, name: "Lan Phương", username: "", role: "Chuyên viên khảo thí & Đào tạo giáo viên", avatar: "/static/img/avatar_lanphuong.png", isFollowing: true },
-    { id: 4, name: "Đức Anh", username: "", role: "Giáo viên luyện thi IELTS chuyên sâu", avatar: "/static/img/avatar_ducanh.png", isFollowing: true },
-    { id: 5, name: "Mai Linh", username: "", role: "Trưởng bộ môn Tiếng Anh Trẻ em", avatar: "/static/img/avatar_mailinh.png", isFollowing: true },
-    { id: 6, name: "Quang Huy", username: "", role: "Điều phối viên học liệu & Học vụ", avatar: "/static/img/avatar_quanghuy.png", isFollowing: true },
+    { id: 2, name: "Hoàng Nam", username: "hoangnam", role: "Quản lý học vụ · Scots English Đống Đa", avatar: "/static/img/avatar_hoangnam.png", isFollowing: true },
+    { id: 3, name: "Lan Phương", username: "lanphuong", role: "Chuyên viên khảo thí & Đào tạo giáo viên", avatar: "/static/img/avatar_lanphuong.png", isFollowing: true },
+    { id: 4, name: "Đức Anh", username: "ducanh", role: "Giáo viên luyện thi IELTS chuyên sâu", avatar: "/static/img/avatar_ducanh.png", isFollowing: true },
+    { id: 5, name: "Mai Linh", username: "mailinh", role: "Trưởng bộ môn Tiếng Anh Trẻ em", avatar: "/static/img/avatar_mailinh.png", isFollowing: true },
+    { id: 6, name: "Quang Huy", username: "quanghuy", role: "Điều phối viên học liệu & Học vụ", avatar: "/static/img/avatar_quanghuy.png", isFollowing: true },
     { id: 7, name: "Phương Linh Lê", username: "phuonglinh", role: "Giáo viên tiếng Anh giao tiếp", avatar: "/static/img/avatar_phuonglinh.png", isFollowing: true },
     { id: 8, name: "Ngọc Anh Đỗ", username: "ngocanh", role: "Giáo viên tiếng Anh trẻ em", avatar: "/static/img/avatar_ngocanh.png", isFollowing: true },
-    { id: 9, name: "Trần Bảo Trân", username: "", role: "Giảng viên kỹ năng mềm & Thuyết trình", avatar: "/static/img/avatar_tranbaotran.png", isFollowing: true },
-    { id: 10, name: "Nguyễn Tiến Dũng", username: "", role: "Giám đốc cơ sở · Scots English Hà Đông", avatar: "", isFollowing: true },
-    { id: 11, name: "Phạm Thanh Hương", username: "", role: "Trưởng nhóm Tư vấn tuyển sinh", avatar: "", isFollowing: true },
-    { id: 12, name: "Vũ Đình Long", username: "", role: "Kỹ sư hệ thống & Hỗ trợ kỹ thuật", avatar: "", isFollowing: true },
-    { id: 13, name: "Đỗ Thị Thu Trang", username: "", role: "Giáo viên ngữ pháp & Viết học thuật", avatar: "", isFollowing: true },
-    { id: 14, name: "Lê Văn Hoàng", username: "", role: "Điều phối viên sự kiện & Hoạt động ngoại khóa", avatar: "", isFollowing: true },
-    { id: 15, name: "Bùi Thu Thảo", username: "", role: "Trưởng phòng Truyền thông & Thương hiệu", avatar: "", isFollowing: true },
-    { id: 16, name: "Hoàng Diệu Linh", username: "", role: "Chuyên viên nghiên cứu & Phát triển giáo trình", avatar: "", isFollowing: true },
-    { id: 17, name: "Nguyễn Minh Quân", username: "", role: "Giảng viên tiếng Anh giao tiếp người lớn", avatar: "", isFollowing: true },
-    { id: 18, name: "Đinh Thị Hải Yến", username: "", role: "Chuyên viên khảo thí chứng chỉ Cambridge", avatar: "", isFollowing: true },
-    { id: 19, name: "Trần Văn Minh", username: "", role: "Chuyên gia huấn luyện phát âm & Ngữ điệu", avatar: "", isFollowing: true },
-    { id: 20, name: "Nguyễn Bích Ngọc", username: "", role: "Chuyên viên chăm sóc học viên & Phụ huynh", avatar: "", isFollowing: true },
-    { id: 21, name: "Lê Hải Đăng", username: "", role: "Thiết kế đồ họa & Sản xuất học liệu đa phương tiện", avatar: "", isFollowing: true },
-    { id: 22, name: "Vũ Thùy Dung", username: "", role: "Quản lý khảo thí IELTS & Mock Test", avatar: "", isFollowing: true },
-    { id: 23, name: "Tạ Quang Thắng", username: "", role: "Giáo viên tiếng Anh tổng quát", avatar: "", isFollowing: true },
-    { id: 24, name: "Đỗ Mai Phương", username: "", role: "Chuyên viên nhân sự & Đãi ngộ", avatar: "", isFollowing: true },
-    { id: 25, name: "Nguyễn Tuấn Kiệt", username: "", role: "Giáo viên phát âm & Giao tiếp cơ bản", avatar: "", isFollowing: true },
-    { id: 26, name: "Hoàng Thanh Hà", username: "", role: "Chuyên viên kế toán tài chính cơ sở", avatar: "", isFollowing: true },
-    { id: 27, name: "Phùng Đức Cường", username: "", role: "Quản trị mạng & Cơ sở dữ liệu học tập", avatar: "", isFollowing: true },
-    { id: 28, name: "Ngô Thu Hiền", username: "", role: "Giáo viên chương trình hè Quốc tế", avatar: "", isFollowing: true },
-    { id: 29, name: "Đặng Phương Nam", username: "", role: "Điều phối viên hợp tác quốc tế", avatar: "", isFollowing: true },
-    { id: 30, name: "Dương Diệu Hương", username: "", role: "Giáo viên tiếng Anh thiếu niên", avatar: "", isFollowing: true },
-    { id: 31, name: "Bùi Văn Hùng", username: "", role: "Kỹ thuật viên phòng lab & Thiết bị âm thanh", avatar: "", isFollowing: true },
-    { id: 32, name: "Nguyễn Thị Kim Oanh", username: "", role: "Chuyên viên tuyển dụng nhân sự giảng dạy", avatar: "", isFollowing: true },
-    { id: 33, name: "Vũ Quốc Trung", username: "", role: "Giảng viên tiếng Anh học thuật & Du học", avatar: "", isFollowing: true },
-    { id: 34, name: "Trần Thị Thảo", username: "", role: "Chuyên viên tổ chức sự kiện học sinh", avatar: "", isFollowing: true },
-    { id: 35, name: "Mai Quốc Việt", username: "", role: "Chuyên viên đào tạo kỹ năng thế kỷ 21", avatar: "", isFollowing: true },
-    { id: 36, name: "Lê Thị Ánh Tuyết", username: "", role: "Giáo viên mầm non song ngữ", avatar: "", isFollowing: true }
+    { id: 9, name: "Trần Bảo Trân", username: "tranbaotran", role: "Giảng viên kỹ năng mềm & Thuyết trình", avatar: "/static/img/avatar_tranbaotran.png", isFollowing: true },
+    { id: 10, name: "Nguyễn Tiến Dũng", username: "tiendung", role: "Giám đốc cơ sở · Scots English Hà Đông", avatar: "/static/img/avatar_tiendung.svg", isFollowing: true },
+    { id: 11, name: "Phạm Thanh Hương", username: "thanhhuong", role: "Trưởng nhóm Tư vấn tuyển sinh", avatar: "/static/img/avatar_thanhhuong.svg", isFollowing: true },
+    { id: 12, name: "Vũ Đình Long", username: "dinhlong", role: "Kỹ sư hệ thống & Hỗ trợ kỹ thuật", avatar: "/static/img/avatar_dinhlong.svg", isFollowing: true },
+    { id: 13, name: "Đỗ Thị Thu Trang", username: "thutrang", role: "Giáo viên ngữ pháp & Viết học thuật", avatar: "/static/img/avatar_thutrang.svg", isFollowing: true },
+    { id: 14, name: "Lê Văn Hoàng", username: "vanhoang", role: "Điều phối viên sự kiện & Hoạt động ngoại khóa", avatar: "/static/img/avatar_vanhoang.svg", isFollowing: true },
+    { id: 15, name: "Bùi Thu Thảo", username: "thuthao", role: "Trưởng phòng Truyền thông & Thương hiệu", avatar: "/static/img/avatar_thuthao.svg", isFollowing: true },
+    { id: 16, name: "Hoàng Diệu Linh", username: "dieulinh", role: "Chuyên viên nghiên cứu & Phát triển giáo trình", avatar: "/static/img/avatar_dieulinh.svg", isFollowing: true },
+    { id: 17, name: "Nguyễn Minh Quân", username: "minhquan", role: "Giảng viên tiếng Anh giao tiếp người lớn", avatar: "/static/img/avatar_minhquan.svg", isFollowing: true },
+    { id: 18, name: "Đinh Thị Hải Yến", username: "haiyen", role: "Chuyên viên khảo thí chứng chỉ Cambridge", avatar: "/static/img/avatar_haiyen.svg", isFollowing: true },
+    { id: 19, name: "Trần Văn Minh", username: "vanminh", role: "Chuyên gia huấn luyện phát âm & Ngữ điệu", avatar: "/static/img/avatar_vanminh.svg", isFollowing: true },
+    { id: 20, name: "Nguyễn Bích Ngọc", username: "bichngoc", role: "Chuyên viên chăm sóc học viên & Phụ huynh", avatar: "/static/img/avatar_bichngoc.svg", isFollowing: true },
+    { id: 21, name: "Lê Hải Đăng", username: "haidang", role: "Thiết kế đồ họa & Sản xuất học liệu đa phương tiện", avatar: "/static/img/avatar_haidang.svg", isFollowing: true },
+    { id: 22, name: "Vũ Thùy Dung", username: "thuydung", role: "Quản lý khảo thí IELTS & Mock Test", avatar: "/static/img/avatar_thuydung.svg", isFollowing: true },
+    { id: 23, name: "Tạ Quang Thắng", username: "quangthang", role: "Giáo viên tiếng Anh tổng quát", avatar: "/static/img/avatar_quangthang.svg", isFollowing: true },
+    { id: 24, name: "Đỗ Mai Phương", username: "maiphuong", role: "Chuyên viên nhân sự & Đãi ngộ", avatar: "/static/img/avatar_maiphuong.svg", isFollowing: true },
+    { id: 25, name: "Nguyễn Tuấn Kiệt", username: "tuankiet", role: "Giáo viên phát âm & Giao tiếp cơ bản", avatar: "/static/img/avatar_tuankiet.svg", isFollowing: true },
+    { id: 26, name: "Hoàng Thanh Hà", username: "thanhha", role: "Chuyên viên kế toán tài chính cơ sở", avatar: "/static/img/avatar_thanhha.svg", isFollowing: true },
+    { id: 27, name: "Phùng Đức Cường", username: "duccuong", role: "Quản trị mạng & Cơ sở dữ liệu học tập", avatar: "/static/img/avatar_duccuong.svg", isFollowing: true },
+    { id: 28, name: "Ngô Thu Hiền", username: "thuhien", role: "Giáo viên chương trình hè Quốc tế", avatar: "/static/img/avatar_thuhien.svg", isFollowing: true },
+    { id: 29, name: "Đặng Phương Nam", username: "phuongnam", role: "Điều phối viên hợp tác quốc tế", avatar: "/static/img/avatar_phuongnam.svg", isFollowing: true },
+    { id: 30, name: "Dương Diệu Hương", username: "dieuhuong", role: "Giáo viên tiếng Anh thiếu niên", avatar: "/static/img/avatar_dieuhuong.svg", isFollowing: true },
+    { id: 31, name: "Bùi Văn Hùng", username: "vanhung", role: "Kỹ thuật viên phòng lab & Thiết bị âm thanh", avatar: "/static/img/avatar_vanhung.svg", isFollowing: true },
+    { id: 32, name: "Nguyễn Thị Kim Oanh", username: "kimoanh", role: "Chuyên viên tuyển dụng nhân sự giảng dạy", avatar: "/static/img/avatar_kimoanh.svg", isFollowing: true },
+    { id: 33, name: "Vũ Quốc Trung", username: "quoctrung", role: "Giảng viên tiếng Anh học thuật & Du học", avatar: "/static/img/avatar_quoctrung.svg", isFollowing: true },
+    { id: 34, name: "Trần Thị Thảo", username: "thithao", role: "Chuyên viên tổ chức sự kiện học sinh", avatar: "/static/img/avatar_thithao.svg", isFollowing: true },
+    { id: 35, name: "Mai Quốc Việt", username: "quocviet", role: "Chuyên viên đào tạo kỹ năng thế kỷ 21", avatar: "/static/img/avatar_quocviet.svg", isFollowing: true },
+    { id: 36, name: "Lê Thị Ánh Tuyết", username: "anhtuyet", role: "Giáo viên mầm non song ngữ", avatar: "/static/img/avatar_anhtuyet.svg", isFollowing: true }
   ];
 
   function openFollowingModal() {
@@ -2460,13 +2460,13 @@
     }
 
     container.innerHTML = list.map(p => {
-      const avatarHtml = p.avatar ?
-        `<img src="${p.avatar}" alt="${p.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/profile_avatar_144.png';" />` :
-        `<div style="width: 100%; height: 100%; background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center;">${p.name.charAt(0)}</div>`;
-
       const profileUrl = p.username ? `/profile/${p.username}/` : '#';
+      const avatarHtml = p.avatar ?
+        `<a href="${profileUrl}" style="display: block; width: 100%; height: 100%;"><img src="${p.avatar}" alt="${p.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/profile_avatar_144.png';" /></a>` :
+        `<a href="${profileUrl}" style="display: flex; width: 100%; height: 100%; text-decoration: none; background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 15px; align-items: center; justify-content: center;">${p.name.charAt(0)}</a>`;
+
       const nameTag = p.username ?
-        `<a href="${profileUrl}" style="font-weight: 600; font-size: 14px; color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#134c81'" onmouseout="this.style.color='#1e293b'">${p.name}</a>` :
+        `<a href="${profileUrl}" style="font-weight: 600; font-size: 14px; color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='#1e293b'; this.style.textDecoration='none'">${p.name}</a>` :
         `<span style="font-weight: 600; font-size: 14px; color: #1e293b;">${p.name}</span>`;
 
       const btnStyle = p.isFollowing ?

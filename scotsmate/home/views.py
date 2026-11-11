@@ -53,8 +53,10 @@ def HomeView(request):
     )
 
     from posts.views import prepare_post_comments
+    from posts.colleagues import get_profile_details
     for post in posts:
         post.is_liked_by_user = post.id in liked_post_ids
+        post.author_avatar = get_profile_details(post.author).get('avatar', '/static/img/profile_avatar_144.png')
         prepare_post_comments(post, current_user.id)
 
     return render(request, 'home.html', {

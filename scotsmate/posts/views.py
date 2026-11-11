@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.utils import timezone
 from .models import Post, PostAttachment, PostReaction, PostComment
+from .colleagues import get_profile_details
 from .forms import PostForm, PostCommentForm, PostAttachmentForm
 
 
@@ -138,11 +139,17 @@ def profile_view(request, username=None):
         p.is_liked_by_user = p.id in liked_post_ids
         prepare_post_comments(p, current_user.id if current_user.is_authenticated else None)
 
+    profile_details = get_profile_details(profile_user)
+
+    for p in posts:
+        p.author_avatar = get_profile_details(p.author).get('avatar', '/static/img/profile_avatar_144.png')
+
     posts_count = len(posts)
 
     return render(request, 'profile.html', {
         'profile_user': profile_user,
         'current_user': current_user,
+        'profile_details': profile_details,
         'posts': posts,
         'posts_count': posts_count
     })

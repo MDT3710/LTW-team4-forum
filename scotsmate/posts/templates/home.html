@@ -152,7 +152,9 @@
           <div class="post-body">
             <div class="author-row">
               <a href="/profile/{{ post.author.username }}/" class="avatar" style="border-radius: 50%; overflow: hidden; width: 44px; height: 44px; display: block; flex-shrink: 0; cursor: pointer; text-decoration: none;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
-                {% if post.author.username == 'thuha' %}
+                {% if post.author_avatar %}
+                  <img src="{{ post.author_avatar }}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
+                {% elif post.author.username == 'thuha' %}
                   <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                 {% elif post.author.username == 'phuonglinh' %}
                   <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
