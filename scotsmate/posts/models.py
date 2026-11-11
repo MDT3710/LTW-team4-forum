@@ -66,6 +66,21 @@ class PostAttachment(models.Model):
     def __str__(self):
         return f"{self.file_name} (Post #{self.post_id})"
 
+    @property
+    def is_image(self):
+        name = (self.file_name or (self.file.name if self.file else '')).lower()
+        return any(name.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico'])
+
+    @property
+    def is_video(self):
+        name = (self.file_name or (self.file.name if self.file else '')).lower()
+        return any(name.endswith(ext) for ext in ['.mp4', '.mov', '.webm', '.ogg', '.m4v', '.avi'])
+
+    @property
+    def extension(self):
+        name = (self.file_name or (self.file.name if self.file else '')).lower()
+        return name.split('.')[-1] if '.' in name else ''
+
 
 class PostReaction(models.Model):
     """

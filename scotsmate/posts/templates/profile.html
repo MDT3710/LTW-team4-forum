@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Nguyễn Minh Anh · Trang cá nhân | ScotsMate{% endblock %}
+{% block title %}{{ profile_user.get_full_name|default:profile_user.username }} · Trang cá nhân | ScotsMate{% endblock %}
 
 {% block content %}
 <style>
@@ -154,49 +154,6 @@
     box-shadow: 0 4px 12px rgba(19, 76, 129, 0.2);
   }
 
-  /* Profile Tabs */
-  .profile-nav-tabs {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    height: 60px;
-    padding: 0 32px;
-    border-top: 1px solid #e2e8f0;
-  }
-
-  .profile-nav-tab {
-    position: relative;
-    height: 100%;
-    display: inline-flex;
-    align-items: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: #64748b;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0 8px;
-    transition: color 0.2s ease;
-  }
-
-  .profile-nav-tab:hover {
-    color: #134c81;
-  }
-
-  .profile-nav-tab.active {
-    color: #134c81;
-  }
-
-  .profile-nav-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: #134c81;
-    border-radius: 2px 2px 0 0;
-  }
 
   /* 2-Column Content Layout */
   .profile-layout-grid {
@@ -612,19 +569,27 @@
   }
 
   .post-media-frame {
-    height: 300px;
     width: 100%;
+    max-height: 70vh;
     border-radius: 8px;
     overflow: hidden;
     position: relative;
-    background: #edf2f7;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .post-media-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
     display: block;
+    border-radius: 6px;
+    cursor: pointer;
   }
 
   /* Engagement stats */
@@ -766,6 +731,34 @@
       grid-template-columns: repeat(3, 1fr);
     }
   }
+
+  .btn-comment-action {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-family: inherit !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+    transition: color 0.15s ease, transform 0.1s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+  .btn-comment-action:hover {
+    color: #134c81 !important;
+    text-decoration: underline !important;
+  }
+  .btn-comment-action.liked {
+    color: #134c81 !important;
+    font-weight: 700 !important;
+  }
+  .btn-comment-action:active {
+    transform: scale(0.95);
+  }
+
 </style>
 
 <div class="profile-workspace">
@@ -785,52 +778,45 @@
     <div class="profile-identity-row">
       <!-- Portrait overlapping avatar -->
       <div class="profile-avatar-overlap">
-        <img
-          src="{% static 'img/profile_avatar_144.png' %}"
-          alt="Nguyễn Minh Anh"
-          onerror="this.src='{% static 'img/avatar_minhanh.png' %}'" />
+        {% if profile_details.avatar %}
+          <img src="{{ profile_details.avatar }}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
+        {% elif profile_user.username == 'thuha' %}
+          <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
+        {% elif profile_user.username == 'phuonglinh' %}
+          <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
+        {% elif profile_user.username == 'ngocanh' %}
+          <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
+        {% else %}
+          <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+        {% endif %}
       </div>
 
       <!-- Identity meta -->
       <div class="profile-meta-block">
         <h1 class="profile-meta-name">{{ profile_user.get_full_name|default:profile_user.username }}</h1>
         <span class="profile-meta-role">
-          {% if profile_user.is_superuser or profile_user.is_staff %}
-            Quản trị viên hệ thống
-          {% else %}
-            Giáo viên · Scots English
-          {% endif %}
+          {{ profile_details.role|default:"Giáo viên · Scots English" }}
         </span>
         <div class="profile-meta-counts">
           <span style="font-weight: 600; color: #134c81;">{{ posts_count }} bài viết</span>
           <span>·</span>
-          <span>Email: {{ profile_user.email|default:profile_user.username }}</span>
+          <span>Email: {{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span>
         </div>
       </div>
 
-      <!-- Actions -->
+      <!-- Actions (Ẩn khi vào trang cá nhân của chính mình) -->
+      {% if current_user.id != profile_user.id %}
       <div class="profile-actions-wrap">
-        <button type="button" class="btn-profile-secondary" onclick="alert('Mở hộp thoại nhắn tin với Nguyễn Minh Anh')">
+        <button type="button" class="btn-profile-secondary" onclick="alert('Mở hộp thoại nhắn tin với {{ profile_user.get_full_name|default:profile_user.username }}')">
           Nhắn tin
         </button>
         <button type="button" class="btn-profile-primary" id="btn-follow-toggle" onclick="toggleFollow()">
           Theo dõi
         </button>
       </div>
+      {% endif %}
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="profile-nav-tabs">
-      <button type="button" class="profile-nav-tab active" onclick="switchTab(this, 'posts')">
-        Bài viết
-      </button>
-      <button type="button" class="profile-nav-tab" onclick="switchTab(this, 'about')">
-        Giới thiệu
-      </button>
-      <button type="button" class="profile-nav-tab" onclick="switchTab(this, 'followers')">
-        Người theo dõi
-      </button>
-    </div>
   </section>
 
   <!-- ======================= 2. PROFILE CONTENT (2 COLUMNS) ======================= -->
@@ -842,7 +828,7 @@
       <!-- Card 1: Giới thiệu -->
       <div class="card-std">
         <h2 class="card-sec-title">Giới thiệu</h2>
-        <p class="bio-text">Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.</p>
+        <p class="bio-text">{{ profile_details.bio|default:"Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh." }}</p>
         <hr class="divider-line" />
         <div class="info-detail-list">
           <div class="info-detail-item">
@@ -852,7 +838,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Chức vụ</span>
-              <span class="info-detail-val">Giáo viên tiếng Anh</span>
+              <span class="info-detail-val">{{ profile_details.job_title|default:"Giáo viên tiếng Anh" }}</span>
             </div>
           </div>
 
@@ -863,7 +849,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Chi nhánh</span>
-              <span class="info-detail-val">Cầu Giấy, Hà Nội</span>
+              <span class="info-detail-val">{{ profile_details.branch|default:"Cầu Giấy, Hà Nội" }}</span>
             </div>
           </div>
 
@@ -876,7 +862,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Ngày tham gia</span>
-              <span class="info-detail-val">15/08/2022</span>
+              <span class="info-detail-val">{{ profile_details.join_date|default:"15/08/2022" }}</span>
             </div>
           </div>
 
@@ -887,7 +873,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Email</span>
-              <a class="info-detail-val info-detail-link" href="mailto:minhanh.nguyen@scotsmate.vn">minhanh.nguyen@scotsmate.vn</a>
+              <a class="info-detail-val info-detail-link" href="mailto:{{ profile_details.email|default:'minhanh.nguyen@scotsmate.vn' }}">{{ profile_details.email|default:"minhanh.nguyen@scotsmate.vn" }}</a>
             </div>
           </div>
 
@@ -897,7 +883,7 @@
             </svg>
             <div class="info-detail-content">
               <span class="info-detail-label">Phone</span>
-              <span class="info-detail-val">090 123 4567</span>
+              <span class="info-detail-val">{{ profile_details.phone|default:"090 123 4567" }}</span>
             </div>
           </div>
         </div>
@@ -907,63 +893,63 @@
       <div class="card-std">
         <div class="following-header-row">
           <h2 class="card-sec-title" style="margin: 0;">Following</h2>
-          <span class="following-badge-count">36 người</span>
+          <span class="following-badge-count" id="sidebar-following-count">36 người</span>
         </div>
 
         <div class="following-avatar-grid">
           <!-- 1. Thu Hà -->
-          <div class="following-person-cell">
+          <a href="/profile/thuha/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Thu Hà">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_thuha_colleague.png' %}" alt="Thu Hà" />
             </div>
             <span class="following-person-name">Thu Hà</span>
-          </div>
+          </a>
 
           <!-- 2. Hoàng Nam -->
-          <div class="following-person-cell">
+          <a href="/profile/hoangnam/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Hoàng Nam">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_hoangnam.png' %}" alt="Hoàng Nam" />
             </div>
             <span class="following-person-name">Hoàng Nam</span>
-          </div>
+          </a>
 
           <!-- 3. Lan Phương -->
-          <div class="following-person-cell">
+          <a href="/profile/lanphuong/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Lan Phương">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_lanphuong.png' %}" alt="Lan Phương" />
             </div>
             <span class="following-person-name">Lan Phương</span>
-          </div>
+          </a>
 
           <!-- 4. Đức Anh -->
-          <div class="following-person-cell">
+          <a href="/profile/ducanh/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Đức Anh">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_ducanh.png' %}" alt="Đức Anh" />
             </div>
             <span class="following-person-name">Đức Anh</span>
-          </div>
+          </a>
 
           <!-- 5. Mai Linh -->
-          <div class="following-person-cell">
+          <a href="/profile/mailinh/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Mai Linh">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_mailinh.png' %}" alt="Mai Linh" />
             </div>
             <span class="following-person-name">Mai Linh</span>
-          </div>
+          </a>
 
           <!-- 6. Quang Huy -->
-          <div class="following-person-cell">
+          <a href="/profile/quanghuy/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Quang Huy">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_quanghuy.png' %}" alt="Quang Huy" />
             </div>
             <span class="following-person-name">Quang Huy</span>
-          </div>
+          </a>
         </div>
 
         <hr class="divider-line" />
-        <a href="#" class="btn-view-all-following" onclick="event.preventDefault(); alert('Hiển thị danh sách 36 người đang theo dõi')">
+        <button type="button" class="btn-view-all-following" onclick="openFollowingModal()" style="width: 100%; border: none; background: none; font-size: 14px; font-weight: 600; color: #134c81; cursor: pointer; padding: 6px 0; text-align: center; transition: color 0.15s;" onmouseover="this.style.color='#0f3d68'" onmouseout="this.style.color='#134c81'">
           Xem tất cả
-        </a>
+        </button>
       </div>
 
       <!-- Community Sidebar Footer -->
@@ -978,43 +964,66 @@
     <main class="profile-feed-col">
 
       <!-- Card: Tạo bài viết -->
+      {% if current_user.id == profile_user.id %}
       <div class="card-std">
-        <div class="compose-entry-row">
-          <div class="compose-avatar-thumb">
-            <img src="{% static 'img/profile_avatar_144.png' %}" alt="Minh Anh" />
-          </div>
-          <div class="compose-interactive-field">
-            <span class="compose-label-text">Tạo bài viết</span>
-            <div class="compose-input-trigger" onclick="window.location.href='{% url 'post_create' %}'">
-              <span>Bạn đang nghĩ gì?</span>
+        <form id="profile-post-create-form" method="POST" action="{% url 'post_create' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}" />
+
+          <div class="compose-entry-row">
+            <div class="compose-avatar-thumb">
+              {% if current_user.username == 'thuha' %}
+                <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
+              {% elif current_user.username == 'phuonglinh' %}
+                <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
+              {% elif current_user.username == 'ngocanh' %}
+                <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
+              {% else %}
+                <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+              {% endif %}
+            </div>
+            <div class="compose-interactive-field">
+              <span class="compose-label-text">Tạo bài viết</span>
+              <input type="text" name="content" id="profile-composer-text" class="compose-input-trigger" placeholder="Bạn đang nghĩ gì?" style="width: 100%; box-sizing: border-box; outline: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 16px; background: #f8fafc; font-size: 14px; font-family: inherit; transition: all 0.2s ease;" onfocus="this.style.borderColor='#134c81'; this.style.background='#ffffff';" onblur="if(!this.value){this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';}" required />
             </div>
           </div>
-        </div>
 
-        <hr class="divider-line" />
+          <!-- Danh sách tệp đã chọn ở trang cá nhân (Ảnh/Video, Tài liệu) -->
+          <div id="profile-attachments-preview" style="display: none; margin-top: 14px; flex-direction: column; gap: 8px;"></div>
 
-        <div class="compose-bottom-bar">
-          <div class="compose-tools-group">
-            <a class="compose-tool-btn" href="{% url 'post_create' %}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
-              </svg>
-              <span>Ảnh / Video</span>
-            </a>
-            <a class="compose-tool-btn" href="{% url 'post_create' %}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-              </svg>
-              <span>Tài liệu</span>
-            </a>
+          <hr class="divider-line" />
+
+          <div class="compose-bottom-bar">
+            <div class="compose-tools-group">
+              <!-- Nút chọn Ảnh / Video trực tiếp -->
+              <input type="file" id="profile-file-image" name="image" accept="image/*,video/*" multiple style="display: none;" onchange="handleProfileImageSelected(this)" />
+              <button type="button" class="compose-tool-btn" onclick="document.getElementById('profile-file-image').click()" title="Thêm ảnh hoặc video trực tiếp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span>Ảnh / Video</span>
+              </button>
+
+              <!-- Nút chọn Tài liệu trực tiếp -->
+              <input type="file" id="profile-file-doc" name="doc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple style="display: none;" onchange="handleProfileDocSelected(this)" />
+              <button type="button" class="compose-tool-btn" onclick="document.getElementById('profile-file-doc').click()" title="Đính kèm tài liệu trực tiếp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+                <span>Tài liệu</span>
+              </button>
+            </div>
+
+            <!-- Nút Đăng bài -->
+            <button type="submit" class="btn-profile-primary" style="height: 40px; padding: 0 20px; border: none; cursor: pointer; font-size: 14px; font-weight: 600;">
+              Đăng bài
+            </button>
           </div>
-          <a href="{% url 'post_create' %}" class="btn-profile-primary" style="height: 40px; padding: 0 20px;">
-            Đăng bài
-          </a>
-        </div>
+        </form>
       </div>
+      {% endif %}
 
       <!-- Feed Section Header -->
       <div class="feed-section-header">
@@ -1031,17 +1040,25 @@
       <article class="post-card-item" id="post-{{ post.id }}">
         <!-- Post Header -->
         <div class="post-author-row" style="position: relative;">
-          <div class="post-author-avatar">
-            {% if post.author.username == 'thuha' %}
+          <a href="/profile/{{ post.author.username }}/" class="post-author-avatar" style="display: block; text-decoration: none; cursor: pointer;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
+            {% if post.author_avatar %}
+              <img src="{{ post.author_avatar }}" alt="{{ post.author.get_full_name|default:post.author.username }}" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
+            {% elif post.author.username == 'thuha' %}
               <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" />
             {% elif post.author.username == 'phuonglinh' %}
               <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" />
             {% else %}
               <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
             {% endif %}
-          </div>
+          </a>
           <div class="post-author-info">
-            <span class="post-author-name">{{ post.author.get_full_name|default:post.author.username }}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="/profile/{{ post.author.username }}/" class="post-author-name" style="text-decoration: none; color: #19334b; font-weight: 700; transition: color 0.15s;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='#19334b'; this.style.textDecoration='none';" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">{{ post.author.get_full_name|default:post.author.username }}</a>
+              {% if post.title and post.title != post.content %}
+                <span class="author-topic-arrow" style="font-size: 11px; color: #64748b;">▶</span>
+                <span class="author-topic" style="font-weight: 700; color: #19334b; font-size: 14px;">{{ post.title }}</span>
+              {% endif %}
+            </div>
             <div class="post-meta-sub">
               <span>{{ post.created_at|timesince }} trước</span>
               <span>·</span>
@@ -1096,19 +1113,41 @@
             {% endif %}
           </span>
 
-          {% if post.attachments.all %}
-          <div class="post-media-frame" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px;">
+                              <div class="post-media-frame" id="post-photos-{{ post.id }}" style="display: {% if post.attachments.all %}flex{% else %}none{% endif %}; flex-direction: column; gap: 12px; margin-top: 14px; width: 100%; max-height: none;">
             {% for att in post.attachments.all %}
-              {% if att.file %}
-                <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="max-height: 400px; width: 100%; object-fit: cover; border-radius: 8px;" onerror="this.src='{% static 'img/profile_post_1.png' %}';" />
+              {% if att.is_image %}
+                <div style="border-radius: 8px; overflow: hidden; width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <img src="{{ att.file.url }}" alt="{{ att.file_name }}" style="max-width: 100%; max-height: 70vh; width: auto; height: auto; object-fit: contain; display: block; border-radius: 6px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh phóng to đầy đủ" onclick="openImageLightbox(this.src)" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" />
+                </div>
+              {% elif att.is_video %}
+                <div style="border-radius: 8px; overflow: hidden; width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; background: #000; border: 1px solid #e2e8f0;">
+                  <video src="{{ att.file.url }}" controls style="max-width: 100%; max-height: 70vh; width: 100%; height: auto; border-radius: 6px; display: block;"></video>
+                </div>
               {% else %}
-                <div style="background: #edf4fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #134c81;">
-                  📄 <span>{{ att.file_name }}</span>
+                <div class="attachment-doc-card" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; width: 100%; box-sizing: border-box; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#134c81'" onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'">
+                  <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
+                    <div style="width: 42px; height: 42px; border-radius: 8px; background: {% if att.extension in 'pdf' %}#fee2e2; color: #dc2626;{% elif att.extension in 'doc docx' %}#dbeafe; color: #1d4ed8;{% elif att.extension in 'xls xlsx csv' %}#dcfce7; color: #15803d;{% elif att.extension in 'ppt pptx' %}#ffedd5; color: #c2410c;{% else %}#f1f5f9; color: #475569;{% endif %} display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; text-transform: uppercase;">
+                      {{ att.extension|default:"DOC"|upper }}
+                    </div>
+                    <div style="overflow: hidden; flex: 1;">
+                      <div style="font-size: 14px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ att.file_name }}">
+                        {{ att.file_name }}
+                      </div>
+                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                        Tài liệu đính kèm ({{ att.extension|default:"Tệp"|upper }})
+                      </div>
+                    </div>
+                  </div>
+                  {% if att.file %}
+                  <a href="{{ att.file.url }}" download="{{ att.file_name }}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: #134c81; color: #ffffff; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; flex-shrink: 0; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Tải về</span>
+                  </a>
+                  {% endif %}
                 </div>
               {% endif %}
             {% endfor %}
           </div>
-          {% endif %}
         </div>
 
         <!-- Engagement Stats -->
@@ -1136,7 +1175,15 @@
           </button>
           <div class="comment-input-wrap" style="flex: 1; display: flex; align-items: center; gap: 8px;">
             <div class="comment-avatar-small" style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
-              <img src="{% static 'img/profile_avatar_144.png' %}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% if current_user.username == 'thuha' %}
+                <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% elif current_user.username == 'phuonglinh' %}
+                <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% elif current_user.username == 'ngocanh' %}
+                <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+              {% else %}
+                <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+              {% endif %}
             </div>
             <input
               type="text"
@@ -1147,31 +1194,131 @@
           </div>
         </div>
 
-        <!-- Comments List -->
+                <!-- Comments List -->
         <div class="featured-comment" id="comments-list-{{ post.id }}" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-          {% for comment in post.comments.all %}
-          <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
-            <div style="display: flex; gap: 8px; flex: 1;">
-                            <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
-                {% if comment.emp.username == 'thuha' %}
-                  <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif comment.emp.username == 'phuonglinh' %}
-                  <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif comment.emp.username == 'ngocanh' %}
-                  <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% else %}
-                  <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+          {% for comment in post.root_comments %}
+          <div class="comment-thread" id="comment-thread-{{ comment.id }}">
+            <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
+              <div style="display: flex; gap: 8px; flex: 1;">
+                <a href="/profile/{{ comment.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">
+                  {% if comment.emp.username == 'thuha' %}
+                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif comment.emp.username == 'phuonglinh' %}
+                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif comment.emp.username == 'ngocanh' %}
+                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% else %}
+                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% endif %}
+                </a>
+                <div style="flex: 1;">
+                  <div>
+                    <a href="/profile/{{ comment.emp.username }}/" style="font-size: 13px; font-weight: 600; color: #1e293b; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">{{ comment.emp.get_full_name|default:comment.emp.username }}</a>
+                  </div>
+                  <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ comment.formatted_content|safe }}</div>
+                  <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-like-link{% if comment.is_liked_by_user %} liked{% endif %}" 
+                          id="comment-like-btn-{{ comment.id }}" 
+                          onclick="handleCommentLike({{ comment.id }}, this)" 
+                          style="cursor: pointer; font-weight: {% if comment.is_liked_by_user %}700{% else %}600{% endif %}; color: {% if comment.is_liked_by_user %}#134c81{% else %}#64748b{% endif %};"
+                          title="Thích bình luận">
+                      <span class="comment-like-text">{% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span><span class="comment-like-count" id="comment-like-count-{{ comment.id }}" style="{% if not comment.reaction_count %}display: none;{% endif %} margin-left: 2px;"> (<span class="count-num">{{ comment.reaction_count }}</span>)</span>
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span role="button" 
+                          tabindex="0"
+                          class="comment-action-link comment-reply-link" 
+                          onclick="replyComment({{ post.id }}, {{ comment.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" 
+                          style="cursor: pointer; font-weight: 600; color: #64748b;"
+                          title="Trả lời bình luận">
+                      Trả lời
+                    </span>
+                    <span style="color: #94a3b8;">·</span>
+                    <span class="comment-time" style="color: #94a3b8; font-size: 11px;">{{ comment.time_reacted }}</span>
+                  </span>
+                </div>
+              </div>
+              {% if current_user.id == comment.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+              <button type="button" onclick="deleteComment({{ comment.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+              {% endif %}
+            </div>
+
+            <!-- Nested replies under comment in profile -->
+            <div class="comment-replies" id="comment-replies-{{ comment.id }}" style="margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; display: {% if comment.child_replies %}flex{% else %}none{% endif %}; flex-direction: column; gap: 8px; margin-top: 8px;">
+              {% for reply in comment.child_replies %}
+              <div class="comment comment-reply-item" id="comment-item-{{ reply.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 6px 10px;">
+                <div style="display: flex; gap: 8px; flex: 1;">
+                  <a href="/profile/{{ reply.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">
+                    {% if reply.emp.username == 'thuha' %}
+                      <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% elif reply.emp.username == 'phuonglinh' %}
+                      <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% elif reply.emp.username == 'ngocanh' %}
+                      <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% else %}
+                      <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                    {% endif %}
+                  </a>
+                  <div style="flex: 1;">
+                    <div>
+                      <a href="/profile/{{ reply.emp.username }}/" style="font-size: 13px; font-weight: 600; color: #1e293b; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">{{ reply.emp.get_full_name|default:reply.emp.username }}</a>
+                    </div>
+                    <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ reply.formatted_content|safe }}</div>
+                    <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
+                      <span role="button" 
+                            tabindex="0"
+                            class="comment-action-link comment-like-link{% if reply.is_liked_by_user %} liked{% endif %}" 
+                            id="comment-like-btn-{{ reply.id }}" 
+                            onclick="handleCommentLike({{ reply.id }}, this)" 
+                            style="cursor: pointer; font-weight: {% if reply.is_liked_by_user %}700{% else %}600{% endif %}; color: {% if reply.is_liked_by_user %}#134c81{% else %}#64748b{% endif %};"
+                            title="Thích bình luận">
+                        <span class="comment-like-text">{% if reply.is_liked_by_user %}Đã thích{% else %}Thích{% endif %}</span><span class="comment-like-count" id="comment-like-count-{{ reply.id }}" style="{% if not reply.reaction_count %}display: none;{% endif %} margin-left: 2px;"> (<span class="count-num">{{ reply.reaction_count }}</span>)</span>
+                      </span>
+                      <span style="color: #94a3b8;">·</span>
+                      <span role="button" 
+                            tabindex="0"
+                            class="comment-action-link comment-reply-link" 
+                            onclick="replyComment({{ post.id }}, {{ comment.id }}, '{{ reply.emp.get_full_name|default:reply.emp.username|escapejs }}')" 
+                            style="cursor: pointer; font-weight: 600; color: #64748b;"
+                            title="Trả lời bình luận">
+                        Trả lời
+                      </span>
+                      <span style="color: #94a3b8;">·</span>
+                      <span class="comment-time" style="color: #94a3b8; font-size: 11px;">{{ reply.time_reacted }}</span>
+                    </span>
+                  </div>
+                </div>
+                {% if current_user.id == reply.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+                <button type="button" onclick="deleteComment({{ reply.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
                 {% endif %}
               </div>
-              <div>
-                <div style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ comment.emp.get_full_name|default:comment.emp.username }}</div>
-                <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ comment.content }}</div>
-                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">{{ comment.time_reacted }}</div>
+              {% endfor %}
+            </div>
+
+            <!-- Inline reply box in profile -->
+            <div class="inline-reply-box" id="reply-box-{{ comment.id }}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                  {% if current_user.username == 'thuha' %}
+                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif current_user.username == 'phuonglinh' %}
+                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% elif current_user.username == 'ngocanh' %}
+                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                  {% else %}
+                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+                  {% endif %}
+                </div>
+                <input type="text" 
+                       class="reply-text-input" 
+                       id="reply-input-{{ comment.id }}" 
+                       placeholder="Trả lời {{ comment.emp.get_full_name|default:comment.emp.username }}… (Enter để gửi, Esc để đóng)" 
+                       style="flex: 1; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; background: #ffffff;"
+                       onkeydown="if(event.key==='Enter'){ submitReply({{ post.id }}, {{ comment.id }}, this); } else if(event.key==='Escape'){ closeReplyBox({{ comment.id }}); }" />
               </div>
             </div>
-            {% if current_user.id == comment.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
-            <button type="button" onclick="deleteComment({{ comment.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
-            {% endif %}
           </div>
           {% endfor %}
         </div>
@@ -1192,34 +1339,133 @@
       </div>
       {% endfor %}
 
-      <!-- Modal Chỉnh sửa bài viết -->
-      <div id="editPostModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
-        <div style="background: #ffffff; border-radius: 14px; width: 90%; max-width: 560px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
-          <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Chỉnh sửa bài viết</h3>
-            </div>
-            <button type="button" onclick="closeEditPostModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+          <!-- Modal Chỉnh sửa bài viết -->
+  <div id="editPostModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: #ffffff; border-radius: 14px; width: 90%; max-width: 580px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
+      <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Chỉnh sửa bài viết</h3>
+        </div>
+        <button type="button" onclick="closeEditPostModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+      </div>
+      <div style="padding: 22px; overflow-y: auto; flex: 1;">
+        <input type="hidden" id="edit-post-id" />
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
+          <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>
+          <textarea id="edit-post-content" rows="4" placeholder="Chia sẻ suy nghĩ của bạn..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
+        </div>
+
+        <!-- Phần quản lý tệp & hình ảnh của bài viết -->
+        <div style="margin-bottom: 8px;">
+          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px;">
+            <span>Tệp & Hình ảnh đính kèm</span>
+          </label>
+
+          <!-- Tệp/ảnh hiện có -->
+          <div id="edit-existing-images-container" style="display: none; margin-bottom: 12px;">
+            <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Đính kèm hiện có:</div>
+            <div id="edit-existing-images-list" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
           </div>
-          <div style="padding: 22px;">
-            <input type="hidden" id="edit-post-id" />
-            <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
-              <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
-            </div>
-            <div>
-              <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>
-              <textarea id="edit-post-content" rows="6" placeholder="Chia sẻ suy nghĩ của bạn..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
-            </div>
+
+          <!-- Tệp/ảnh mới chuẩn bị thêm -->
+          <div id="edit-new-images-container" style="display: none; margin-bottom: 12px;">
+            <div style="font-size: 12px; font-weight: 600; color: #10b981; margin-bottom: 6px;">Đính kèm mới chọn thêm:</div>
+            <div id="edit-new-images-list" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
           </div>
-          <div style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
-            <button type="button" onclick="closeEditPostModal()" style="padding: 9px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Hủy</button>
-            <button type="button" id="btn-save-edit" onclick="submitEditPost()" style="padding: 9px 22px; border: none; border-radius: 8px; background: #134c81; color: #ffffff; font-weight: 600; font-size: 14px; cursor: pointer; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Lưu thay đổi</button>
+
+          <!-- 2 nút chọn: Thêm ảnh và Đính kèm tài liệu -->
+          <div style="display: flex; gap: 10px;">
+            <input type="file" id="edit-post-images-input" accept="image/*" multiple style="display: none;" onchange="handleEditPostImagesSelected(event)" />
+            <button type="button" onclick="document.getElementById('edit-post-images-input').click()" style="flex: 1; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 12px 10px; background: #f8fafc; color: #134c81; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.borderColor='#134c81'; this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>+ Thêm hình ảnh</span>
+            </button>
+
+            <input type="file" id="edit-post-docs-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple style="display: none;" onchange="handleEditPostDocsSelected(event)" />
+            <button type="button" onclick="document.getElementById('edit-post-docs-input').click()" style="flex: 1; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 12px 10px; background: #f8fafc; color: #0284c7; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.borderColor='#0284c7'; this.style.background='#f0f9ff'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <span>+ Đính kèm tài liệu</span>
+            </button>
           </div>
         </div>
       </div>
+      <div style="padding: 14px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0;">
+        <button type="button" onclick="closeEditPostModal()" style="padding: 9px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Hủy</button>
+        <button type="button" id="btn-save-edit" onclick="submitEditPost()" style="padding: 9px 22px; border: none; border-radius: 8px; background: #134c81; color: #ffffff; font-weight: 600; font-size: 14px; cursor: pointer; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
     </main>
+
+    <!-- Following Modal (Xem tất cả người đang theo dõi) -->
+    <div id="following-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px;" onclick="if(event.target === this) closeFollowingModal()">
+      <div style="background: #ffffff; border-radius: 14px; width: 100%; max-width: 520px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
+        <!-- Modal Header -->
+        <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 8px; background: #edf4fb; display: flex; align-items: center; justify-content: center; color: #134c81;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Đang theo dõi (Following)</h3>
+              <span id="following-modal-count" style="font-size: 12px; color: #64748b;">36 đồng nghiệp</span>
+            </div>
+          </div>
+          <button type="button" onclick="closeFollowingModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+        </div>
+
+        <!-- Search Bar -->
+        <div style="padding: 12px 22px; border-bottom: 1px solid #f1f5f9; background: #ffffff; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="following-search-input" placeholder="Tìm kiếm theo tên hoặc chức vụ..." style="border: none; background: transparent; outline: none; width: 100%; font-size: 13px; color: #1e293b;" oninput="filterFollowingList(this.value)" />
+          </div>
+        </div>
+
+        <!-- Scrollable List of Following Colleagues -->
+        <div id="following-modal-list" style="padding: 16px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px;">
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="padding: 12px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; flex-shrink: 0;">
+          <button type="button" onclick="closeFollowingModal()" style="padding: 8px 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Likes Modal -->
+    <div id="likes-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; padding: 16px;" onclick="if(event.target === this) closeLikesModal()">
+      <div style="background: #ffffff; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; animation: fadeIn 0.2s ease;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+          <h3 id="likes-modal-title" style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">Người đã thích</h3>
+          <button type="button" onclick="closeLikesModal()" style="border: none; background: none; font-size: 22px; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+        </div>
+        <div id="likes-modal-list" style="padding: 16px 20px; max-height: 360px; overflow-y: auto;"></div>
+      </div>
+    </div>
+
 
   </div>
 
@@ -1259,12 +1505,20 @@
         if (data.liked) {
           btn.style.color = '#134c81';
           btn.style.background = '#edf4fb';
-          if (svg) svg.style.stroke = '#134c81';
+          btn.style.borderColor = '#bfdbfe';
+          if (svg) {
+            svg.style.stroke = '#134c81';
+            svg.setAttribute('fill', '#134c81');
+          }
           if (btnText) btnText.innerText = 'Đã thích';
         } else {
           btn.style.color = '#64748b';
           btn.style.background = '#f8fafc';
-          if (svg) svg.style.stroke = '#64748b';
+          btn.style.borderColor = '#e2e8f0';
+          if (svg) {
+            svg.style.stroke = '#64748b';
+            svg.setAttribute('fill', 'none');
+          }
           if (btnText) btnText.innerText = 'Thích';
         }
       }
@@ -1272,50 +1526,265 @@
     .catch(err => console.error(err));
   }
 
-  function submitComment(postId, inputEl) {
-    const content = inputEl.value.trim();
-    if (!content) return;
-
-    const formData = new FormData();
-    formData.append('content', content);
-
-    fetch(`/posts/${postId}/comment/`, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCsrfToken()
-      },
-      body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        inputEl.value = '';
-        const countSpan = document.getElementById(`post-comment-count-${postId}`);
-        if (countSpan) countSpan.innerText = `${data.count} bình luận`;
-
-        const list = document.getElementById(`comments-list-${postId}`);
-        if (list) {
-          const newCommentHtml = `
-            <div class="comment" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px; animation: fadeIn 0.3s ease;">
-              <div style="display: flex; gap: 8px; flex: 1;">
-                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                  <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                </div>
-                <div>
-                  <div style="font-size: 13px; font-weight: 600; color: #1e293b;">${data.comment.author}</div>
-                  <div style="font-size: 13px; color: #334155; margin-top: 2px;">${data.comment.content}</div>
-                  <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">${data.comment.time}</div>
-                </div>
-              </div>
-              <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
-            </div>
-          `;
-          list.insertAdjacentHTML('beforeend', newCommentHtml);
+          function replyComment(postId, commentId, authorName) {
+          const replyBox = document.getElementById(`reply-box-${commentId}`);
+          if (replyBox) {
+            replyBox.style.display = 'block';
+            const input = document.getElementById(`reply-input-${commentId}`);
+            if (input) {
+              const mention = `@${authorName} `;
+              if (!input.value.startsWith(mention)) {
+                input.value = mention;
+              }
+              input.focus();
+              input.setSelectionRange(input.value.length, input.value.length);
+              input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          } else {
+            const postCard = document.getElementById(`post-${postId}`);
+            if (postCard) {
+              const input = postCard.querySelector('.comment-box .text-input') || 
+                            postCard.querySelector('input.text-input');
+              if (input) {
+                input.dataset.parentId = commentId;
+                const mention = `@${authorName} `;
+                if (!input.value.startsWith(mention)) input.value = mention;
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+                input.placeholder = `Đang trả lời ${authorName}… (Nhấn Enter để gửi)`;
+                input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }
+          }
         }
-      }
-    })
-    .catch(err => console.error(err));
-  }
+
+        function closeReplyBox(commentId) {
+          const replyBox = document.getElementById(`reply-box-${commentId}`);
+          if (replyBox) replyBox.style.display = 'none';
+        }
+
+        function submitReply(postId, parentCommentId, input) {
+          const content = input.value.trim();
+          if (!content) return;
+
+          const formData = new FormData();
+          formData.append('content', content);
+          formData.append('parent_id', parentCommentId);
+
+          fetch(`/posts/${postId}/comment/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              input.value = '';
+              const countEl = document.getElementById(`post-comment-count-${postId}`);
+              if (countEl) countEl.textContent = `${data.count} bình luận`;
+
+              const repliesContainer = document.getElementById(`comment-replies-${parentCommentId}`);
+              if (repliesContainer) {
+                repliesContainer.style.display = 'flex';
+                const escapedAuthor = (data.comment.author || '').replace(/'/g, "\'");
+                const replyHtml = `
+                  <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
+                    <div style="display: flex; gap: 8px; flex: 1;">
+                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                        <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                      </div>
+                      <div class="comment-body" style="flex: 1;">
+                        <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
+                          <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
+                          <span class="comment-text" style="font-size: 13px;">${data.comment.formatted_content || data.comment.content}</span>
+                        </div>
+                        <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
+                          <span role="button" tabindex="0" class="comment-action-link comment-like-link" id="comment-like-btn-${data.comment.id}" onclick="handleCommentLike(${data.comment.id}, this)" title="Thích bình luận">
+                            <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span role="button" tabindex="0" class="comment-action-link comment-reply-link" onclick="replyComment(${postId}, ${parentCommentId}, '${escapedAuthor}')" title="Trả lời bình luận">
+                            Trả lời
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+                  </div>
+                `;
+                repliesContainer.insertAdjacentHTML('beforeend', replyHtml);
+              }
+            }
+          })
+          .catch(err => console.error(err));
+        }
+
+        function handleCommentLike(commentId, el) {
+          const textEl = el.querySelector('.comment-like-text');
+          const countWrap = el.querySelector('.comment-like-count');
+          const countNum = el.querySelector('.count-num');
+
+          const isLiked = el.classList.contains('liked');
+          const nextLiked = !isLiked;
+
+          el.classList.toggle('liked', nextLiked);
+          if (textEl) textEl.textContent = nextLiked ? 'Đã thích' : 'Thích';
+          el.style.color = nextLiked ? '#134c81' : '#64748b';
+          el.style.fontWeight = nextLiked ? '700' : '600';
+
+          let count = countNum ? parseInt(countNum.textContent || '0', 10) : 0;
+          if (isNaN(count)) count = 0;
+          count = nextLiked ? count + 1 : Math.max(0, count - 1);
+
+          if (countNum) countNum.textContent = count;
+          if (countWrap) countWrap.style.display = count > 0 ? 'inline' : 'none';
+
+          fetch(`/comments/${commentId}/like/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken(),
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              el.classList.toggle('liked', data.liked);
+              if (textEl) textEl.textContent = data.liked ? 'Đã thích' : 'Thích';
+              el.style.color = data.liked ? '#134c81' : '#64748b';
+              el.style.fontWeight = data.liked ? '700' : '600';
+              if (countNum) countNum.textContent = data.count;
+              if (countWrap) countWrap.style.display = data.count > 0 ? 'inline' : 'none';
+            } else {
+              el.classList.toggle('liked', isLiked);
+              if (textEl) textEl.textContent = isLiked ? 'Đã thích' : 'Thích';
+              el.style.color = isLiked ? '#134c81' : '#64748b';
+              el.style.fontWeight = isLiked ? '700' : '600';
+            }
+          })
+          .catch(err => {
+            console.error('Error toggling comment like:', err);
+            el.classList.toggle('liked', isLiked);
+            if (textEl) textEl.textContent = isLiked ? 'Đã thích' : 'Thích';
+            el.style.color = isLiked ? '#134c81' : '#64748b';
+            el.style.fontWeight = isLiked ? '700' : '600';
+          });
+        }
+
+        function submitComment(postId, input) {
+          const content = input.value.trim();
+          if (!content) return;
+
+          const formData = new FormData();
+          formData.append('content', content);
+          if (input.dataset.parentId) {
+            formData.append('parent_id', input.dataset.parentId);
+          }
+
+          fetch(`/posts/${postId}/comment/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              input.value = '';
+              input.placeholder = 'Viết bình luận… (Enter để gửi)';
+              delete input.dataset.parentId;
+
+              const countEl = document.getElementById(`post-comment-count-${postId}`);
+              if (countEl) countEl.textContent = `${data.count} bình luận`;
+
+              const parentId = data.comment.parent_id;
+              const repliesContainer = parentId ? document.getElementById(`comment-replies-${parentId}`) : null;
+
+              if (repliesContainer) {
+                repliesContainer.style.display = 'flex';
+                const escapedAuthor = (data.comment.author || '').replace(/'/g, "\'");
+                const replyHtml = `
+                  <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
+                    <div style="display: flex; gap: 8px; flex: 1;">
+                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                        <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                      </div>
+                      <div class="comment-body" style="flex: 1;">
+                        <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
+                          <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
+                          <span class="comment-text" style="font-size: 13px;">${data.comment.formatted_content || data.comment.content}</span>
+                        </div>
+                        <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
+                          <span role="button" tabindex="0" class="comment-action-link comment-like-link" id="comment-like-btn-${data.comment.id}" onclick="handleCommentLike(${data.comment.id}, this)" title="Thích bình luận">
+                            <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span role="button" tabindex="0" class="comment-action-link comment-reply-link" onclick="replyComment(${postId}, ${parentId}, '${escapedAuthor}')" title="Trả lời bình luận">
+                            Trả lời
+                          </span>
+                          <span style="color: #94a3b8;">·</span>
+                          <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+                  </div>
+                `;
+                repliesContainer.insertAdjacentHTML('beforeend', replyHtml);
+              } else {
+                const list = document.getElementById(`comments-list-${postId}`);
+                if (list) {
+                  const escapedAuthor = (data.comment.author || '').replace(/'/g, "\'");
+                  const newThreadHtml = `
+                    <div class="comment-thread" id="comment-thread-${data.comment.id}" style="margin-top: 12px; animation: fadeIn 0.3s ease;">
+                      <div class="comment" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="display: flex; gap: 8px; flex: 1;">
+                          <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
+                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                          </div>
+                          <div class="comment-body" style="flex: 1;">
+                            <div class="comment-bubble">
+                              <span class="comment-author">${data.comment.author}</span>
+                              <span class="comment-text">${data.comment.formatted_content || data.comment.content}</span>
+                            </div>
+                            <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
+                              <span role="button" tabindex="0" class="comment-action-link comment-like-link" id="comment-like-btn-${data.comment.id}" onclick="handleCommentLike(${data.comment.id}, this)" title="Thích bình luận">
+                                <span class="comment-like-text">Thích</span><span class="comment-like-count" id="comment-like-count-${data.comment.id}" style="display: none; margin-left: 2px;"> (<span class="count-num">0</span>)</span>
+                              </span>
+                              <span style="color: #94a3b8;">·</span>
+                              <span role="button" tabindex="0" class="comment-action-link comment-reply-link" onclick="replyComment(${postId}, ${data.comment.id}, '${escapedAuthor}')" title="Trả lời bình luận">
+                                Trả lời
+                              </span>
+                              <span style="color: #94a3b8;">·</span>
+                              <span class="comment-time" style="color: #94a3b8;">${data.comment.time}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <button type="button" onclick="deleteComment(${data.comment.id}, ${postId})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+                      </div>
+                      <div class="comment-replies" id="comment-replies-${data.comment.id}" style="margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; display: none; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
+                      <div class="inline-reply-box" id="reply-box-${data.comment.id}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                          <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                          </div>
+                          <input type="text" class="reply-text-input" id="reply-input-${data.comment.id}" placeholder="Trả lời ${data.comment.author}… (Enter để gửi, Esc để đóng)" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; background: #ffffff;" onkeydown="if(event.key==='Enter'){ submitReply(${postId}, ${data.comment.id}, this); } else if(event.key==='Escape'){ closeReplyBox(${data.comment.id}); }" />
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                  list.insertAdjacentHTML('beforeend', newThreadHtml);
+                }
+              }
+            }
+          })
+          .catch(err => console.error(err));
+        }
 
   function deleteComment(commentId, postId) {
     if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
@@ -1379,7 +1848,14 @@
             postCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             postCard.style.opacity = '0';
             postCard.style.transform = 'translateY(-10px)';
-            setTimeout(() => postCard.remove(), 300);
+            setTimeout(() => {
+              postCard.remove();
+              const countEl = document.querySelector('.profile-meta-counts span');
+              if (countEl && countEl.innerText.includes('bài viết')) {
+                const cur = parseInt(countEl.innerText) || 0;
+                if (cur > 0) countEl.innerText = `${cur - 1} bài viết`;
+              }
+            }, 300);
           }
         } else {
           alert(data.error || 'Không thể xóa bài viết.');
@@ -1392,89 +1868,316 @@
     }
   }
 
-  function openEditPostModal(postId) {
-    document.querySelectorAll('.post-dropdown-menu').forEach(m => m.style.display = 'none');
-    fetch(`/posts/${postId}/edit/`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById('edit-post-id').value = postId;
-          document.getElementById('edit-post-title').value = data.title || '';
-          document.getElementById('edit-post-content').value = data.content || '';
+                  let editExistingAttachments = [];
+        let editRemovedAttachmentIds = [];
+        let editNewFiles = []; // items: { file: File, isImage: bool }
+
+        function isImageAttachment(att) {
+          if (typeof att.is_image === 'boolean') return att.is_image;
+          const name = (att.file_name || '').toLowerCase();
+          return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].some(ext => name.endsWith(ext));
+        }
+
+        function getFileExtension(filename) {
+          const parts = (filename || '').split('.');
+          return parts.length > 1 ? parts.pop().toUpperCase() : 'DOC';
+        }
+
+        function getBadgeStyle(ext) {
+          ext = (ext || '').toLowerCase();
+          if (ext === 'pdf') return 'background: #fee2e2; color: #dc2626;';
+          if (['doc', 'docx'].includes(ext)) return 'background: #dbeafe; color: #1d4ed8;';
+          if (['xls', 'xlsx', 'csv'].includes(ext)) return 'background: #dcfce7; color: #15803d;';
+          if (['ppt', 'pptx'].includes(ext)) return 'background: #ffedd5; color: #c2410c;';
+          return 'background: #f1f5f9; color: #475569;';
+        }
+
+        function openEditPostModal(postId) {
+          document.querySelectorAll('.post-dropdown-menu').forEach(m => m.style.display = 'none');
+          fetch(`/posts/${postId}/edit/`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                document.getElementById('edit-post-id').value = postId;
+                document.getElementById('edit-post-title').value = data.title || '';
+                document.getElementById('edit-post-content').value = data.content || '';
+
+                editExistingAttachments = data.attachments || [];
+                editRemovedAttachmentIds = [];
+                editNewFiles = [];
+                const imgInput = document.getElementById('edit-post-images-input');
+                if (imgInput) imgInput.value = '';
+                const docInput = document.getElementById('edit-post-docs-input');
+                if (docInput) docInput.value = '';
+
+                renderEditExistingAttachments();
+                renderEditNewFiles();
+
+                const modal = document.getElementById('editPostModal');
+                if (modal) modal.style.display = 'flex';
+              } else {
+                alert(data.error || 'Không thể lấy thông tin bài viết.');
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              alert('Đã xảy ra lỗi khi lấy thông tin bài viết.');
+            });
+        }
+
+        function closeEditPostModal() {
           const modal = document.getElementById('editPostModal');
-          modal.style.display = 'flex';
-        } else {
-          alert(data.error || 'Không thể tải thông tin bài viết.');
+          if (modal) modal.style.display = 'none';
+          editExistingAttachments = [];
+          editRemovedAttachmentIds = [];
+          editNewFiles = [];
+          const imgInput = document.getElementById('edit-post-images-input');
+          if (imgInput) imgInput.value = '';
+          const docInput = document.getElementById('edit-post-docs-input');
+          if (docInput) docInput.value = '';
         }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Đã xảy ra lỗi khi lấy thông tin bài viết.');
-      });
-  }
 
-  function closeEditPostModal() {
-    const modal = document.getElementById('editPostModal');
-    if (modal) modal.style.display = 'none';
-  }
+        function renderEditExistingAttachments() {
+          const container = document.getElementById('edit-existing-images-container');
+          const list = document.getElementById('edit-existing-images-list');
+          if (!container || !list) return;
 
-  function submitEditPost() {
-    const postId = document.getElementById('edit-post-id').value;
-    const title = document.getElementById('edit-post-title').value.trim();
-    const content = document.getElementById('edit-post-content').value.trim();
+          const remaining = editExistingAttachments.filter(att => !editRemovedAttachmentIds.includes(att.id));
+          if (remaining.length === 0) {
+            container.style.display = 'none';
+            list.innerHTML = '';
+            return;
+          }
 
-    if (!content) {
-      alert('Nội dung bài viết không được để trống.');
-      return;
-    }
-
-    const btn = document.getElementById('btn-save-edit');
-    btn.disabled = true;
-    btn.innerText = 'Đang lưu...';
-
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('content', content);
-
-    fetch(`/posts/${postId}/edit/`, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCsrfToken()
-      },
-      body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-      btn.disabled = false;
-      btn.innerText = 'Lưu thay đổi';
-      if (data.success) {
-        const contentEl = document.getElementById(`post-content-${postId}`);
-        if (contentEl) {
-          contentEl.innerHTML = data.content.replace(/
-/g, '<br />');
+          container.style.display = 'block';
+          list.innerHTML = remaining.map(att => {
+            if (isImageAttachment(att)) {
+              return `
+                <div style="position: relative; width: 84px; height: 84px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #f8fafc;">
+                  <img src="${att.url}" alt="${att.file_name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/static/img/post_photo_1.png';" />
+                  <button type="button" onclick="removeExistingEditAttachment(${att.id})" title="Xóa ảnh này" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; font-size: 14px; font-weight: bold; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">&times;</button>
+                  <div style="position: absolute; bottom: 0; inset-inline: 0; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 9px; padding: 2px 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${att.file_name}">${att.file_name}</div>
+                </div>
+              `;
+            } else {
+              const ext = getFileExtension(att.file_name);
+              const badgeStyle = getBadgeStyle(ext);
+              return `
+                <div style="position: relative; width: 100%; border-radius: 8px; padding: 8px 12px; background: #f8fafc; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1;">
+                    <div style="width: 32px; height: 32px; border-radius: 6px; ${badgeStyle} display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10px; flex-shrink: 0;">
+                      ${ext}
+                    </div>
+                    <span style="font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${att.file_name}">${att.file_name}</span>
+                  </div>
+                  <button type="button" onclick="removeExistingEditAttachment(${att.id})" title="Xóa tài liệu này" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; font-size: 14px; font-weight: bold; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2); flex-shrink: 0;">&times;</button>
+                </div>
+              `;
+            }
+          }).join('');
         }
-        const badgeEl = document.getElementById(`post-edited-badge-${postId}`);
-        if (badgeEl) {
-          badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
-          badgeEl.style.display = 'inline-block';
-        }
-        closeEditPostModal();
-      } else {
-        alert(data.error || 'Không thể cập nhật bài viết.');
-      }
-    })
-    .catch(err => {
-      btn.disabled = false;
-      btn.innerText = 'Lưu thay đổi';
-      console.error(err);
-      alert('Đã xảy ra lỗi khi lưu cập nhật.');
-    });
-  }
 
-  function switchTab(btn, tabName) {
-    document.querySelectorAll('.profile-nav-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-  }
+        function removeExistingEditAttachment(attId) {
+          if (!editRemovedAttachmentIds.includes(attId)) {
+            editRemovedAttachmentIds.push(attId);
+          }
+          renderEditExistingAttachments();
+        }
+
+        function handleEditPostImagesSelected(event) {
+          const files = event.target.files;
+          if (!files || files.length === 0) return;
+          for (let i = 0; i < files.length; i++) {
+            editNewFiles.push({ file: files[i], isImage: true });
+          }
+          event.target.value = '';
+          renderEditNewFiles();
+        }
+
+        function handleEditPostDocsSelected(event) {
+          const files = event.target.files;
+          if (!files || files.length === 0) return;
+          for (let i = 0; i < files.length; i++) {
+            editNewFiles.push({ file: files[i], isImage: false });
+          }
+          event.target.value = '';
+          renderEditNewFiles();
+        }
+
+        function renderEditNewFiles() {
+          const container = document.getElementById('edit-new-images-container');
+          const list = document.getElementById('edit-new-images-list');
+          if (!container || !list) return;
+
+          if (editNewFiles.length === 0) {
+            container.style.display = 'none';
+            list.innerHTML = '';
+            return;
+          }
+
+          container.style.display = 'block';
+          list.innerHTML = '';
+
+          editNewFiles.forEach((item, index) => {
+            const file = item.file;
+            const isImg = item.isImage;
+
+            if (isImg) {
+              const el = document.createElement('div');
+              el.style.cssText = 'position: relative; width: 84px; height: 84px; border-radius: 8px; overflow: hidden; border: 2px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #f8fafc;';
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                el.innerHTML = `
+                  <img src="${e.target.result}" alt="${file.name}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <span style="position: absolute; top: 4px; left: 4px; background: #10b981; color: white; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;">MỚI</span>
+                  <button type="button" onclick="removeEditNewFile(${index})" title="Bỏ ảnh này" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; font-size: 14px; font-weight: bold; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">&times;</button>
+                  <div style="position: absolute; bottom: 0; inset-inline: 0; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 9px; padding: 2px 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${file.name}">${file.name}</div>
+                `;
+              };
+              reader.readAsDataURL(file);
+              list.appendChild(el);
+            } else {
+              const ext = getFileExtension(file.name);
+              const badgeStyle = getBadgeStyle(ext);
+              const el = document.createElement('div');
+              el.style.cssText = 'position: relative; width: 100%; border-radius: 8px; padding: 8px 12px; background: #f0fdf4; border: 1.5px solid #10b981; display: flex; align-items: center; justify-content: space-between; gap: 10px;';
+              el.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1;">
+                  <div style="width: 32px; height: 32px; border-radius: 6px; ${badgeStyle} display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10px; flex-shrink: 0;">
+                    ${ext}
+                  </div>
+                  <div style="overflow: hidden; flex: 1;">
+                    <div style="font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${file.name}">${file.name}</div>
+                    <span style="font-size: 10px; font-weight: 700; color: #10b981;">TÀI LIỆU MỚI</span>
+                  </div>
+                </div>
+                <button type="button" onclick="removeEditNewFile(${index})" title="Bỏ tài liệu này" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; font-size: 14px; font-weight: bold; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2); flex-shrink: 0;">&times;</button>
+              `;
+              list.appendChild(el);
+            }
+          });
+        }
+
+        function removeEditNewFile(index) {
+          editNewFiles.splice(index, 1);
+          renderEditNewFiles();
+        }
+
+        function submitEditPost() {
+          const postId = document.getElementById('edit-post-id').value;
+          const title = document.getElementById('edit-post-title').value.trim();
+          const content = document.getElementById('edit-post-content').value.trim();
+
+          if (!content) {
+            alert('Nội dung bài viết không được để trống.');
+            return;
+          }
+
+          const btn = document.getElementById('btn-save-edit');
+          btn.disabled = true;
+          btn.innerText = 'Đang lưu...';
+
+          const formData = new FormData();
+          formData.append('title', title);
+          formData.append('content', content);
+
+          editRemovedAttachmentIds.forEach(id => {
+            formData.append('remove_attachments', id);
+          });
+
+          editNewFiles.forEach(item => {
+            if (item.isImage) {
+              formData.append('images', item.file);
+            } else {
+              formData.append('docs', item.file);
+            }
+          });
+
+          fetch(`/posts/${postId}/edit/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+          })
+          .then(res => res.json())
+          .then(data => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            if (data.success) {
+              const contentEl = document.getElementById(`post-content-${postId}`);
+              if (contentEl) {
+                contentEl.innerHTML = data.content.replace(/\n/g, '<br />');
+              }
+              const badgeEl = document.getElementById(`post-edited-badge-${postId}`);
+              if (badgeEl) {
+                badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
+                badgeEl.style.display = 'inline-block';
+              }
+
+              updatePostPhotosDOM(postId, data.attachments || []);
+
+              closeEditPostModal();
+            } else {
+              alert(data.error || 'Không thể cập nhật bài viết.');
+            }
+          })
+          .catch(err => {
+            btn.disabled = false;
+            btn.innerText = 'Lưu thay đổi';
+            console.error(err);
+            alert('Đã xảy ra lỗi khi lưu cập nhật.');
+          });
+        }
+
+        function updatePostPhotosDOM(postId, attachments) {
+          const photosContainer = document.getElementById(`post-photos-${postId}`);
+          if (!photosContainer) return;
+
+          if (!attachments || attachments.length === 0) {
+            photosContainer.style.display = 'none';
+            photosContainer.innerHTML = '';
+            return;
+          }
+
+          photosContainer.style.display = 'flex';
+          photosContainer.style.flexDirection = 'column';
+          photosContainer.innerHTML = attachments.map(att => {
+            if (isImageAttachment(att)) {
+              return `
+                <div class="photo" style="overflow: hidden; border-radius: 8px; width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0;">
+                  <img src="${att.url}" alt="${att.file_name}" style="max-width: 100%; max-height: 70vh; width: auto; height: auto; object-fit: contain; display: block; border-radius: 6px; cursor: pointer; transition: opacity 0.15s;" title="Nhấn để xem ảnh phóng to đầy đủ" onclick="openImageLightbox(this.src)" onmouseover="this.style.opacity='0.95'" onmouseout="this.style.opacity='1'" onerror="this.src='/static/img/post_photo_1.png';" />
+                </div>
+              `;
+            } else {
+              const ext = getFileExtension(att.file_name);
+              const badgeStyle = getBadgeStyle(ext);
+              return `
+                <div class="attachment-doc-card" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; width: 100%; box-sizing: border-box; transition: all 0.2s;">
+                  <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
+                    <div style="width: 42px; height: 42px; border-radius: 8px; ${badgeStyle} display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;">
+                      ${ext}
+                    </div>
+                    <div style="overflow: hidden; flex: 1;">
+                      <div style="font-size: 14px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${att.file_name}">
+                        ${att.file_name}
+                      </div>
+                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                        Tài liệu đính kèm (${ext})
+                      </div>
+                    </div>
+                  </div>
+                  ${att.url ? `
+                  <a href="${att.url}" download="${att.file_name}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: #134c81; color: #ffffff; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; flex-shrink: 0; transition: opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Tải về</span>
+                  </a>` : ''}
+                </div>
+              `;
+            }
+          }).join('');
+        }
+
 
   let isFollowing = false;
   let followerCount = 248;
@@ -1532,6 +2235,274 @@
     const modal = document.getElementById('likes-modal');
     if (modal) modal.style.display = 'none';
   }
+
+
+  // Profile Composer File Management
+  let profileSelectedMediaFiles = [];
+  let profileSelectedDocFiles = [];
+
+  function handleProfileImageSelected(input) {
+    if (input.files && input.files.length) {
+      for (let i = 0; i < input.files.length; i++) {
+        profileSelectedMediaFiles.push(input.files[i]);
+      }
+      syncProfileInputsAndRender();
+    }
+  }
+
+  function handleProfileDocSelected(input) {
+    if (input.files && input.files.length) {
+      for (let i = 0; i < input.files.length; i++) {
+        profileSelectedDocFiles.push(input.files[i]);
+      }
+      syncProfileInputsAndRender();
+    }
+  }
+
+  function removeProfileMediaFile(idx) {
+    profileSelectedMediaFiles.splice(idx, 1);
+    syncProfileInputsAndRender();
+  }
+
+  function removeProfileDocFile(idx) {
+    profileSelectedDocFiles.splice(idx, 1);
+    syncProfileInputsAndRender();
+  }
+
+  function syncProfileInputsAndRender() {
+    const dtImage = new DataTransfer();
+    profileSelectedMediaFiles.forEach(f => dtImage.items.add(f));
+    const imgInput = document.getElementById('profile-file-image');
+    if (imgInput) imgInput.files = dtImage.files;
+
+    const dtDoc = new DataTransfer();
+    profileSelectedDocFiles.forEach(f => dtDoc.items.add(f));
+    const docInput = document.getElementById('profile-file-doc');
+    if (docInput) docInput.files = dtDoc.files;
+
+    renderProfileAttachmentsPreview();
+  }
+
+  function renderProfileAttachmentsPreview() {
+    const container = document.getElementById('profile-attachments-preview');
+    if (!container) return;
+
+    if (profileSelectedMediaFiles.length === 0 && profileSelectedDocFiles.length === 0) {
+      container.style.display = 'none';
+      container.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'flex';
+    let html = '';
+
+    profileSelectedMediaFiles.forEach((file, idx) => {
+      const ext = file.name.split('.').pop().toUpperCase();
+      const isVideo = ['.mp4', '.mov', '.webm', '.ogg', '.m4v', '.avi'].some(e => file.name.toLowerCase().endsWith(e));
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      const badgeBg = isVideo ? '#f5f3ff' : '#ecfdf5';
+      const badgeColor = isVideo ? '#7c3aed' : '#059669';
+
+      html += `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
+          <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; flex: 1;">
+            <div style="width: 36px; height: 36px; border-radius: 6px; background: ${badgeBg}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: ${badgeColor}; flex-shrink: 0;">
+              ${ext}
+            </div>
+            <div style="overflow: hidden; flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${file.name}">
+                ${file.name}
+              </div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 1px;">
+                ${isVideo ? 'Video' : 'Hình ảnh'} (${sizeMb})
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="removeProfileMediaFile(${idx})" title="Xóa tệp này" style="width: 24px; height: 24px; border-radius: 50%; border: none; background: #fee2e2; color: #ef4444; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1;">&times;</button>
+        </div>
+      `;
+    });
+
+    profileSelectedDocFiles.forEach((file, idx) => {
+      const ext = file.name.split('.').pop().toUpperCase();
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+      html += `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
+          <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; flex: 1;">
+            <div style="width: 36px; height: 36px; border-radius: 6px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #134c81; flex-shrink: 0;">
+              ${ext}
+            </div>
+            <div style="overflow: hidden; flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${file.name}">
+                ${file.name}
+              </div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 1px;">
+                Tài liệu (${sizeMb})
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="removeProfileDocFile(${idx})" title="Xóa tài liệu này" style="width: 24px; height: 24px; border-radius: 50%; border: none; background: #fee2e2; color: #ef4444; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1;">&times;</button>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  
+  // Danh sách 36 đồng nghiệp đang theo dõi
+  const FOLLOWING_COLLEAGUES = [
+    { id: 1, name: "Thu Hà Nguyễn", username: "thuha", role: "Giáo viên tiếng Anh · Scots English Cầu Giấy", avatar: "/static/img/avatar_thuha_colleague.png", isFollowing: true },
+    { id: 2, name: "Hoàng Nam", username: "hoangnam", role: "Quản lý học vụ · Scots English Đống Đa", avatar: "/static/img/avatar_hoangnam.png", isFollowing: true },
+    { id: 3, name: "Lan Phương", username: "lanphuong", role: "Chuyên viên khảo thí & Đào tạo giáo viên", avatar: "/static/img/avatar_lanphuong.png", isFollowing: true },
+    { id: 4, name: "Đức Anh", username: "ducanh", role: "Giáo viên luyện thi IELTS chuyên sâu", avatar: "/static/img/avatar_ducanh.png", isFollowing: true },
+    { id: 5, name: "Mai Linh", username: "mailinh", role: "Trưởng bộ môn Tiếng Anh Trẻ em", avatar: "/static/img/avatar_mailinh.png", isFollowing: true },
+    { id: 6, name: "Quang Huy", username: "quanghuy", role: "Điều phối viên học liệu & Học vụ", avatar: "/static/img/avatar_quanghuy.png", isFollowing: true },
+    { id: 7, name: "Phương Linh Lê", username: "phuonglinh", role: "Giáo viên tiếng Anh giao tiếp", avatar: "/static/img/avatar_phuonglinh.png", isFollowing: true },
+    { id: 8, name: "Ngọc Anh Đỗ", username: "ngocanh", role: "Giáo viên tiếng Anh trẻ em", avatar: "/static/img/avatar_ngocanh.png", isFollowing: true },
+    { id: 9, name: "Trần Bảo Trân", username: "tranbaotran", role: "Giảng viên kỹ năng mềm & Thuyết trình", avatar: "/static/img/avatar_tranbaotran.png", isFollowing: true },
+    { id: 10, name: "Nguyễn Tiến Dũng", username: "tiendung", role: "Giám đốc cơ sở · Scots English Hà Đông", avatar: "/static/img/avatar_tiendung.svg", isFollowing: true },
+    { id: 11, name: "Phạm Thanh Hương", username: "thanhhuong", role: "Trưởng nhóm Tư vấn tuyển sinh", avatar: "/static/img/avatar_thanhhuong.svg", isFollowing: true },
+    { id: 12, name: "Vũ Đình Long", username: "dinhlong", role: "Kỹ sư hệ thống & Hỗ trợ kỹ thuật", avatar: "/static/img/avatar_dinhlong.svg", isFollowing: true },
+    { id: 13, name: "Đỗ Thị Thu Trang", username: "thutrang", role: "Giáo viên ngữ pháp & Viết học thuật", avatar: "/static/img/avatar_thutrang.svg", isFollowing: true },
+    { id: 14, name: "Lê Văn Hoàng", username: "vanhoang", role: "Điều phối viên sự kiện & Hoạt động ngoại khóa", avatar: "/static/img/avatar_vanhoang.svg", isFollowing: true },
+    { id: 15, name: "Bùi Thu Thảo", username: "thuthao", role: "Trưởng phòng Truyền thông & Thương hiệu", avatar: "/static/img/avatar_thuthao.svg", isFollowing: true },
+    { id: 16, name: "Hoàng Diệu Linh", username: "dieulinh", role: "Chuyên viên nghiên cứu & Phát triển giáo trình", avatar: "/static/img/avatar_dieulinh.svg", isFollowing: true },
+    { id: 17, name: "Nguyễn Minh Quân", username: "minhquan", role: "Giảng viên tiếng Anh giao tiếp người lớn", avatar: "/static/img/avatar_minhquan.svg", isFollowing: true },
+    { id: 18, name: "Đinh Thị Hải Yến", username: "haiyen", role: "Chuyên viên khảo thí chứng chỉ Cambridge", avatar: "/static/img/avatar_haiyen.svg", isFollowing: true },
+    { id: 19, name: "Trần Văn Minh", username: "vanminh", role: "Chuyên gia huấn luyện phát âm & Ngữ điệu", avatar: "/static/img/avatar_vanminh.svg", isFollowing: true },
+    { id: 20, name: "Nguyễn Bích Ngọc", username: "bichngoc", role: "Chuyên viên chăm sóc học viên & Phụ huynh", avatar: "/static/img/avatar_bichngoc.svg", isFollowing: true },
+    { id: 21, name: "Lê Hải Đăng", username: "haidang", role: "Thiết kế đồ họa & Sản xuất học liệu đa phương tiện", avatar: "/static/img/avatar_haidang.svg", isFollowing: true },
+    { id: 22, name: "Vũ Thùy Dung", username: "thuydung", role: "Quản lý khảo thí IELTS & Mock Test", avatar: "/static/img/avatar_thuydung.svg", isFollowing: true },
+    { id: 23, name: "Tạ Quang Thắng", username: "quangthang", role: "Giáo viên tiếng Anh tổng quát", avatar: "/static/img/avatar_quangthang.svg", isFollowing: true },
+    { id: 24, name: "Đỗ Mai Phương", username: "maiphuong", role: "Chuyên viên nhân sự & Đãi ngộ", avatar: "/static/img/avatar_maiphuong.svg", isFollowing: true },
+    { id: 25, name: "Nguyễn Tuấn Kiệt", username: "tuankiet", role: "Giáo viên phát âm & Giao tiếp cơ bản", avatar: "/static/img/avatar_tuankiet.svg", isFollowing: true },
+    { id: 26, name: "Hoàng Thanh Hà", username: "thanhha", role: "Chuyên viên kế toán tài chính cơ sở", avatar: "/static/img/avatar_thanhha.svg", isFollowing: true },
+    { id: 27, name: "Phùng Đức Cường", username: "duccuong", role: "Quản trị mạng & Cơ sở dữ liệu học tập", avatar: "/static/img/avatar_duccuong.svg", isFollowing: true },
+    { id: 28, name: "Ngô Thu Hiền", username: "thuhien", role: "Giáo viên chương trình hè Quốc tế", avatar: "/static/img/avatar_thuhien.svg", isFollowing: true },
+    { id: 29, name: "Đặng Phương Nam", username: "phuongnam", role: "Điều phối viên hợp tác quốc tế", avatar: "/static/img/avatar_phuongnam.svg", isFollowing: true },
+    { id: 30, name: "Dương Diệu Hương", username: "dieuhuong", role: "Giáo viên tiếng Anh thiếu niên", avatar: "/static/img/avatar_dieuhuong.svg", isFollowing: true },
+    { id: 31, name: "Bùi Văn Hùng", username: "vanhung", role: "Kỹ thuật viên phòng lab & Thiết bị âm thanh", avatar: "/static/img/avatar_vanhung.svg", isFollowing: true },
+    { id: 32, name: "Nguyễn Thị Kim Oanh", username: "kimoanh", role: "Chuyên viên tuyển dụng nhân sự giảng dạy", avatar: "/static/img/avatar_kimoanh.svg", isFollowing: true },
+    { id: 33, name: "Vũ Quốc Trung", username: "quoctrung", role: "Giảng viên tiếng Anh học thuật & Du học", avatar: "/static/img/avatar_quoctrung.svg", isFollowing: true },
+    { id: 34, name: "Trần Thị Thảo", username: "thithao", role: "Chuyên viên tổ chức sự kiện học sinh", avatar: "/static/img/avatar_thithao.svg", isFollowing: true },
+    { id: 35, name: "Mai Quốc Việt", username: "quocviet", role: "Chuyên viên đào tạo kỹ năng thế kỷ 21", avatar: "/static/img/avatar_quocviet.svg", isFollowing: true },
+    { id: 36, name: "Lê Thị Ánh Tuyết", username: "anhtuyet", role: "Giáo viên mầm non song ngữ", avatar: "/static/img/avatar_anhtuyet.svg", isFollowing: true }
+  ];
+
+  function openFollowingModal() {
+    renderFollowingModalList(FOLLOWING_COLLEAGUES);
+    const modal = document.getElementById('following-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      const searchInput = document.getElementById('following-search-input');
+      if (searchInput) {
+        searchInput.value = '';
+        setTimeout(() => searchInput.focus(), 50);
+      }
+    }
+  }
+
+  function closeFollowingModal() {
+    const modal = document.getElementById('following-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function filterFollowingList(query) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) {
+      renderFollowingModalList(FOLLOWING_COLLEAGUES);
+      return;
+    }
+    const filtered = FOLLOWING_COLLEAGUES.filter(p => {
+      return p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q);
+    });
+    renderFollowingModalList(filtered);
+  }
+
+  function toggleFollowPerson(id, btn) {
+    const person = FOLLOWING_COLLEAGUES.find(p => p.id === id);
+    if (!person) return;
+
+    person.isFollowing = !person.isFollowing;
+    const count = FOLLOWING_COLLEAGUES.filter(p => p.isFollowing).length;
+
+    if (person.isFollowing) {
+      btn.textContent = 'Đang theo dõi';
+      btn.style.background = '#edf4fb';
+      btn.style.color = '#134c81';
+      btn.style.borderColor = '#bfdbfe';
+    } else {
+      btn.textContent = '+ Theo dõi';
+      btn.style.background = '#134c81';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#134c81';
+    }
+
+    const modalCount = document.getElementById('following-modal-count');
+    if (modalCount) modalCount.textContent = `${count} đồng nghiệp`;
+    const sidebarCount = document.getElementById('sidebar-following-count');
+    if (sidebarCount) sidebarCount.textContent = `${count} người`;
+  }
+
+  function renderFollowingModalList(list) {
+    const container = document.getElementById('following-modal-list');
+    if (!container) return;
+
+    if (!list || list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 14px;">
+          Không tìm thấy đồng nghiệp phù hợp.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map(p => {
+      const profileUrl = p.username ? `/profile/${p.username}/` : '#';
+      const avatarHtml = p.avatar ?
+        `<a href="${profileUrl}" style="display: block; width: 100%; height: 100%;"><img src="${p.avatar}" alt="${p.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/profile_avatar_144.png';" /></a>` :
+        `<a href="${profileUrl}" style="display: flex; width: 100%; height: 100%; text-decoration: none; background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 15px; align-items: center; justify-content: center;">${p.name.charAt(0)}</a>`;
+
+      const nameTag = p.username ?
+        `<a href="${profileUrl}" style="font-weight: 600; font-size: 14px; color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='#1e293b'; this.style.textDecoration='none'">${p.name}</a>` :
+        `<span style="font-weight: 600; font-size: 14px; color: #1e293b;">${p.name}</span>`;
+
+      const btnStyle = p.isFollowing ?
+        'background: #edf4fb; color: #134c81; border: 1px solid #bfdbfe;' :
+        'background: #134c81; color: #ffffff; border: 1px solid #134c81;';
+      const btnText = p.isFollowing ? 'Đang theo dõi' : '+ Theo dõi';
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; transition: background 0.15s;">
+          <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 1px solid #cbd5e1;">
+              ${avatarHtml}
+            </div>
+            <div style="overflow: hidden; flex: 1;">
+              <div>${nameTag}</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${p.role}">
+                ${p.role}
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="toggleFollowPerson(${p.id}, this)" style="${btnStyle} padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.15s;">
+            ${btnText}
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Keyboard shortcut ESC to close modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeFollowingModal();
+      if (typeof closeLikesModal === 'function') closeLikesModal();
+      if (typeof closeEditPostModal === 'function') closeEditPostModal();
+    }
+  });
 
 </script>
 

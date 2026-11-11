@@ -602,10 +602,18 @@
         <input type="hidden" name="title" id="post-title-input" value="" />
         <section class="create-card profile-card">
           <div class="profile-avatar-wrap" style="width: 48px; height: 48px; border-radius: 50%; overflow: hidden;">
-            <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+            {% if current_user.username == 'thuha' %}
+              <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+            {% elif current_user.username == 'phuonglinh' %}
+              <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+            {% elif current_user.username == 'ngocanh' %}
+              <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
+            {% else %}
+              <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+            {% endif %}
           </div>
           <div class="profile-details">
-            <span class="profile-author-name">{{ current_user.get_full_name|default:current_user.username|default:'Nguyễn Minh Anh' }}</span>
+            <span class="profile-author-name">{{ current_user.get_full_name|default:current_user.username }}</span>
             <div class="privacy-controls">
               <!-- Privacy Pill with interactive dropdown toggle -->
               <div class="privacy-pill" id="privacy-toggle" onclick="cyclePrivacy()" title="Nhấn để đổi phạm vi hiển thị">
@@ -642,9 +650,9 @@
           <h2 class="features-heading">Thêm vào bài viết của bạn</h2>
           <div class="features-grid">
 
-            <!-- Thêm ảnh -->
-            <button type="button" class="feature-action-btn btn-image" onclick="document.getElementById('file-input-image').click()">
-              <input type="file" id="file-input-image" name="image" accept="image/*" style="display: none;" onchange="handleImageSelected(this)" />
+            <!-- Thêm ảnh / video -->
+            <button type="button" class="feature-action-btn btn-image" onclick="document.getElementById('file-input-image').click()" title="Thêm ảnh hoặc video trực tiếp">
+              <input type="file" id="file-input-image" name="image" accept="image/*,video/*" multiple style="display: none;" onchange="handleImageSelected(this)" />
               <div class="icon-surface surface-mint">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#087c66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -653,13 +661,13 @@
                 </svg>
               </div>
               <div class="feature-text-block">
-                <span class="feature-title">Ảnh</span>
+                <span class="feature-title">Ảnh / Video</span>
               </div>
             </button>
 
             <!-- Đính kèm tài liệu -->
-            <button type="button" class="feature-action-btn btn-doc" onclick="document.getElementById('file-input-doc').click()">
-              <input type="file" id="file-input-doc" name="doc" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;" onchange="handleDocSelected(this)" />
+            <button type="button" class="feature-action-btn btn-doc" onclick="document.getElementById('file-input-doc').click()" title="Đính kèm tài liệu trực tiếp">
+              <input type="file" id="file-input-doc" name="doc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" multiple style="display: none;" onchange="handleDocSelected(this)" />
               <div class="icon-surface surface-blue">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -677,40 +685,8 @@
           </div>
         </section>
 
-        <!-- Attached File Preview Card -->
-        <section class="attached-file-card" id="attached-file-preview">
-          <div class="pdf-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span class="pdf-badge-label" id="file-badge-text">PDF</span>
-          </div>
-
-          <div class="file-info">
-            <span class="file-name" id="file-display-name">Quy_trinh_Dao_tao_Q4_2026.pdf</span>
-            <div class="file-meta-row">
-              <span class="file-size" id="file-display-size">2.4 MB</span>
-              <span class="file-dot"></span>
-              <span class="file-status">
-                <span>Đã tải lên</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-              </span>
-            </div>
-          </div>
-
-          <button type="button" class="btn-remove-file" aria-label="Xóa tệp đính kèm" onclick="removeAttachedFile()" title="Xóa tệp đính kèm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </section>
+        <!-- Attached Files Preview List (Hidden by default, no pre-attached dummy file) -->
+        <div id="attached-files-container" style="display: none; flex-direction: column; gap: 10px;"></div>
 
       </div>
     </form>
@@ -758,34 +734,122 @@
     }
   }
 
-  // Xóa file đính kèm
-  function removeAttachedFile() {
-    const preview = document.getElementById('attached-file-preview');
-    preview.style.display = 'none';
-  }
+  let selectedMediaFiles = [];
+  let selectedDocFiles = [];
 
-  // Chọn ảnh từ máy tính
   function handleImageSelected(input) {
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      const preview = document.getElementById('attached-file-preview');
-      preview.style.display = 'flex';
-      document.getElementById('file-display-name').textContent = file.name;
-      document.getElementById('file-display-size').textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
-      document.getElementById('file-badge-text').textContent = file.name.split('.').pop().toUpperCase();
+    if (input.files && input.files.length) {
+      for (let i = 0; i < input.files.length; i++) {
+        selectedMediaFiles.push(input.files[i]);
+      }
+      syncInputsAndRender();
     }
   }
 
-  // Chọn tài liệu từ máy tính
   function handleDocSelected(input) {
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      const preview = document.getElementById('attached-file-preview');
-      preview.style.display = 'flex';
-      document.getElementById('file-display-name').textContent = file.name;
-      document.getElementById('file-display-size').textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
-      document.getElementById('file-badge-text').textContent = file.name.split('.').pop().toUpperCase();
+    if (input.files && input.files.length) {
+      for (let i = 0; i < input.files.length; i++) {
+        selectedDocFiles.push(input.files[i]);
+      }
+      syncInputsAndRender();
     }
+  }
+
+  function removeMediaFile(idx) {
+    selectedMediaFiles.splice(idx, 1);
+    syncInputsAndRender();
+  }
+
+  function removeDocFile(idx) {
+    selectedDocFiles.splice(idx, 1);
+    syncInputsAndRender();
+  }
+
+  function syncInputsAndRender() {
+    const dtImage = new DataTransfer();
+    selectedMediaFiles.forEach(f => dtImage.items.add(f));
+    const imgInput = document.getElementById('file-input-image');
+    if (imgInput) imgInput.files = dtImage.files;
+
+    const dtDoc = new DataTransfer();
+    selectedDocFiles.forEach(f => dtDoc.items.add(f));
+    const docInput = document.getElementById('file-input-doc');
+    if (docInput) docInput.files = dtDoc.files;
+
+    renderPreviews();
+  }
+
+  function renderPreviews() {
+    const container = document.getElementById('attached-files-container');
+    if (!container) return;
+
+    if (selectedMediaFiles.length === 0 && selectedDocFiles.length === 0) {
+      container.style.display = 'none';
+      container.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'flex';
+    let html = '';
+
+    // Render media files
+    selectedMediaFiles.forEach((file, idx) => {
+      const ext = file.name.split('.').pop().toUpperCase();
+      const isVideo = ['.mp4', '.mov', '.webm', '.ogg', '.m4v', '.avi'].some(e => file.name.toLowerCase().endsWith(e));
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      const badgeBg = isVideo ? '#f5f3ff' : '#ecfdf5';
+      const badgeColor = isVideo ? '#7c3aed' : '#059669';
+
+      html += `
+        <div class="attached-file-card" style="display: flex; align-items: center; gap: 16px; background: #f8fafb; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px;">
+          <div style="width: 46px; height: 50px; background: ${badgeBg}; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${badgeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              ${isVideo ? '<polygon points="5 3 19 12 5 21 5 3"></polygon>' : '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline>'}
+            </svg>
+            <span style="font-size: 10px; font-weight: 800; color: ${badgeColor}; line-height: 1;">${ext}</span>
+          </div>
+          <div class="file-info" style="flex: 1; min-width: 0;">
+            <span class="file-name" style="font-size: 14px; font-weight: 600; color: #19334b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${file.name}">${file.name}</span>
+            <div class="file-meta-row" style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; margin-top: 2px;">
+              <span>${sizeMb}</span>
+              <span>·</span>
+              <span style="color: #059669; font-weight: 500;">Sẵn sàng tải lên</span>
+            </div>
+          </div>
+          <button type="button" class="btn-remove-file" onclick="removeMediaFile(${idx})" title="Xóa tệp này" style="width: 28px; height: 28px; border-radius: 50%; border: none; background: #f1f5f9; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background 0.15s;" onmouseover="this.style.background='#fee2e2'; this.style.color='#ef4444';" onmouseout="this.style.background='#f1f5f9'; this.style.color='#64748b';">&times;</button>
+        </div>
+      `;
+    });
+
+    // Render doc files
+    selectedDocFiles.forEach((file, idx) => {
+      const ext = file.name.split('.').pop().toUpperCase();
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      html += `
+        <div class="attached-file-card" style="display: flex; align-items: center; gap: 16px; background: #f8fafb; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px;">
+          <div class="pdf-badge" style="width: 46px; height: 50px; background: #eff6ff; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span style="font-size: 10px; font-weight: 800; color: #134c81; line-height: 1;">${ext}</span>
+          </div>
+          <div class="file-info" style="flex: 1; min-width: 0;">
+            <span class="file-name" style="font-size: 14px; font-weight: 600; color: #19334b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="${file.name}">${file.name}</span>
+            <div class="file-meta-row" style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; margin-top: 2px;">
+              <span>${sizeMb}</span>
+              <span>·</span>
+              <span style="color: #059669; font-weight: 500;">Sẵn sàng tải lên</span>
+            </div>
+          </div>
+          <button type="button" class="btn-remove-file" onclick="removeDocFile(${idx})" title="Xóa tệp này" style="width: 28px; height: 28px; border-radius: 50%; border: none; background: #f1f5f9; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background 0.15s;" onmouseover="this.style.background='#fee2e2'; this.style.color='#ef4444';" onmouseout="this.style.background='#f1f5f9'; this.style.color='#64748b';">&times;</button>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
   }
 
   // Lưu nháp

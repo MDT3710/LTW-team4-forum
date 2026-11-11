@@ -1,21 +1,28 @@
-from django.shortcuts import render
-from django.contrib.auth import login
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.db.models import Q
 from posts.models import Post, PostReaction
 
 
+def index_view(request):
+    """
+    Điều hướng khi truy cập trang web (đường dẫn gốc /):
+    - Luôn vào trang đăng nhập trước nếu chưa đăng nhập.
+    - Sau khi đăng nhập mới vào được trang newfeeds.
+    """
+    if not request.user.is_authenticated:
+        return redirect('login')
+    return redirect('newfeeds')
+
+
 def HomeView(request):
     """
-    Truy vấn danh sách bài viết từ database kèm tệp đính kèm, lượt tương tác và bình luận
-    để hiển thị động trên Bảng tin Home.
-    Hỗ trợ tìm kiếm theo từ khóa (?q=...).
+    Truy vấn danh sách bài viết từ database để hiển thị Bảng tin (Newfeeds).
+    Nếu chưa đăng nhập: chuyển hướng ngay sang trang đăng nhập (/login/).
+    Sau khi đăng nhập: nhận diện đúng người dùng đang truy cập (current_user).
     """
-    # Tự động gán session cho tài khoản Minh Anh nếu chưa đăng nhập
     if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+        return redirect('login')
 
     current_user = request.user
 
@@ -41,15 +48,16 @@ def HomeView(request):
     posts = list(posts_qs.order_by('-created_at'))
 
     # Xác định trạng thái đã like của người dùng hiện tại
-    if current_user and current_user.is_authenticated:
-        liked_post_ids = set(
-            PostReaction.objects.filter(emp=current_user).values_list('post_id', flat=True)
-        )
-    else:
-        liked_post_ids = set()
+    liked_post_ids = set(
+        PostReaction.objects.filter(emp=current_user).values_list('post_id', flat=True)
+    )
 
+    from posts.views import prepare_post_comments
+    from posts.colleagues import get_profile_details
     for post in posts:
         post.is_liked_by_user = post.id in liked_post_ids
+        post.author_avatar = get_profile_details(post.author).get('avatar', '/static/img/profile_avatar_144.png')
+        prepare_post_comments(post, current_user.id)
 
     return render(request, 'home.html', {
         'posts': posts,
