@@ -19,5 +19,4 @@ urlpatterns = [
 
     # 5. Chi tiết danh mục & Xem trước -> /documents/<cate_id>/...
     path('<int:cate_id>/', views.document_category, name='document_category'),
-    path('<int:cate_id>/preview/', views.document_preview, name='document_preview'),
 ]

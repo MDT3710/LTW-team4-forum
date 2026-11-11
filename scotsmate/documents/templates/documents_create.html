@@ -4,7 +4,6 @@
 
   <main class="doc-workspace">
 
-    
     <!-- Tiêu đề trang -->
     <header class="doc-header">
       <div>
@@ -36,10 +35,31 @@
             {{ form.title }}
           </div>
 
-            <div class="doc-form-group">
-              <label class="doc-form-label" for="{{ form.category.id_for_label }}">Danh mục tài liệu <span class="required">*</span></label>
-              {{ form.category }}
+          <div class="doc-form-group">
+            <label class="doc-form-label" for="{{ form.category.id_for_label }}">Danh mục tài liệu <span class="required">*</span></label>
+            {{ form.category }}
+          </div>
+
+          <!-- BỔ SUNG: Phạm vi truy cập -->
+          <div class="doc-form-group">
+            <label class="doc-form-label" for="{{ form.access_scope.id_for_label }}">Phạm vi truy cập</label>
+            {{ form.access_scope }}
+          </div>
+
+          <!-- BỔ SUNG: Chọn phòng ban (ẩn/hiện tự động theo Phạm vi truy cập) -->
+          <div class="doc-form-group" id="department-select-group" style="display: none; background: #f8fafc; padding: 14px 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+            <label class="doc-form-label" style="margin-bottom: 10px; display: block;">{{ form.departments.label }} <span class="required">*</span></label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+              {% for checkbox in form.departments %}
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink, #0f172a); cursor: pointer;">
+                  {{ checkbox.tag }}
+                  <span>{{ checkbox.choice_label }}</span>
+                </label>
+              {% empty %}
+                <p style="font-size: 13px; color: #64748b; margin: 0;">Chưa có phòng ban nào trong hệ thống.</p>
+              {% endfor %}
             </div>
+          </div>
 
           <div class="doc-form-group">
             <label class="doc-form-label" for="{{ form.description.id_for_label }}">Mô tả tóm tắt nội dung</label>
@@ -70,6 +90,26 @@
         </div>
 
         <script>
+          // Xử lý ẩn/hiện danh sách phòng ban khi chọn Phạm vi truy cập
+          const scopeSelect = document.getElementById('doc-scope');
+          const deptGroup = document.getElementById('department-select-group');
+
+          function toggleDepartmentBox() {
+            if (scopeSelect && deptGroup) {
+              if (scopeSelect.value === 'DEPARTMENT') {
+                deptGroup.style.display = 'block';
+              } else {
+                deptGroup.style.display = 'none';
+              }
+            }
+          }
+
+          if (scopeSelect) {
+            scopeSelect.addEventListener('change', toggleDepartmentBox);
+            toggleDepartmentBox(); // Kiểm tra trạng thái ngay khi tải trang
+          }
+
+          // Xử lý kiểm tra file đính kèm
           const MAX_FILE_SIZE_MB = 20;
           const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024; // 20 MB
           const MAX_FILE_COUNT = 5; // Giới hạn tối đa 5 tập tin
@@ -162,10 +202,7 @@
           </div>
 
           <div class="doc-meta-list">
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Người tạo</span>
-              <span class="doc-meta-value">{{ request.user.get_full_name|default:request.user.username|default:"Nguyễn Minh Anh" }}</span>
-            </div>
+            <span class="doc-meta-value">{{ request.user.get_full_name|default:request.user.username }}</span>
             <div class="doc-meta-row">
               <span class="doc-meta-label">Mã nhân viên</span>
               <span class="doc-meta-value">NV-024</span>

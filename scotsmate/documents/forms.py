@@ -1,5 +1,7 @@
 from django import forms
+from home.models import Department
 from .models import Document, DocumentCategory
+
 
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
@@ -16,7 +18,8 @@ class MultipleFileField(forms.FileField):
             return [single_file_clean(d, initial) for d in data]
         return [single_file_clean(data, initial)]
 
-#form tải tl lên
+
+# Form tải tài liệu lên
 class DocumentCreateForm(forms.ModelForm):
     file = MultipleFileField(
         label="Tệp văn bản đính kèm",
@@ -28,10 +31,16 @@ class DocumentCreateForm(forms.ModelForm):
             'style': 'display: none;',
         })
     )
+    departments = forms.ModelMultipleChoiceField(
+        queryset=Department.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+        label="Chọn phòng ban được phép truy cập"
+    )
 
     class Meta:
         model = Document
-        fields = ['title', 'category', 'description', 'file']
+        fields = ['title', 'category', 'access_scope', 'description', 'file']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'doc-form-input',
@@ -41,6 +50,10 @@ class DocumentCreateForm(forms.ModelForm):
             'category': forms.Select(attrs={
                 'class': 'doc-form-select',
                 'id': 'doc-cat',
+            }),
+            'access_scope': forms.Select(attrs={
+                'class': 'doc-form-select',
+                'id': 'doc-scope',
             }),
             'description': forms.Textarea(attrs={
                 'class': 'doc-form-textarea',
@@ -53,6 +66,7 @@ class DocumentCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['category'].queryset = DocumentCategory.objects.all()
         self.fields['category'].empty_label = "-- Chọn danh mục --"
+        self.fields['access_scope'].required = False
 
     def clean_file(self):
         files = self.cleaned_data.get('file')
@@ -75,7 +89,8 @@ class DocumentCreateForm(forms.ModelForm):
                 )
         return files
 
-#form tạo danh mục
+
+# Form tạo danh mục
 class DocumentCategoryForm(forms.ModelForm):
     class Meta:
         model = DocumentCategory
@@ -97,10 +112,10 @@ class DocumentCategoryForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Cho phép phần mô tả có thể bỏ trống (không có dấu * đỏ trên giao diện)
         self.fields['description'].required = False
 
-# form chỉnh sửa tài liệu
+
+# Form chỉnh sửa tài liệu
 class DocumentEditForm(forms.ModelForm):
     file = forms.FileField(
         required=False,
@@ -109,6 +124,12 @@ class DocumentEditForm(forms.ModelForm):
             'style': 'position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;',
             'onchange': 'updateFileName(this)',
         })
+    )
+    departments = forms.ModelMultipleChoiceField(
+        queryset=Department.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+        label="Chọn phòng ban được phép truy cập"
     )
 
     class Meta:
@@ -131,3 +152,7 @@ class DocumentEditForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['category'].queryset = DocumentCategory.objects.all()
         self.fields['category'].empty_label = None
+        if self.instance and self.instance.pk:
+            self.fields['departments'].initial = Department.objects.filter(
+                accessible_documents__document=self.instance
+            )

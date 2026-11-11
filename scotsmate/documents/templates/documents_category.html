@@ -17,8 +17,14 @@
 
     <!-- Điều hướng phân hệ (Tabs) -->
     <nav class="doc-tabs">
-      <a href="{% url 'documents' %}" class="doc-tab active">Danh mục tài liệu</a>
-      <a href="{% url 'document_approve' %}" class="doc-tab">Tài liệu chờ duyệt ({{ pending_count|default:0 }})</a>
+      <a href="{% url 'documents' %}" class="doc-tab">Danh mục tài liệu</a>
+
+      {% if request.user.is_superuser or request.user.is_staff %}
+        <a href="{% url 'document_approve' %}" class="doc-tab">
+          Tài liệu chờ duyệt ({{ pending_count|default:0 }})
+        </a>
+      {% endif %}
+
       <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
     </nav>
 
@@ -39,17 +45,17 @@
       </button>
     </form>
 
-    <!-- Bảng danh sách tài liệu động -->
+    <!-- Bảng danh sách tài liệu -->
     <section class="doc-table-card">
       <table class="doc-table">
         <thead>
           <tr>
             <th>Tên tài liệu</th>
             <th>Mã tài liệu</th>
+            <th>Mô tả tóm tắt nội dung</th>
             <th>Người tạo</th>
+            <th>Quyền truy cập</th>
             <th>Ngày tải lên</th>
-            <th>Định dạng</th>
-            <th>Dung lượng</th>
             <th style="text-align: right;">Thao tác</th>
           </tr>
         </thead>
@@ -60,14 +66,33 @@
                 <strong>{{ doc.title }}</strong>
               </td>
               <td>DOC-{{ doc.id|stringformat:"03d" }}</td>
-              <td>{{ doc.creator.get_full_name|default:doc.creator.username }}</td>
-              <td>{{ doc.created_at|date:"d/m/Y" }}</td>
-              <td>
-                <span class="doc-badge doc-badge-in-progress">
-                  {{ doc.file_extension|default:"FILE" }}
-                </span>
+              <td style="color: var(--ink-soft); max-width: 320px;">
+                {{ doc.description|default:"Chưa có mô tả chi tiết." }}
               </td>
-              <td>{{ doc.file_size_display|default:"--" }}</td>
+              <td>{{ doc.creator.get_full_name|default:doc.creator.username }}</td>
+
+              <!-- Thêm dữ liệu cột Quyền truy cập -->
+              <td>
+                {% if doc.access_scope == 'DEPARTMENT' %}
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                    {% for perm in doc.access_permissions.all %}
+                      <span class="doc-badge" style="background: #e0f2fe; color: #0369a1;">
+                        {{ perm.department.name }}
+                      </span>
+                    {% empty %}
+                      <span class="doc-badge" style="background: #fee2e2; color: #991b1b;">
+                        Chưa chọn phòng ban
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <span class="doc-badge" style="background: #f1f5f9; color: #475569;">
+                    {{ doc.get_access_scope_display|default:doc.access_scope }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <td>{{ doc.created_at|date:"d/m/Y" }}</td>
               <td style="text-align: right;">
                 {% if doc.file %}
                   <a href="{{ doc.file.url }}" download class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
@@ -78,6 +103,7 @@
             </tr>
           {% empty %}
             <tr>
+
               <td colspan="7" style="text-align: center; color: var(--ink-soft); padding: 48px;">
                 Chưa có tài liệu nào được phê duyệt trong danh mục <strong>{{ category.name }}</strong>.
               </td>

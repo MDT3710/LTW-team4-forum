@@ -1,11 +1,10 @@
 from django.db import models
 from django.conf import settings
-from django.utils.text import slugify
+
 
 class DocumentCategory(models.Model):
     """
     Bảng 1: Danh mục tài liệu (Hiển thị các thẻ ở trang /documents/)
-    Ví dụ: Quy trình làm việc, Đào tạo & Giảng dạy, Nhân sự & Hành chính...
     """
     name = models.CharField("Tên danh mục", max_length=150)
     description = models.TextField("Mô tả ngắn", max_length=500, blank=True)
@@ -22,7 +21,7 @@ class DocumentCategory(models.Model):
 
 class Document(models.Model):
     """
-    Bảng 2: Tài liệu (Phục vụ bảng Danh sách, Tài liệu của tôi, Tạo mới, Xem trước)
+    Bảng 2: Tài liệu
     """
     STATUS_CHOICES = [
         ('PENDING', 'Chờ duyệt'),
@@ -32,9 +31,7 @@ class Document(models.Model):
 
     SCOPE_CHOICES = [
         ('ALL', 'Toàn hệ thống'),
-        ('HR_ADMIN', 'Khối Hành chính - Nhân sự'),
-        ('TRAINING', 'Khối Đào tạo & Học thuật'),
-        ('BRANCH', 'Nội bộ chi nhánh'),
+        ('DEPARTMENT', 'Giới hạn theo phòng ban'),
     ]
 
     REQUEST_TYPE_CHOICES = [
@@ -90,7 +87,7 @@ class Document(models.Model):
     )
     rejection_reason = models.TextField("Lý do từ chối", blank=True, null=True)
 
-    # Thời gian (Phục vụ cột 'Ngày tạo' và 'Lần cập nhật gần nhất')
+    # Thời gian
     created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)
     updated_at = models.DateTimeField("Lần cập nhật gần nhất", auto_now=True)
     approved_at = models.DateTimeField("Ngày duyệt", null=True, blank=True)
@@ -107,8 +104,6 @@ class Document(models.Model):
 class DocumentUpdateProposal(models.Model):
     """
     Bảng 3: Bản đề xuất cập nhật tài liệu
-    Dùng cho màn hình 'Cập nhật tài liệu' (/my_docs/{id}/edit)
-    và màn hình so sánh 2 cột 'Thông tin hiện tại' vs 'Thông tin đề xuất' (/approve/{id})
     """
     document = models.ForeignKey(
         Document,
@@ -152,3 +147,31 @@ class DocumentUpdateProposal(models.Model):
 
     def __str__(self):
         return self.proposed_title
+
+
+class DocumentAccess(models.Model):
+    """
+    Bảng 4: Cho phép phòng ban nào được truy cập tài liệu
+    """
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name='access_permissions',
+        verbose_name="Tài liệu"
+    )
+    department = models.ForeignKey(
+        'home.Department',
+        on_delete=models.CASCADE,
+        related_name='accessible_documents',
+        verbose_name="Phòng ban được phép truy cập"
+    )
+    granted_at = models.DateTimeField("Ngày cấp quyền", auto_now_add=True)
+
+    class Meta:
+        db_table = 'documents_access'
+        verbose_name = "Quyền truy cập tài liệu"
+        verbose_name_plural = "Phân quyền truy cập tài liệu"
+        unique_together = ('document', 'department')
+
+    def __str__(self):
+        return f"{self.document.title} - {self.department.name}"

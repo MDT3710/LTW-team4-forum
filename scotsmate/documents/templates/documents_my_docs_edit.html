@@ -15,8 +15,14 @@
     <!-- Điều hướng phân hệ (Tabs) -->
     <nav class="doc-tabs">
       <a href="{% url 'documents' %}" class="doc-tab">Danh mục tài liệu</a>
-      <a href="{% url 'document_approve' %}" class="doc-tab">Tài liệu chờ duyệt ({{ pending_count|default:0 }})</a>
-      <a href="{% url 'document_my_docs' %}" class="doc-tab active">Tài liệu của tôi</a>
+
+      {% if request.user.is_superuser or request.user.is_staff %}
+        <a href="{% url 'document_approve' %}" class="doc-tab">
+          Tài liệu chờ duyệt ({{ pending_count|default:0 }})
+        </a>
+      {% endif %}
+
+      <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
     </nav>
 
     <!-- Layout 2 cột: Form chỉnh sửa -->
