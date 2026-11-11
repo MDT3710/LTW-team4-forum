@@ -895,20 +895,20 @@
       <div class="card-std">
         <div class="following-header-row">
           <h2 class="card-sec-title" style="margin: 0;">Following</h2>
-          <span class="following-badge-count">36 người</span>
+          <span class="following-badge-count" id="sidebar-following-count">36 người</span>
         </div>
 
         <div class="following-avatar-grid">
           <!-- 1. Thu Hà -->
-          <div class="following-person-cell">
+          <a href="/profile/thuha/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Thu Hà">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_thuha_colleague.png' %}" alt="Thu Hà" />
             </div>
             <span class="following-person-name">Thu Hà</span>
-          </div>
+          </a>
 
           <!-- 2. Hoàng Nam -->
-          <div class="following-person-cell">
+          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_hoangnam.png' %}" alt="Hoàng Nam" />
             </div>
@@ -916,7 +916,7 @@
           </div>
 
           <!-- 3. Lan Phương -->
-          <div class="following-person-cell">
+          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_lanphuong.png' %}" alt="Lan Phương" />
             </div>
@@ -924,7 +924,7 @@
           </div>
 
           <!-- 4. Đức Anh -->
-          <div class="following-person-cell">
+          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_ducanh.png' %}" alt="Đức Anh" />
             </div>
@@ -932,7 +932,7 @@
           </div>
 
           <!-- 5. Mai Linh -->
-          <div class="following-person-cell">
+          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_mailinh.png' %}" alt="Mai Linh" />
             </div>
@@ -940,7 +940,7 @@
           </div>
 
           <!-- 6. Quang Huy -->
-          <div class="following-person-cell">
+          <div class="following-person-cell" onclick="openFollowingModal()" style="cursor: pointer;" title="Nhấn để xem chi tiết">
             <div class="following-avatar-wrap">
               <img src="{% static 'img/avatar_quanghuy.png' %}" alt="Quang Huy" />
             </div>
@@ -949,9 +949,9 @@
         </div>
 
         <hr class="divider-line" />
-        <a href="#" class="btn-view-all-following" onclick="event.preventDefault(); alert('Hiển thị danh sách 36 người đang theo dõi')">
+        <button type="button" class="btn-view-all-following" onclick="openFollowingModal()" style="width: 100%; border: none; background: none; font-size: 14px; font-weight: 600; color: #134c81; cursor: pointer; padding: 6px 0; text-align: center; transition: color 0.15s;" onmouseover="this.style.color='#0f3d68'" onmouseout="this.style.color='#134c81'">
           Xem tất cả
-        </a>
+        </button>
       </div>
 
       <!-- Community Sidebar Footer -->
@@ -1400,6 +1400,62 @@
     </div>
   </div>
     </main>
+
+    <!-- Following Modal (Xem tất cả người đang theo dõi) -->
+    <div id="following-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px;" onclick="if(event.target === this) closeFollowingModal()">
+      <div style="background: #ffffff; border-radius: 14px; width: 100%; max-width: 520px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
+        <!-- Modal Header -->
+        <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 8px; background: #edf4fb; display: flex; align-items: center; justify-content: center; color: #134c81;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Đang theo dõi (Following)</h3>
+              <span id="following-modal-count" style="font-size: 12px; color: #64748b;">36 đồng nghiệp</span>
+            </div>
+          </div>
+          <button type="button" onclick="closeFollowingModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+        </div>
+
+        <!-- Search Bar -->
+        <div style="padding: 12px 22px; border-bottom: 1px solid #f1f5f9; background: #ffffff; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="following-search-input" placeholder="Tìm kiếm theo tên hoặc chức vụ..." style="border: none; background: transparent; outline: none; width: 100%; font-size: 13px; color: #1e293b;" oninput="filterFollowingList(this.value)" />
+          </div>
+        </div>
+
+        <!-- Scrollable List of Following Colleagues -->
+        <div id="following-modal-list" style="padding: 16px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px;">
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="padding: 12px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; flex-shrink: 0;">
+          <button type="button" onclick="closeFollowingModal()" style="padding: 8px 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Likes Modal -->
+    <div id="likes-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; padding: 16px;" onclick="if(event.target === this) closeLikesModal()">
+      <div style="background: #ffffff; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; animation: fadeIn 0.2s ease;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+          <h3 id="likes-modal-title" style="margin: 0; font-size: 16px; font-weight: 600; color: #0f172a;">Người đã thích</h3>
+          <button type="button" onclick="closeLikesModal()" style="border: none; background: none; font-size: 22px; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+        </div>
+        <div id="likes-modal-list" style="padding: 16px 20px; max-height: 360px; overflow-y: auto;"></div>
+      </div>
+    </div>
+
 
   </div>
 
@@ -2284,6 +2340,160 @@
     container.innerHTML = html;
   }
 
-  </script>
+  
+  // Danh sách 36 đồng nghiệp đang theo dõi
+  const FOLLOWING_COLLEAGUES = [
+    { id: 1, name: "Thu Hà Nguyễn", username: "thuha", role: "Giáo viên tiếng Anh · Scots English Cầu Giấy", avatar: "/static/img/avatar_thuha_colleague.png", isFollowing: true },
+    { id: 2, name: "Hoàng Nam", username: "", role: "Quản lý học vụ · Scots English Đống Đa", avatar: "/static/img/avatar_hoangnam.png", isFollowing: true },
+    { id: 3, name: "Lan Phương", username: "", role: "Chuyên viên khảo thí & Đào tạo giáo viên", avatar: "/static/img/avatar_lanphuong.png", isFollowing: true },
+    { id: 4, name: "Đức Anh", username: "", role: "Giáo viên luyện thi IELTS chuyên sâu", avatar: "/static/img/avatar_ducanh.png", isFollowing: true },
+    { id: 5, name: "Mai Linh", username: "", role: "Trưởng bộ môn Tiếng Anh Trẻ em", avatar: "/static/img/avatar_mailinh.png", isFollowing: true },
+    { id: 6, name: "Quang Huy", username: "", role: "Điều phối viên học liệu & Học vụ", avatar: "/static/img/avatar_quanghuy.png", isFollowing: true },
+    { id: 7, name: "Phương Linh Lê", username: "phuonglinh", role: "Giáo viên tiếng Anh giao tiếp", avatar: "/static/img/avatar_phuonglinh.png", isFollowing: true },
+    { id: 8, name: "Ngọc Anh Đỗ", username: "ngocanh", role: "Giáo viên tiếng Anh trẻ em", avatar: "/static/img/avatar_ngocanh.png", isFollowing: true },
+    { id: 9, name: "Trần Bảo Trân", username: "", role: "Giảng viên kỹ năng mềm & Thuyết trình", avatar: "/static/img/avatar_tranbaotran.png", isFollowing: true },
+    { id: 10, name: "Nguyễn Tiến Dũng", username: "", role: "Giám đốc cơ sở · Scots English Hà Đông", avatar: "", isFollowing: true },
+    { id: 11, name: "Phạm Thanh Hương", username: "", role: "Trưởng nhóm Tư vấn tuyển sinh", avatar: "", isFollowing: true },
+    { id: 12, name: "Vũ Đình Long", username: "", role: "Kỹ sư hệ thống & Hỗ trợ kỹ thuật", avatar: "", isFollowing: true },
+    { id: 13, name: "Đỗ Thị Thu Trang", username: "", role: "Giáo viên ngữ pháp & Viết học thuật", avatar: "", isFollowing: true },
+    { id: 14, name: "Lê Văn Hoàng", username: "", role: "Điều phối viên sự kiện & Hoạt động ngoại khóa", avatar: "", isFollowing: true },
+    { id: 15, name: "Bùi Thu Thảo", username: "", role: "Trưởng phòng Truyền thông & Thương hiệu", avatar: "", isFollowing: true },
+    { id: 16, name: "Hoàng Diệu Linh", username: "", role: "Chuyên viên nghiên cứu & Phát triển giáo trình", avatar: "", isFollowing: true },
+    { id: 17, name: "Nguyễn Minh Quân", username: "", role: "Giảng viên tiếng Anh giao tiếp người lớn", avatar: "", isFollowing: true },
+    { id: 18, name: "Đinh Thị Hải Yến", username: "", role: "Chuyên viên khảo thí chứng chỉ Cambridge", avatar: "", isFollowing: true },
+    { id: 19, name: "Trần Văn Minh", username: "", role: "Chuyên gia huấn luyện phát âm & Ngữ điệu", avatar: "", isFollowing: true },
+    { id: 20, name: "Nguyễn Bích Ngọc", username: "", role: "Chuyên viên chăm sóc học viên & Phụ huynh", avatar: "", isFollowing: true },
+    { id: 21, name: "Lê Hải Đăng", username: "", role: "Thiết kế đồ họa & Sản xuất học liệu đa phương tiện", avatar: "", isFollowing: true },
+    { id: 22, name: "Vũ Thùy Dung", username: "", role: "Quản lý khảo thí IELTS & Mock Test", avatar: "", isFollowing: true },
+    { id: 23, name: "Tạ Quang Thắng", username: "", role: "Giáo viên tiếng Anh tổng quát", avatar: "", isFollowing: true },
+    { id: 24, name: "Đỗ Mai Phương", username: "", role: "Chuyên viên nhân sự & Đãi ngộ", avatar: "", isFollowing: true },
+    { id: 25, name: "Nguyễn Tuấn Kiệt", username: "", role: "Giáo viên phát âm & Giao tiếp cơ bản", avatar: "", isFollowing: true },
+    { id: 26, name: "Hoàng Thanh Hà", username: "", role: "Chuyên viên kế toán tài chính cơ sở", avatar: "", isFollowing: true },
+    { id: 27, name: "Phùng Đức Cường", username: "", role: "Quản trị mạng & Cơ sở dữ liệu học tập", avatar: "", isFollowing: true },
+    { id: 28, name: "Ngô Thu Hiền", username: "", role: "Giáo viên chương trình hè Quốc tế", avatar: "", isFollowing: true },
+    { id: 29, name: "Đặng Phương Nam", username: "", role: "Điều phối viên hợp tác quốc tế", avatar: "", isFollowing: true },
+    { id: 30, name: "Dương Diệu Hương", username: "", role: "Giáo viên tiếng Anh thiếu niên", avatar: "", isFollowing: true },
+    { id: 31, name: "Bùi Văn Hùng", username: "", role: "Kỹ thuật viên phòng lab & Thiết bị âm thanh", avatar: "", isFollowing: true },
+    { id: 32, name: "Nguyễn Thị Kim Oanh", username: "", role: "Chuyên viên tuyển dụng nhân sự giảng dạy", avatar: "", isFollowing: true },
+    { id: 33, name: "Vũ Quốc Trung", username: "", role: "Giảng viên tiếng Anh học thuật & Du học", avatar: "", isFollowing: true },
+    { id: 34, name: "Trần Thị Thảo", username: "", role: "Chuyên viên tổ chức sự kiện học sinh", avatar: "", isFollowing: true },
+    { id: 35, name: "Mai Quốc Việt", username: "", role: "Chuyên viên đào tạo kỹ năng thế kỷ 21", avatar: "", isFollowing: true },
+    { id: 36, name: "Lê Thị Ánh Tuyết", username: "", role: "Giáo viên mầm non song ngữ", avatar: "", isFollowing: true }
+  ];
+
+  function openFollowingModal() {
+    renderFollowingModalList(FOLLOWING_COLLEAGUES);
+    const modal = document.getElementById('following-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      const searchInput = document.getElementById('following-search-input');
+      if (searchInput) {
+        searchInput.value = '';
+        setTimeout(() => searchInput.focus(), 50);
+      }
+    }
+  }
+
+  function closeFollowingModal() {
+    const modal = document.getElementById('following-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function filterFollowingList(query) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) {
+      renderFollowingModalList(FOLLOWING_COLLEAGUES);
+      return;
+    }
+    const filtered = FOLLOWING_COLLEAGUES.filter(p => {
+      return p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q);
+    });
+    renderFollowingModalList(filtered);
+  }
+
+  function toggleFollowPerson(id, btn) {
+    const person = FOLLOWING_COLLEAGUES.find(p => p.id === id);
+    if (!person) return;
+
+    person.isFollowing = !person.isFollowing;
+    const count = FOLLOWING_COLLEAGUES.filter(p => p.isFollowing).length;
+
+    if (person.isFollowing) {
+      btn.textContent = 'Đang theo dõi';
+      btn.style.background = '#edf4fb';
+      btn.style.color = '#134c81';
+      btn.style.borderColor = '#bfdbfe';
+    } else {
+      btn.textContent = '+ Theo dõi';
+      btn.style.background = '#134c81';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#134c81';
+    }
+
+    const modalCount = document.getElementById('following-modal-count');
+    if (modalCount) modalCount.textContent = `${count} đồng nghiệp`;
+    const sidebarCount = document.getElementById('sidebar-following-count');
+    if (sidebarCount) sidebarCount.textContent = `${count} người`;
+  }
+
+  function renderFollowingModalList(list) {
+    const container = document.getElementById('following-modal-list');
+    if (!container) return;
+
+    if (!list || list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 14px;">
+          Không tìm thấy đồng nghiệp phù hợp.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map(p => {
+      const avatarHtml = p.avatar ?
+        `<img src="${p.avatar}" alt="${p.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/profile_avatar_144.png';" />` :
+        `<div style="width: 100%; height: 100%; background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center;">${p.name.charAt(0)}</div>`;
+
+      const profileUrl = p.username ? `/profile/${p.username}/` : '#';
+      const nameTag = p.username ?
+        `<a href="${profileUrl}" style="font-weight: 600; font-size: 14px; color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#134c81'" onmouseout="this.style.color='#1e293b'">${p.name}</a>` :
+        `<span style="font-weight: 600; font-size: 14px; color: #1e293b;">${p.name}</span>`;
+
+      const btnStyle = p.isFollowing ?
+        'background: #edf4fb; color: #134c81; border: 1px solid #bfdbfe;' :
+        'background: #134c81; color: #ffffff; border: 1px solid #134c81;';
+      const btnText = p.isFollowing ? 'Đang theo dõi' : '+ Theo dõi';
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; transition: background 0.15s;">
+          <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 1px solid #cbd5e1;">
+              ${avatarHtml}
+            </div>
+            <div style="overflow: hidden; flex: 1;">
+              <div>${nameTag}</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${p.role}">
+                ${p.role}
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="toggleFollowPerson(${p.id}, this)" style="${btnStyle} padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.15s;">
+            ${btnText}
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Keyboard shortcut ESC to close modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeFollowingModal();
+      if (typeof closeLikesModal === 'function') closeLikesModal();
+      if (typeof closeEditPostModal === 'function') closeEditPostModal();
+    }
+  });
+
+</script>
 
 {% endblock %}
