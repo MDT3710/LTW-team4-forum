@@ -151,7 +151,7 @@
         <article class="card post" id="post-{{ post.id }}" style="margin-bottom: 24px;">
           <div class="post-body">
             <div class="author-row">
-              <div class="avatar" style="border-radius: 50%; overflow: hidden; width: 44px; height: 44px;">
+              <a href="/profile/{{ post.author.username }}/" class="avatar" style="border-radius: 50%; overflow: hidden; width: 44px; height: 44px; display: block; flex-shrink: 0; cursor: pointer; text-decoration: none;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
                 {% if post.author.username == 'thuha' %}
                   <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                 {% elif post.author.username == 'phuonglinh' %}
@@ -161,10 +161,10 @@
                 {% else %}
                   <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                 {% endif %}
-              </div>
+              </a>
               <div class="author-info">
                 <span class="author-name">
-                  <span>{{ post.author.get_full_name|default:post.author.username }}</span>
+                  <a href="/profile/{{ post.author.username }}/" class="author-profile-link" style="color: inherit; text-decoration: none; font-weight: inherit; transition: color 0.15s;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='inherit'; this.style.textDecoration='none';" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">{{ post.author.get_full_name|default:post.author.username }}</a>
                   {% if post.title and post.title != post.content %}
                     <span class="author-topic-arrow">▶</span>
                     <span class="author-topic">{{ post.title }}</span>
@@ -294,7 +294,7 @@
                 <!-- Bình luận gốc (Parent) -->
                 <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="display: flex; gap: 8px; flex: 1;">
-                    <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
+                    <a href="/profile/{{ comment.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">
                       {% if comment.emp.username == 'thuha' %}
                         <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                       {% elif comment.emp.username == 'phuonglinh' %}
@@ -304,10 +304,10 @@
                       {% else %}
                         <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                       {% endif %}
-                    </div>
+                    </a>
                     <div class="comment-body" style="flex: 1;">
                       <div class="comment-bubble">
-                        <span class="comment-author">{{ comment.emp.get_full_name|default:comment.emp.username }}</span>
+                        <a href="/profile/{{ comment.emp.username }}/" class="comment-author" style="color: inherit; text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">{{ comment.emp.get_full_name|default:comment.emp.username }}</a>
                         <span class="comment-text">{{ comment.formatted_content|safe }}</span>
                       </div>
                       <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
@@ -344,7 +344,7 @@
                   {% for reply in comment.child_replies %}
                   <div class="comment comment-reply-item" id="comment-item-{{ reply.id }}" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="display: flex; gap: 8px; flex: 1;">
-                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                      <a href="/profile/{{ reply.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">
                         {% if reply.emp.username == 'thuha' %}
                           <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                         {% elif reply.emp.username == 'phuonglinh' %}
@@ -354,10 +354,10 @@
                         {% else %}
                           <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                         {% endif %}
-                      </div>
+                      </a>
                       <div class="comment-body" style="flex: 1;">
                         <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
-                          <span class="comment-author" style="font-size: 13px; font-weight: 600;">{{ reply.emp.get_full_name|default:reply.emp.username }}</span>
+                          <a href="/profile/{{ reply.emp.username }}/" class="comment-author" style="font-size: 13px; font-weight: 600; color: inherit; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">{{ reply.emp.get_full_name|default:reply.emp.username }}</a>
                           <span class="comment-text" style="font-size: 13px;">{{ reply.formatted_content|safe }}</span>
                         </div>
                         <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
@@ -540,12 +540,12 @@
                 const replyHtml = `
                   <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
                     <div style="display: flex; gap: 8px; flex: 1;">
-                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                      <a href="/profile/${data.comment.username || ''}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân">
                         <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      </div>
+                      </a>
                       <div class="comment-body" style="flex: 1;">
                         <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
-                          <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
+                          <a href="/profile/${data.comment.username || ''}/" class="comment-author" style="font-size: 13px; font-weight: 600; color: inherit; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${data.comment.author}</a>
                           <span class="comment-text" style="font-size: 13px;">${data.comment.formatted_content || data.comment.content}</span>
                         </div>
                         <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
@@ -659,12 +659,12 @@
                 const replyHtml = `
                   <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
                     <div style="display: flex; gap: 8px; flex: 1;">
-                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                      <a href="/profile/${data.comment.username || ''}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân">
                         <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      </div>
+                      </a>
                       <div class="comment-body" style="flex: 1;">
                         <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
-                          <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
+                          <a href="/profile/${data.comment.username || ''}/" class="comment-author" style="font-size: 13px; font-weight: 600; color: inherit; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${data.comment.author}</a>
                           <span class="comment-text" style="font-size: 13px;">${data.comment.formatted_content || data.comment.content}</span>
                         </div>
                         <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">

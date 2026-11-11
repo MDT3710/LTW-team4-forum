@@ -1042,7 +1042,7 @@
       <article class="post-card-item" id="post-{{ post.id }}">
         <!-- Post Header -->
         <div class="post-author-row" style="position: relative;">
-          <div class="post-author-avatar">
+          <a href="/profile/{{ post.author.username }}/" class="post-author-avatar" style="display: block; text-decoration: none; cursor: pointer;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
             {% if post.author.username == 'thuha' %}
               <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" />
             {% elif post.author.username == 'phuonglinh' %}
@@ -1050,9 +1050,15 @@
             {% else %}
               <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
             {% endif %}
-          </div>
+          </a>
           <div class="post-author-info">
-            <span class="post-author-name">{{ post.author.get_full_name|default:post.author.username }}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="/profile/{{ post.author.username }}/" class="post-author-name" style="text-decoration: none; color: #19334b; font-weight: 700; transition: color 0.15s;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='#19334b'; this.style.textDecoration='none';" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">{{ post.author.get_full_name|default:post.author.username }}</a>
+              {% if post.title and post.title != post.content %}
+                <span class="author-topic-arrow" style="font-size: 11px; color: #64748b;">▶</span>
+                <span class="author-topic" style="font-weight: 700; color: #19334b; font-size: 14px;">{{ post.title }}</span>
+              {% endif %}
+            </div>
             <div class="post-meta-sub">
               <span>{{ post.created_at|timesince }} trước</span>
               <span>·</span>
@@ -1194,7 +1200,7 @@
           <div class="comment-thread" id="comment-thread-{{ comment.id }}">
             <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
               <div style="display: flex; gap: 8px; flex: 1;">
-                <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
+                <a href="/profile/{{ comment.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">
                   {% if comment.emp.username == 'thuha' %}
                     <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                   {% elif comment.emp.username == 'phuonglinh' %}
@@ -1204,9 +1210,11 @@
                   {% else %}
                     <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                   {% endif %}
-                </div>
+                </a>
                 <div style="flex: 1;">
-                  <div style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ comment.emp.get_full_name|default:comment.emp.username }}</div>
+                  <div>
+                    <a href="/profile/{{ comment.emp.username }}/" style="font-size: 13px; font-weight: 600; color: #1e293b; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">{{ comment.emp.get_full_name|default:comment.emp.username }}</a>
+                  </div>
                   <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ comment.formatted_content|safe }}</div>
                   <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; user-select: none;">
                     <span role="button" 
@@ -1242,7 +1250,7 @@
               {% for reply in comment.child_replies %}
               <div class="comment comment-reply-item" id="comment-item-{{ reply.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 6px 10px;">
                 <div style="display: flex; gap: 8px; flex: 1;">
-                  <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
+                  <a href="/profile/{{ reply.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">
                     {% if reply.emp.username == 'thuha' %}
                       <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                     {% elif reply.emp.username == 'phuonglinh' %}
@@ -1252,9 +1260,11 @@
                     {% else %}
                       <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                     {% endif %}
-                  </div>
+                  </a>
                   <div style="flex: 1;">
-                    <div style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ reply.emp.get_full_name|default:reply.emp.username }}</div>
+                    <div>
+                      <a href="/profile/{{ reply.emp.username }}/" style="font-size: 13px; font-weight: 600; color: #1e293b; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">{{ reply.emp.get_full_name|default:reply.emp.username }}</a>
+                    </div>
                     <div style="font-size: 13px; color: #334155; margin-top: 2px;">{{ reply.formatted_content|safe }}</div>
                     <span class="comment-actions" style="font-size: 12px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; user-select: none;">
                       <span role="button" 

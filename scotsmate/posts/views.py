@@ -389,6 +389,7 @@ def add_comment_api(request, post_id):
             'comment': {
                 'id': comment.id,
                 'author': author_name,
+                'username': user.username,
                 'avatar_url': avatar_url,
                 'emp_id': user.id,
                 'content': comment.content,
