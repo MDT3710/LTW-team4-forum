@@ -4,6 +4,7 @@ from . import api_views
 
 urlpatterns = [
     # Mặc định /courses/ -> Tự động xác minh danh tính & điều hướng phân quyền thực tế
+    path('', views.courses_home, name='courses'),
     path('', views.courses_home, name='courses_home'),
     path('login/', views.login_view, name='courses_login'),
     path('register/', views.register_view, name='courses_register'),

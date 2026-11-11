@@ -45,8 +45,10 @@ class Migration(migrations.Migration):
                 ('is_approved', models.BooleanField(default=False, verbose_name='Đã duyệt')),
                 ('is_respondable', models.BooleanField(default=True, verbose_name='Cho phép trả lời')),
                 ('is_visible', models.BooleanField(default=True, verbose_name='Hiển thị')),
+                ('anonymous', models.BooleanField(default=False, verbose_name='Trả lời ẩn danh')),
                 ('description', models.TextField(blank=True, null=True, verbose_name='Mô tả')),
-                ('response_limit', models.IntegerField(null=True, verbose_name='Giới hạn lượt trả lời')),
+                ('response_limit', models.IntegerField(blank=True, null=True, verbose_name='Giới hạn lượt trả lời')),
+                ('response_deadline', models.DateTimeField(blank=True, db_index=True, null=True, verbose_name='Thời hạn trả lời')),
                 ('approver', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='approved_surveys', to=settings.AUTH_USER_MODEL, verbose_name='Người duyệt')),
                 ('creator', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='created_surveys', to=settings.AUTH_USER_MODEL, verbose_name='Người tạo')),
                 ('department', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='surveys', to='home.department', verbose_name='Phòng ban')),
@@ -84,8 +86,8 @@ class Migration(migrations.Migration):
             name='SurveyResponse',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('submission_date', models.DateTimeField(auto_now_add=True, verbose_name='Thời gian nộp')),
-                ('respondant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='survey_responses', to=settings.AUTH_USER_MODEL, verbose_name='Người thực hiện khảo sát')),
+                ('submission_date', models.DateTimeField(null=True, verbose_name='Thời gian nộp')),
+                ('respondent', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='survey_responses', to=settings.AUTH_USER_MODEL, verbose_name='Người thực hiện khảo sát')),
                 ('survey', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='responses', to='surveys.survey', verbose_name='Khảo sát')),
             ],
             options={

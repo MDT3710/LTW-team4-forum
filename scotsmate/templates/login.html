@@ -19,10 +19,18 @@
     </div>
 
     <!-- Alert error nếu đăng nhập không thành công -->
-    {% if error_msg %}
+    {% if error_msg or form.errors %}
       <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2.5 animate-fadeIn">
         <svg class="text-rose-500 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span class="font-medium">{{ error_msg }}</span>
+        <span class="font-medium">
+          {% if error_msg %}
+            {{ error_msg }}
+          {% elif form.non_field_errors %}
+            {{ form.non_field_errors.0 }}
+          {% else %}
+            Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng thử lại.
+          {% endif %}
+        </span>
       </div>
     {% endif %}
 
