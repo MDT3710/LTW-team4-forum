@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <div class="messages-workspace flex flex-col gap-6 px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto bg-[#f8fafc]">
+
+    <!-- Thanh chuyển chế độ: Tạo nhóm / Nhắn tin cá nhân (1-1) -->
+    <div class="flex items-center justify-between">
+      <div class="inline-flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs">
+        <a href="{% url 'group_create' %}" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-[#134c81] hover:bg-slate-50 transition no-underline">
+          Tạo nhóm trò chuyện
+        </a>
+        <a href="{% url 'inbox_create' %}" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#134c81] text-white shadow-xs no-underline">
+          Nhắn tin cá nhân (1-1)
+        </a>
+      </div>
+      <a href="{% url 'messages_list' %}" class="text-xs font-semibold text-slate-500 hover:text-[#134c81] transition no-underline">
+        ← Quay lại hộp thư
+      </a>
+    </div>
+
+    <!-- CARD: Chọn người để nhắn tin 1-1 -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+      <div>
+        <h2 class="text-base font-bold text-slate-900 m-0">Bắt đầu cuộc trò chuyện cá nhân</h2>
+        <p class="text-xs text-slate-500 m-0 mt-1">Chọn một đồng nghiệp bên dưới để mở khung chat trực tiếp 1-1.</p>
+      </div>
+
+      <!-- Thanh tìm kiếm & bộ lọc (GET) -->
+      <form method="GET" action="{% url 'inbox_create' %}" class="flex items-center gap-3">
+        <div class="relative flex-1">
+          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" name="q" value="{{ query }}" placeholder="Tìm nhân viên theo tên hoặc email..." class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]" />
+        </div>
+
+        <div class="relative">
+          <select name="branch" class="appearance-none pl-4 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-[#134c81] cursor-pointer">
+            <option value="ALL" {% if not selected_branch or selected_branch == 'ALL' %}selected{% endif %}>Tất cả chi nhánh</option>
+            <option value="Chi nhánh Cầu Giấy" {% if selected_branch == 'Chi nhánh Cầu Giấy' %}selected{% endif %}>Chi nhánh Cầu Giấy</option>
+            <option value="Chi nhánh Hà Đông" {% if selected_branch == 'Chi nhánh Hà Đông' %}selected{% endif %}>Chi nhánh Hà Đông</option>
+            <option value="Chi nhánh Đống Đa" {% if selected_branch == 'Chi nhánh Đống Đa' %}selected{% endif %}>Chi nhánh Đống Đa</option>
+          </select>
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <button type="submit" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+          Tìm kiếm
+        </button>
+      </form>
+
+      <!-- Danh sách đồng nghiệp (POST tạo/mở chat 1-1) -->
+      <form method="POST" action="{% url 'inbox_create' %}" class="flex flex-col divide-y divide-slate-100">
+        {% csrf_token %}
+        {% for u in users %}
+          <div class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl transition">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full {{ u.display_info.avatar_color }} font-bold text-xs flex items-center justify-center shrink-0">
+                {{ u.display_info.initials }}
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-900 m-0">{{ u.display_info.display_name }}</p>
+                <p class="text-[11px] text-slate-400 m-0 mt-0.5">{{ u.display_info.position }}</p>
+              </div>
+            </div>
+            <button type="submit" name="user_id" value="{{ u.id }}" class="px-4 py-2 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+              Nhắn tin
+            </button>
+          </div>
+        {% empty %}
+          <div class="py-8 text-center text-xs text-slate-400">
+            Không tìm thấy đồng nghiệp phù hợp trong hệ thống.
+          </div>
+        {% endfor %}
+      </form>
+
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+        <a href="{% url 'messages_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition no-underline">
+          Hủy
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+{% endblock %}

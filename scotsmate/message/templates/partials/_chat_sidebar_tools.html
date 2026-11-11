@@ -1,0 +1,112 @@
+      <!-- 2 nút tròn: Tắt thông báo & Tìm kiếm -->
+      <div class="flex items-center justify-center gap-8 py-1">
+        <form method="POST" action="{% url 'toggle_mute' convo_id %}" class="sidebar-mute-form">
+          {% csrf_token %}
+          <button type="submit" id="toggle-mute-btn" class="sidebar-action-btn {% if is_muted %}is-active{% endif %} flex flex-col items-center gap-1.5 text-slate-600 hover:text-[#134c81] transition group" aria-pressed="{% if is_muted %}true{% else %}false{% endif %}">
+            <div class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-[#134c81] group-hover:bg-slate-50 transition">
+              {% if is_muted %}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  <path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path>
+                  <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path>
+                  <path d="M18 8a6 6 0 0 0-9.33-5"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              {% else %}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              {% endif %}
+            </div>
+            <span class="text-[11px] text-slate-500">{% if is_muted %}Bật thông báo{% else %}Tắt thông báo{% endif %}</span>
+          </button>
+        </form>
+
+        <button type="button" id="toggle-chat-search" class="sidebar-action-btn flex flex-col items-center gap-1.5 text-slate-600 hover:text-[#134c81] transition group" aria-expanded="false">
+          <div class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-[#134c81] group-hover:bg-slate-50 transition">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+          <span class="text-[11px] text-slate-500">Tìm kiếm</span>
+        </button>
+      </div>
+
+      <!-- Ô tìm kiếm tin nhắn trong đoạn chat -->
+      <div id="in-chat-search-panel" class="sidebar-search-panel is-hidden">
+        <div class="sidebar-search-input-row">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400 shrink-0">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="in-chat-search-input" placeholder="Tìm trong cuộc trò chuyện...">
+          <button type="button" id="in-chat-search-clear" title="Xóa tìm kiếm">&times;</button>
+        </div>
+        <span id="in-chat-search-status"></span>
+      </div>
+
+      <!-- File phương tiện và file -->
+      <div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
+        <h4 class="text-xs font-bold text-slate-900 m-0 pt-2">File phương tiện và file</h4>
+        <div class="flex flex-col text-xs">
+          <button type="button" class="sidebar-accordion-trigger flex items-center justify-between py-2 text-slate-600 hover:text-[#134c81] transition" data-drawer-target="media-panel" aria-expanded="false">
+            <div class="flex items-center gap-2.5">
+              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>File phương tiện ({{ media_files|length }})</span>
+            </div>
+            <svg class="accordion-chevron text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+
+          <div id="media-panel" class="sidebar-drawer is-hidden">
+            {% if media_files %}
+              <div class="sidebar-media-grid">
+                {% for att in media_files %}
+                  <a href="{{ att.file.url }}" target="_blank" class="sidebar-media-thumb" title="{{ att.file_name }}">
+                    {% if '.mp4' in att.file_name|lower %}
+                      <span class="sidebar-media-video">{{ att.file_name }}</span>
+                    {% else %}
+                      <img src="{{ att.file.url }}" alt="{{ att.file_name }}">
+                    {% endif %}
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="sidebar-drawer-empty">Chưa có ảnh hoặc video nào.</p>
+            {% endif %}
+          </div>
+
+          <button type="button" class="sidebar-accordion-trigger flex items-center justify-between py-2 text-slate-600 hover:text-[#134c81] transition" data-drawer-target="file-panel" aria-expanded="false">
+            <div class="flex items-center gap-2.5">
+              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>File ({{ document_files|length }})</span>
+            </div>
+            <svg class="accordion-chevron text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+
+          <div id="file-panel" class="sidebar-drawer is-hidden">
+            {% if document_files %}
+              <div class="sidebar-doc-list">
+                {% for att in document_files %}
+                  <a href="{{ att.file.url }}" target="_blank" class="sidebar-doc-item" title="{{ att.file_name }}">
+                    <span class="sidebar-doc-name">{{ att.file_name }}</span>
+                    {% if att.file_size_display %}
+                      <span class="sidebar-doc-size">{{ att.file_size_display }}</span>
+                    {% endif %}
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="sidebar-drawer-empty">Chưa có tệp tài liệu nào.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>

@@ -1,0 +1,95 @@
+        <!-- Dòng tin nhắn động từ SQLite -->
+        <div id="chat-box" class="flex flex-col gap-4 overflow-y-auto max-h-[460px] pr-2">
+          {% for msg in messages %}
+            {% if msg.sender == request.user or current_user and msg.sender == current_user %}
+              <div class="message sent flex flex-col gap-1 items-end self-end max-w-xl" data-search-text="bạn {{ msg.content|default:''|lower }} {{ msg.primary_attachment.file_name|default:''|lower }}">
+                <span class="text-[11px] font-semibold text-slate-500">Bạn • {{ msg.created_at|date:"H:i" }}</span>
+                <div class="p-3.5 rounded-2xl rounded-tr-sm bg-[#134c81] text-white text-sm leading-relaxed">
+                  {% if msg.content %}
+                    <p class="m-0 whitespace-pre-line">{{ msg.content }}</p>
+                  {% endif %}
+                  {% if msg.attachment %}
+                    {% if msg.primary_attachment and msg.primary_attachment.attachment_type == 'MEDIA' %}
+                      <div class="msg-inline-image-wrap">
+                        <img src="{{ msg.attachment.url }}" alt="{{ msg.primary_attachment.file_name }}" class="msg-inline-image" onclick="if (typeof openImageLightbox === 'function') openImageLightbox(this.src);" />
+                        <a href="{{ msg.attachment.url }}" target="_blank" class="inline-flex items-center gap-1 text-white font-semibold underline shrink-0">Xem ảnh gốc</a>
+                      </div>
+                    {% else %}
+                      <div class="flex items-center gap-2.5 p-2 bg-white/15 rounded-xl border border-white/20 text-xs text-white {% if msg.content %}mt-2.5{% endif %}">
+                        <div class="flex items-center justify-center shrink-0">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                        </div>
+                        <div class="flex items-center gap-1.5 font-medium">
+                          <span>{{ msg.primary_attachment.file_name|default:msg.attachment.name }}</span>
+                          {% if msg.primary_attachment.file_size_display %}
+                            <span class="text-white/60">•</span>
+                            <span class="text-white/80 text-[11px]">{{ msg.primary_attachment.file_size_display }}</span>
+                          {% endif %}
+                        </div>
+                        <a href="{{ msg.attachment.url }}" target="_blank" class="inline-flex items-center gap-1 text-white font-semibold underline ml-2 shrink-0">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                          Tải file
+                        </a>
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                </div>
+                {% if msg.is_read %}
+                  <span class="text-[10px] text-slate-400">Đã xem</span>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="message received flex flex-col gap-1 items-start max-w-xl" data-search-text="{{ msg.sender_display_name|lower }} {{ msg.content|default:''|lower }} {{ msg.primary_attachment.file_name|default:''|lower }}">
+                <span class="text-[11px] font-semibold text-slate-500">{{ msg.sender_display_name }} • {{ msg.created_at|date:"H:i" }}</span>
+                <div class="p-3.5 rounded-2xl rounded-tl-sm bg-[#edf4fb] text-slate-800 text-sm leading-relaxed flex flex-col gap-2.5">
+                  {% if msg.content %}
+                    <p class="m-0 whitespace-pre-line">{{ msg.content }}</p>
+                  {% endif %}
+                  {% if msg.attachment %}
+                    {% if msg.primary_attachment and msg.primary_attachment.attachment_type == 'MEDIA' %}
+                      <div class="msg-inline-image-wrap">
+                        <img src="{{ msg.attachment.url }}" alt="{{ msg.primary_attachment.file_name }}" class="msg-inline-image" onclick="if (typeof openImageLightbox === 'function') openImageLightbox(this.src);" />
+                        <a href="{{ msg.attachment.url }}" target="_blank" class="inline-flex items-center gap-1 text-[#134c81] font-semibold underline shrink-0">Xem ảnh gốc</a>
+                      </div>
+                    {% else %}
+                      <div class="flex items-center gap-2.5 p-2 bg-white/70 rounded-xl border border-slate-200/60 text-xs text-slate-700">
+                        <div class="text-slate-500 flex items-center justify-center shrink-0">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                        </div>
+                        <div class="flex items-center gap-1.5 font-medium">
+                          <span>{{ msg.primary_attachment.file_name|default:msg.attachment.name }}</span>
+                          {% if msg.primary_attachment.file_size_display %}
+                            <span class="text-slate-400">•</span>
+                            <span class="text-slate-400 text-[11px]">{{ msg.primary_attachment.file_size_display }}</span>
+                          {% endif %}
+                        </div>
+                        <a href="{{ msg.attachment.url }}" target="_blank" class="inline-flex items-center gap-1 text-[#134c81] font-semibold underline ml-2 shrink-0">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                          Tải file
+                        </a>
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          {% empty %}
+            <div class="chat-empty-state text-center py-12 text-xs text-slate-400">
+              Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
+            </div>
+          {% endfor %}
+        </div>

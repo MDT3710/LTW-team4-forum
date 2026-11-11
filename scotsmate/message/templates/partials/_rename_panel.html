@@ -1,0 +1,14 @@
+      <div id="rename-convo-panel" class="sidebar-rename-panel is-hidden">
+        <form method="POST" action="{% url 'rename_conversation' convo_id %}" class="sidebar-rename-form">
+          {% csrf_token %}
+          <input type="text" id="rename-convo-input" name="nickname" value="{{ current_name|default:'' }}" placeholder="{{ placeholder }}" maxlength="255" autocomplete="off">
+          <div class="sidebar-rename-actions">
+            {% if is_direct and current_name %}
+              <button type="submit" name="reset" value="1" class="sidebar-rename-reset">Mặc định</button>
+            {% else %}
+              <button type="button" id="cancel-rename-btn" class="sidebar-rename-reset">Hủy</button>
+            {% endif %}
+            <button type="submit" class="sidebar-rename-save">Lưu</button>
+          </div>
+        </form>
+      </div>

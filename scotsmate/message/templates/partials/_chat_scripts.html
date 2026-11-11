@@ -1,0 +1,166 @@
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const chatBox = document.getElementById("chat-box");
+      if (chatBox) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      const attachmentInput = document.getElementById("attachment-input");
+      const attachmentName = document.getElementById("attachment-name");
+      if (attachmentInput && attachmentName) {
+        attachmentInput.addEventListener("change", function () {
+          attachmentName.textContent = this.files && this.files.length > 0 ? this.files[0].name : "";
+        });
+      }
+
+      const composerForm = document.getElementById("chat-composer-form");
+      const messageInput = document.getElementById("chat-message-input");
+      if (composerForm && messageInput) {
+        messageInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            const hasText = messageInput.value.trim().length > 0;
+            const hasFile = attachmentInput && attachmentInput.files && attachmentInput.files.length > 0;
+            if (hasText || hasFile) {
+              composerForm.requestSubmit();
+            }
+          }
+        });
+      }
+
+      const emojiToggle = document.getElementById("emoji-toggle-btn");
+      const emojiPopover = document.getElementById("emoji-popover");
+      if (emojiToggle && emojiPopover && messageInput) {
+        emojiToggle.addEventListener("click", function (e) {
+          e.stopPropagation();
+          emojiPopover.classList.toggle("is-hidden");
+        });
+        emojiPopover.querySelectorAll(".emoji-choice-btn").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            messageInput.value += btn.getAttribute("data-emoji") || "";
+            emojiPopover.classList.add("is-hidden");
+            messageInput.focus();
+          });
+        });
+        document.addEventListener("click", function (e) {
+          if (!emojiPopover.contains(e.target) && e.target !== emojiToggle) {
+            emojiPopover.classList.add("is-hidden");
+          }
+        });
+      }
+
+      const sidebarSearch = document.getElementById("sidebar-convo-search");
+      if (sidebarSearch) {
+        sidebarSearch.addEventListener("input", function () {
+          const q = this.value.trim().toLowerCase();
+          document.querySelectorAll("#sidebar-convo-list .convo-item").forEach(function (item) {
+            const haystack = (item.getAttribute("data-convo-name") || item.textContent || "").toLowerCase();
+            item.style.display = !q || haystack.indexOf(q) !== -1 ? "" : "none";
+          });
+        });
+      }
+
+      const searchToggleBtn = document.getElementById("toggle-chat-search");
+      const searchPanel = document.getElementById("in-chat-search-panel");
+      const searchInput = document.getElementById("in-chat-search-input");
+      const searchClearBtn = document.getElementById("in-chat-search-clear");
+      const searchStatus = document.getElementById("in-chat-search-status");
+
+      function applyChatSearch(term) {
+        if (!chatBox) return;
+        const q = term.trim().toLowerCase();
+        const messages = chatBox.querySelectorAll(".message");
+        let matchedCount = 0;
+
+        messages.forEach(function (msgEl) {
+          if (!q) {
+            msgEl.classList.remove("is-search-hidden", "is-search-match");
+            return;
+          }
+          const haystack = (msgEl.getAttribute("data-search-text") || msgEl.textContent || "").toLowerCase();
+          if (haystack.indexOf(q) !== -1) {
+            msgEl.classList.remove("is-search-hidden");
+            msgEl.classList.add("is-search-match");
+            matchedCount += 1;
+          } else {
+            msgEl.classList.add("is-search-hidden");
+            msgEl.classList.remove("is-search-match");
+          }
+        });
+
+        if (searchStatus) {
+          if (!q) {
+            searchStatus.textContent = "";
+          } else if (matchedCount > 0) {
+            searchStatus.textContent = "Tìm thấy " + matchedCount + " tin nhắn phù hợp";
+          } else {
+            searchStatus.textContent = "Không tìm thấy tin nhắn nào";
+          }
+        }
+      }
+
+      if (searchToggleBtn && searchPanel && searchInput) {
+        searchToggleBtn.addEventListener("click", function () {
+          const willOpen = searchPanel.classList.contains("is-hidden");
+          searchPanel.classList.toggle("is-hidden");
+          searchToggleBtn.classList.toggle("is-active", willOpen);
+          searchToggleBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+          if (willOpen) {
+            searchInput.focus();
+          } else {
+            searchInput.value = "";
+            applyChatSearch("");
+          }
+        });
+
+        searchInput.addEventListener("input", function () {
+          applyChatSearch(this.value);
+        });
+
+        if (searchClearBtn) {
+          searchClearBtn.addEventListener("click", function () {
+            searchInput.value = "";
+            applyChatSearch("");
+            searchPanel.classList.add("is-hidden");
+            searchToggleBtn.classList.remove("is-active");
+            searchToggleBtn.setAttribute("aria-expanded", "false");
+          });
+        }
+      }
+
+      document.querySelectorAll(".sidebar-accordion-trigger").forEach(function (trigger) {
+        trigger.addEventListener("click", function () {
+          const targetId = trigger.getAttribute("data-drawer-target");
+          const drawer = targetId ? document.getElementById(targetId) : null;
+          if (!drawer) return;
+          const willExpand = drawer.classList.contains("is-hidden");
+          drawer.classList.toggle("is-hidden");
+          trigger.setAttribute("aria-expanded", willExpand ? "true" : "false");
+        });
+      });
+
+      const renameToggleBtn = document.getElementById("toggle-rename-btn");
+      const renamePanel = document.getElementById("rename-convo-panel");
+      const renameInput = document.getElementById("rename-convo-input");
+      const cancelRenameBtn = document.getElementById("cancel-rename-btn");
+      if (renameToggleBtn && renamePanel && renameInput) {
+        renameToggleBtn.addEventListener("click", function () {
+          const willOpen = renamePanel.classList.contains("is-hidden");
+          renamePanel.classList.toggle("is-hidden");
+          renameToggleBtn.classList.toggle("is-active", willOpen);
+          renameToggleBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+          if (willOpen) {
+            renameInput.focus();
+            renameInput.select();
+          }
+        });
+        if (cancelRenameBtn) {
+          cancelRenameBtn.addEventListener("click", function () {
+            renamePanel.classList.add("is-hidden");
+            renameToggleBtn.classList.remove("is-active");
+            renameToggleBtn.setAttribute("aria-expanded", "false");
+          });
+        }
+      }
+    });
+  </script>

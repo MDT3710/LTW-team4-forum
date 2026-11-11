@@ -1,0 +1,36 @@
+      <!-- Composer soạn thảo -->
+      <footer class="mt-4 pt-3 border-t border-slate-200 flex flex-col gap-2">
+        <form id="chat-composer-form" method="POST" enctype="multipart/form-data" class="flex flex-col gap-2">
+          {% csrf_token %}
+          <textarea id="chat-message-input" name="content" rows="2" placeholder="Nhập tin nhắn..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] resize-none"></textarea>
+          <input type="file" name="attachment" id="attachment-input" class="hidden">
+
+          <div class="composer-actions flex items-center justify-between">
+            <div class="composer-tools flex items-center gap-3 text-slate-400">
+              <label for="attachment-input" class="hover:text-[#134c81] transition cursor-pointer m-0" title="Đính kèm tệp">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </label>
+              <label for="attachment-input" class="hover:text-[#134c81] transition cursor-pointer m-0" title="Gửi hình ảnh">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </label>
+              <button type="button" id="emoji-toggle-btn" class="hover:text-[#134c81] transition" title="Emoji">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+              </button>
+              <span id="attachment-name" class="text-[11px] text-[#134c81] font-medium truncate max-w-[200px]"></span>
+
+              <div id="emoji-popover" class="emoji-popover is-hidden" role="menu" aria-label="Chọn biểu tượng cảm xúc">
+                <button type="button" class="emoji-choice-btn" data-emoji="😊">😊</button>
+                <button type="button" class="emoji-choice-btn" data-emoji="👍">👍</button>
+                <button type="button" class="emoji-choice-btn" data-emoji="❤️">❤️</button>
+                <button type="button" class="emoji-choice-btn" data-emoji="🎉">🎉</button>
+                <button type="button" class="emoji-choice-btn" data-emoji="🙏">🙏</button>
+                <button type="button" class="emoji-choice-btn" data-emoji="📄">📄</button>
+              </div>
+            </div>
+
+            <button type="submit" class="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+              Gửi tin nhắn
+            </button>
+          </div>
+        </form>
+      </footer>
