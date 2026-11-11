@@ -597,6 +597,17 @@ def get_profile_details(user):
             data['cover'] = custom_data['cover']
         if custom_data.get('bio'):
             data['bio'] = custom_data['bio']
+        if custom_data.get('job_title'):
+            data['job_title'] = custom_data['job_title']
+            data['role'] = custom_data['job_title']
+        if custom_data.get('branch'):
+            data['branch'] = custom_data['branch']
+        if custom_data.get('join_date'):
+            data['join_date'] = custom_data['join_date']
+        if custom_data.get('email'):
+            data['email'] = custom_data['email']
+        if custom_data.get('phone'):
+            data['phone'] = custom_data['phone']
 
     if 'cover' not in data:
         data['cover'] = '/static/img/profile_cover.png'

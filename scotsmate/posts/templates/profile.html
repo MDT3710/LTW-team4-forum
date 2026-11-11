@@ -824,13 +824,13 @@
       <!-- Identity meta -->
       <div class="profile-meta-block">
         <h1 class="profile-meta-name">{{ profile_user.get_full_name|default:profile_user.username }}</h1>
-        <span class="profile-meta-role">
+        <span class="profile-meta-role" id="profile-header-role">
           {{ profile_details.role|default:"Giáo viên · Scots English" }}
         </span>
         <div class="profile-meta-counts">
           <span style="font-weight: 600; color: #134c81;">{{ posts_count }} bài viết</span>
           <span>·</span>
-          <span>Email: {{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span>
+          <span id="profile-header-email">Email: {{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span>
         </div>
       </div>
 
@@ -870,80 +870,111 @@
           {% endif %}
         </div>
 
-        <!-- Bio Display Mode -->
-        <div id="bio-display-mode">
+        <!-- Mode xem thông tin (Display Mode) -->
+        <div id="profile-info-display-mode">
           <p class="bio-text" id="bio-display-text" style="white-space: pre-wrap; margin-bottom: 0;">{{ profile_details.bio|default:"Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh." }}</p>
+
+          <hr class="divider-line" />
+          <div class="info-detail-list">
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Chức vụ</span>
+                <span class="info-detail-val" id="profile-display-job_title">{{ profile_details.job_title|default:"Giáo viên tiếng Anh" }}</span>
+              </div>
+            </div>
+
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Chi nhánh</span>
+                <span class="info-detail-val" id="profile-display-branch">{{ profile_details.branch|default:"Cầu Giấy, Hà Nội" }}</span>
+              </div>
+            </div>
+
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Ngày tham gia</span>
+                <span class="info-detail-val" id="profile-display-join_date">{{ profile_details.join_date|default:"15/08/2022" }}</span>
+              </div>
+            </div>
+
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Email</span>
+                <a class="info-detail-val info-detail-link" id="profile-display-email" href="mailto:{{ profile_details.email|default:'minhanh.nguyen@scotsmate.vn' }}">{{ profile_details.email|default:"minhanh.nguyen@scotsmate.vn" }}</a>
+              </div>
+            </div>
+
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Phone</span>
+                <span class="info-detail-val" id="profile-display-phone">{{ profile_details.phone|default:"090 123 4567" }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Bio Edit Mode (Hidden initially) -->
+        <!-- Mode chỉnh sửa tất cả thông tin (Edit Mode) -->
         {% if current_user.id == profile_user.id %}
-        <div id="bio-edit-mode" style="display: none; margin-bottom: 16px;">
-          <textarea id="bio-textarea-input" rows="3" placeholder="Nhập lời giới thiệu về bạn..." style="width: 100%; border: 1px solid #134c81; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none; box-shadow: 0 0 0 3px rgba(19, 76, 129, 0.1);"></textarea>
-          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
-            <button type="button" onclick="cancelEditingBio()" style="padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer;">Hủy</button>
-            <button type="button" id="btn-save-bio" onclick="saveEditingBio()" style="padding: 6px 16px; border: none; border-radius: 6px; background: #134c81; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer;">Lưu</button>
+        <div id="profile-info-edit-mode" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Lời giới thiệu</label>
+              <textarea id="info-edit-bio" rows="3" placeholder="Nhập lời giới thiệu..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: inherit; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Chức vụ</label>
+              <input type="text" id="info-edit-job_title" placeholder="VD: Quản trị viên hệ thống" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Chi nhánh</label>
+              <input type="text" id="info-edit-branch" placeholder="VD: Hội sở Scots English" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Ngày tham gia</label>
+              <input type="text" id="info-edit-join_date" placeholder="VD: 15/08/2022" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Email</label>
+              <input type="email" id="info-edit-email" placeholder="VD: admin@scotsmate.vn" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Số điện thoại</label>
+              <input type="tel" id="info-edit-phone" placeholder="VD: 090 123 4567" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+            <button type="button" onclick="cancelEditingBio()" style="padding: 7px 16px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Hủy</button>
+            <button type="button" id="btn-save-bio" onclick="saveEditingBio()" style="padding: 7px 18px; border: none; border-radius: 6px; background: #134c81; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#0f3d68'" onmouseout="this.style.background='#134c81'">Lưu thay đổi</button>
           </div>
         </div>
         {% endif %}
-
-        <hr class="divider-line" />
-        <div class="info-detail-list">
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Chức vụ</span>
-              <span class="info-detail-val">{{ profile_details.job_title|default:"Giáo viên tiếng Anh" }}</span>
-            </div>
-          </div>
-
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Chi nhánh</span>
-              <span class="info-detail-val">{{ profile_details.branch|default:"Cầu Giấy, Hà Nội" }}</span>
-            </div>
-          </div>
-
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Ngày tham gia</span>
-              <span class="info-detail-val">{{ profile_details.join_date|default:"15/08/2022" }}</span>
-            </div>
-          </div>
-
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Email</span>
-              <a class="info-detail-val info-detail-link" href="mailto:{{ profile_details.email|default:'minhanh.nguyen@scotsmate.vn' }}">{{ profile_details.email|default:"minhanh.nguyen@scotsmate.vn" }}</a>
-            </div>
-          </div>
-
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Phone</span>
-              <span class="info-detail-val">{{ profile_details.phone|default:"090 123 4567" }}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Community Sidebar Footer -->
@@ -2385,6 +2416,10 @@
         if (avatarImg) {
           avatarImg.src = newUrl;
         }
+        const topbarAvatar = document.getElementById('topbar-user-avatar');
+        if (topbarAvatar) {
+          topbarAvatar.src = newUrl;
+        }
         document.querySelectorAll('.current-user-avatar-sync').forEach(img => {
           img.src = newUrl;
         });
@@ -2398,27 +2433,42 @@
     });
   }
 
-  // Profile Bio Editing
+  // Profile Info Editing (Bio + all fields below)
   function startEditingBio() {
-    const displayMode = document.getElementById('bio-display-mode');
-    const editMode = document.getElementById('bio-edit-mode');
-    const textarea = document.getElementById('bio-textarea-input');
-    const displayText = document.getElementById('bio-display-text');
-    const currentText = displayText ? displayText.innerText.trim() : '';
+    const displayMode = document.getElementById('profile-info-display-mode');
+    const editMode = document.getElementById('profile-info-edit-mode');
+    const editBtn = document.getElementById('btn-edit-bio');
 
-    if (textarea) textarea.value = currentText;
+    const getVal = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.innerText.trim() : '';
+    };
+
+    const bioInput = document.getElementById('info-edit-bio');
+    const jobInput = document.getElementById('info-edit-job_title');
+    const branchInput = document.getElementById('info-edit-branch');
+    const joinDateInput = document.getElementById('info-edit-join_date');
+    const emailInput = document.getElementById('info-edit-email');
+    const phoneInput = document.getElementById('info-edit-phone');
+
+    if (bioInput) bioInput.value = getVal('bio-display-text');
+    if (jobInput) jobInput.value = getVal('profile-display-job_title');
+    if (branchInput) branchInput.value = getVal('profile-display-branch');
+    if (joinDateInput) joinDateInput.value = getVal('profile-display-join_date');
+    if (emailInput) emailInput.value = getVal('profile-display-email');
+    if (phoneInput) phoneInput.value = getVal('profile-display-phone');
+
     if (displayMode) displayMode.style.display = 'none';
     if (editMode) {
       editMode.style.display = 'block';
-      if (textarea) textarea.focus();
+      if (bioInput) bioInput.focus();
     }
-    const editBtn = document.getElementById('btn-edit-bio');
     if (editBtn) editBtn.style.display = 'none';
   }
 
   function cancelEditingBio() {
-    const displayMode = document.getElementById('bio-display-mode');
-    const editMode = document.getElementById('bio-edit-mode');
+    const displayMode = document.getElementById('profile-info-display-mode');
+    const editMode = document.getElementById('profile-info-edit-mode');
     if (displayMode) displayMode.style.display = 'block';
     if (editMode) editMode.style.display = 'none';
     const editBtn = document.getElementById('btn-edit-bio');
@@ -2426,9 +2476,13 @@
   }
 
   function saveEditingBio() {
-    const textarea = document.getElementById('bio-textarea-input');
     const saveBtn = document.getElementById('btn-save-bio');
-    const newBio = textarea ? textarea.value.trim() : '';
+    const bio = document.getElementById('info-edit-bio').value.trim();
+    const job_title = document.getElementById('info-edit-job_title').value.trim();
+    const branch = document.getElementById('info-edit-branch').value.trim();
+    const join_date = document.getElementById('info-edit-join_date').value.trim();
+    const email = document.getElementById('info-edit-email').value.trim();
+    const phone = document.getElementById('info-edit-phone').value.trim();
 
     if (saveBtn) {
       saveBtn.disabled = true;
@@ -2436,7 +2490,12 @@
     }
 
     const formData = new FormData();
-    formData.append('bio', newBio);
+    formData.append('bio', bio);
+    formData.append('job_title', job_title);
+    formData.append('branch', branch);
+    formData.append('join_date', join_date);
+    formData.append('email', email);
+    formData.append('phone', phone);
 
     fetch('/profile/update/bio/', {
       method: 'POST',
@@ -2449,25 +2508,48 @@
     .then(data => {
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Lưu';
+        saveBtn.textContent = 'Lưu thay đổi';
       }
       if (data.success) {
-        const displayText = document.getElementById('bio-display-text');
-        if (displayText) {
-          displayText.textContent = data.bio || 'Chưa có phần giới thiệu.';
+        const bioEl = document.getElementById('bio-display-text');
+        if (bioEl) bioEl.textContent = data.bio || 'Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.';
+
+        const jobTitleEl = document.getElementById('profile-display-job_title');
+        if (jobTitleEl) jobTitleEl.textContent = data.job_title;
+
+        const headerRoleEl = document.getElementById('profile-header-role');
+        if (headerRoleEl) headerRoleEl.textContent = data.job_title ? (data.job_title + ' · Scots English') : '';
+
+        const branchEl = document.getElementById('profile-display-branch');
+        if (branchEl) branchEl.textContent = data.branch;
+
+        const joinDateEl = document.getElementById('profile-display-join_date');
+        if (joinDateEl) joinDateEl.textContent = data.join_date;
+
+        const emailEl = document.getElementById('profile-display-email');
+        if (emailEl) {
+          emailEl.textContent = data.email;
+          emailEl.href = 'mailto:' + data.email;
         }
+
+        const headerEmailEl = document.getElementById('profile-header-email');
+        if (headerEmailEl) headerEmailEl.textContent = 'Email: ' + data.email;
+
+        const phoneEl = document.getElementById('profile-display-phone');
+        if (phoneEl) phoneEl.textContent = data.phone;
+
         cancelEditingBio();
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi lưu phần giới thiệu.');
+        alert(data.error || 'Có lỗi xảy ra khi lưu thông tin.');
       }
     })
     .catch(err => {
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Lưu';
+        saveBtn.textContent = 'Lưu thay đổi';
       }
       console.error(err);
-      alert('Không thể lưu phần giới thiệu. Vui lòng thử lại.');
+      alert('Không thể lưu thông tin. Vui lòng thử lại.');
     });
   }
 

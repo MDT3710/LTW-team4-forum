@@ -156,15 +156,13 @@
       <!-- Profile Menu with Dropdown -->
       <div class="profile-menu" onclick="toggleUserDropdown(event)" style="cursor: pointer; position: relative;" title="Tài khoản cá nhân">
         <div class="avatar avatar-profile" style="border-radius: 50%; overflow: hidden; width: 36px; height: 36px;">
-          {% if request.user.username == 'thuha' %}
-            <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-          {% elif request.user.username == 'phuonglinh' %}
-            <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-          {% elif request.user.username == 'ngocanh' %}
-            <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-          {% else %}
-            <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-          {% endif %}
+          <img
+            id="topbar-user-avatar"
+            class="current-user-avatar-sync"
+            src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}"
+            alt="{{ request.user.get_full_name|default:request.user.username }}"
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;"
+            onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
         </div>
         <div class="profile-details">
           <span class="profile-name">{{ request.user.first_name|default:request.user.username|default:'Người dùng' }}</span>

@@ -749,7 +749,7 @@ def update_profile_cover_api(request):
 
 def update_profile_bio_api(request):
     """
-    API AJAX cập nhật phần giới thiệu (bio) của người dùng.
+    API AJAX cập nhật phần giới thiệu (bio) và các thông tin hồ sơ (chức vụ, chi nhánh, ngày tham gia, email, sđt).
     Ghi nhận vào user_profiles.json.
     """
     if not request.user.is_authenticated:
@@ -757,17 +757,41 @@ def update_profile_bio_api(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Phương thức không hợp lệ.'}, status=405)
 
-    bio = request.POST.get('bio', '').strip()
     from .colleagues import load_user_custom_profiles, save_user_custom_profiles
     custom_profiles = load_user_custom_profiles()
     uname = request.user.username
     if uname not in custom_profiles:
         custom_profiles[uname] = {}
-    custom_profiles[uname]['bio'] = bio
+
+    bio = request.POST.get('bio')
+    job_title = request.POST.get('job_title')
+    branch = request.POST.get('branch')
+    join_date = request.POST.get('join_date')
+    email = request.POST.get('email')
+    phone = request.POST.get('phone')
+
+    if bio is not None:
+        custom_profiles[uname]['bio'] = bio.strip()
+    if job_title is not None:
+        custom_profiles[uname]['job_title'] = job_title.strip()
+    if branch is not None:
+        custom_profiles[uname]['branch'] = branch.strip()
+    if join_date is not None:
+        custom_profiles[uname]['join_date'] = join_date.strip()
+    if email is not None:
+        custom_profiles[uname]['email'] = email.strip()
+    if phone is not None:
+        custom_profiles[uname]['phone'] = phone.strip()
+
     save_user_custom_profiles(custom_profiles)
 
     return JsonResponse({
         'success': True,
-        'bio': bio,
-        'message': 'Cập nhật giới thiệu thành công.'
+        'bio': custom_profiles[uname].get('bio', ''),
+        'job_title': custom_profiles[uname].get('job_title', ''),
+        'branch': custom_profiles[uname].get('branch', ''),
+        'join_date': custom_profiles[uname].get('join_date', ''),
+        'email': custom_profiles[uname].get('email', ''),
+        'phone': custom_profiles[uname].get('phone', ''),
+        'message': 'Cập nhật thông tin thành công.'
     })

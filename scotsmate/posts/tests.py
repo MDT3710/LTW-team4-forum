@@ -176,12 +176,27 @@ class PostViewTest(TestCase):
 
     def test_update_profile_bio_api(self):
         res = self.client.post(reverse('update_profile_bio_api'), {
-            'bio': 'Đây là lời giới thiệu kiểm thử mới.'
+            'bio': 'Đây là lời giới thiệu kiểm thử mới.',
+            'job_title': 'Chuyên gia khảo thí IELTS',
+            'branch': 'Scots English Cầu Giấy',
+            'join_date': '01/01/2023',
+            'email': 'testuser@scotsmate.vn',
+            'phone': '0988888888'
         })
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertTrue(data['success'])
         self.assertEqual(data['bio'], 'Đây là lời giới thiệu kiểm thử mới.')
+        self.assertEqual(data['job_title'], 'Chuyên gia khảo thí IELTS')
+        self.assertEqual(data['branch'], 'Scots English Cầu Giấy')
+        self.assertEqual(data['join_date'], '01/01/2023')
+        self.assertEqual(data['email'], 'testuser@scotsmate.vn')
+        self.assertEqual(data['phone'], '0988888888')
+
+    def test_topbar_user_avatar_in_navbar(self):
+        res = self.client.get(reverse('profile'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'id="topbar-user-avatar"')
 
     def test_update_profile_avatar_api(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
