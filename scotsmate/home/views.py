@@ -4,9 +4,20 @@ from django.db.models import Q
 from posts.models import Post, PostReaction
 
 
+def index_view(request):
+    """
+    Điều hướng khi truy cập trang web (đường dẫn gốc /):
+    - Luôn vào trang đăng nhập trước nếu chưa đăng nhập.
+    - Sau khi đăng nhập mới vào được trang newfeeds.
+    """
+    if not request.user.is_authenticated:
+        return redirect('login')
+    return redirect('newfeeds')
+
+
 def HomeView(request):
     """
-    Truy vấn danh sách bài viết từ database để hiển thị Bảng tin Home.
+    Truy vấn danh sách bài viết từ database để hiển thị Bảng tin (Newfeeds).
     Nếu chưa đăng nhập: chuyển hướng ngay sang trang đăng nhập (/login/).
     Sau khi đăng nhập: nhận diện đúng người dùng đang truy cập (current_user).
     """

@@ -68,9 +68,37 @@ class PostViewTest(TestCase):
         self.post = Post.objects.create(author=self.user, title='Bài viết test', content='Nội dung thử nghiệm')
 
     def test_home_feed_view(self):
-        response = self.client.get('/')
+        # Khi đã đăng nhập, truy cập /newfeeds/ tải trang Bảng tin (home.html)
+        response = self.client.get(reverse('newfeeds'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'home.html')
+
+        # Khi đã đăng nhập, truy cập / sẽ chuyển hướng sang /newfeeds/
+        response_root = self.client.get('/')
+        self.assertEqual(response_root.status_code, 302)
+        self.assertRedirects(response_root, reverse('newfeeds'))
+
+    def test_unauthenticated_user_redirected_to_login(self):
+        # Chưa đăng nhập: khi truy cập trang web (/) hoặc (/newfeeds/) đều vào trang đăng nhập trước
+        anonymous_client = Client()
+
+        res_root = anonymous_client.get('/')
+        self.assertEqual(res_root.status_code, 302)
+        self.assertRedirects(res_root, reverse('login'))
+
+        res_feed = anonymous_client.get(reverse('newfeeds'))
+        self.assertEqual(res_feed.status_code, 302)
+        self.assertRedirects(res_feed, reverse('login'))
+
+    def test_login_success_redirects_to_newfeeds(self):
+        # Sau khi đăng nhập thành công, người dùng mới vào được trang newfeeds
+        anonymous_client = Client()
+        response = anonymous_client.post(reverse('login'), {
+            'username': 'minhanh',
+            'password': 'password123'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('newfeeds'))
 
     def test_post_create_get(self):
         response = self.client.get(reverse('post_create'))
@@ -83,6 +111,7 @@ class PostViewTest(TestCase):
             'content': 'Nội dung bài viết mới tạo qua form'
         })
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('newfeeds'))
         new_post = Post.objects.filter(title='Chủ đề mới').first()
         self.assertIsNotNone(new_post)
         self.assertEqual(new_post.author, self.user)

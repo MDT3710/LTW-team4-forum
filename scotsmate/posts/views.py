@@ -18,7 +18,7 @@ def login_view(request):
     Hỗ trợ cả mật khẩu gợi ý trên giao diện (password123 / adminpassword123) lẫn 123456.
     """
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('newfeeds')
 
     error_msg = None
     if request.method == 'POST':
@@ -34,7 +34,10 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
-            return redirect('home')
+            next_url = request.GET.get('next') or request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('newfeeds')
         else:
             error_msg = 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!'
 
@@ -92,7 +95,7 @@ def post_create_view(request):
             next_url = request.POST.get('next')
             if next_url:
                 return redirect(next_url)
-            return redirect('home')
+            return redirect('newfeeds')
         else:
             messages.error(request, 'Nội dung bài viết không được để trống hoặc không hợp lệ.')
     else:
