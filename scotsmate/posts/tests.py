@@ -273,63 +273,68 @@ class PostViewTest(TestCase):
         self.assertContains(res, 'Nhắn tin')
 
     def test_update_profile_bio_updates_email(self):
-        from posts.colleagues import save_user_custom_profiles
-        res = self.client.post(reverse('update_profile_bio_api'), {
-            'bio': 'Test Bio',
-            'job_title': 'Developer',
-            'branch': 'Hanoi',
-            'join_date': '01/01/2024',
-            'email': 'new_email@scotsenglish.edu.vn',
-            'phone': '0123456789'
-        })
-        self.assertEqual(res.status_code, 200)
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.email, 'new_email@scotsenglish.edu.vn')
+        from posts.colleagues import load_user_custom_profiles, save_user_custom_profiles
+        initial_profiles = load_user_custom_profiles()
+        try:
+            res = self.client.post(reverse('update_profile_bio_api'), {
+                'bio': 'Test Bio',
+                'job_title': 'Developer',
+                'branch': 'Hanoi',
+                'join_date': '01/01/2024',
+                'email': 'new_email@scotsenglish.edu.vn',
+                'phone': '0123456789'
+            })
+            self.assertEqual(res.status_code, 200)
+            self.user.refresh_from_db()
+            self.assertEqual(self.user.email, 'new_email@scotsenglish.edu.vn')
 
-        prof_res = self.client.get(reverse('profile'))
-        self.assertEqual(prof_res.status_code, 200)
-        self.assertContains(prof_res, 'new_email@scotsenglish.edu.vn')
-        save_user_custom_profiles({})
+            prof_res = self.client.get(reverse('profile'))
+            self.assertEqual(prof_res.status_code, 200)
+            self.assertContains(prof_res, 'new_email@scotsenglish.edu.vn')
+        finally:
+            save_user_custom_profiles(initial_profiles)
 
     def test_avatar_synchronized_everywhere(self):
         """Kiểm tra ảnh đại diện sau khi cập nhật được đồng bộ ở tất cả mọi nơi"""
         from django.core.files.uploadedfile import SimpleUploadedFile
-        from posts.colleagues import get_profile_details, save_user_custom_profiles
+        from posts.colleagues import get_profile_details, load_user_custom_profiles, save_user_custom_profiles
 
-        avatar_file = SimpleUploadedFile("my_avatar.png", b"test_image_bytes", content_type="image/png")
-        upload_res = self.client.post(reverse('update_profile_avatar_api'), {'avatar': avatar_file})
-        self.assertEqual(upload_res.status_code, 200)
-        new_avatar_url = upload_res.json()['avatar_url']
+        initial_profiles = load_user_custom_profiles()
+        try:
+            avatar_file = SimpleUploadedFile("my_avatar.png", b"test_image_bytes", content_type="image/png")
+            upload_res = self.client.post(reverse('update_profile_avatar_api'), {'avatar': avatar_file})
+            self.assertEqual(upload_res.status_code, 200)
+            new_avatar_url = upload_res.json()['avatar_url']
 
-        # 1. get_profile_details phản ánh đúng
-        details = get_profile_details(self.user)
-        self.assertEqual(details['avatar'], new_avatar_url)
+            # 1. get_profile_details phản ánh đúng
+            details = get_profile_details(self.user)
+            self.assertEqual(details['avatar'], new_avatar_url)
 
-        # 2. Tạo bài viết & bình luận của user
-        post = Post.objects.create(author=self.user, content="Post with updated avatar", visibility="Toàn công ty")
-        comment = PostComment.objects.create(post=post, emp=self.user, content="Comment with updated avatar")
-        reaction = PostReaction.objects.create(post=post, emp=self.user)
+            # 2. Tạo bài viết & bình luận của user
+            post = Post.objects.create(author=self.user, content="Post with updated avatar", visibility="Toàn công ty")
+            comment = PostComment.objects.create(post=post, emp=self.user, content="Comment with updated avatar")
+            reaction = PostReaction.objects.create(post=post, emp=self.user)
 
-        # 3. Kiểm tra trang newfeeds (home)
-        home_res = self.client.get(reverse('home'))
-        self.assertEqual(home_res.status_code, 200)
-        self.assertContains(home_res, new_avatar_url)
+            # 3. Kiểm tra trang newfeeds (home)
+            home_res = self.client.get(reverse('home'))
+            self.assertEqual(home_res.status_code, 200)
+            self.assertContains(home_res, new_avatar_url)
 
-        # 4. Kiểm tra trang profile
-        prof_res = self.client.get(reverse('profile'))
-        self.assertEqual(prof_res.status_code, 200)
-        self.assertContains(prof_res, new_avatar_url)
+            # 4. Kiểm tra trang profile
+            prof_res = self.client.get(reverse('profile'))
+            self.assertEqual(prof_res.status_code, 200)
+            self.assertContains(prof_res, new_avatar_url)
 
-        # 5. Kiểm tra API likes
-        likes_res = self.client.get(reverse('post_likes_api', args=[post.id]))
-        self.assertEqual(likes_res.status_code, 200)
-        users = likes_res.json()['users']
-        self.assertTrue(any(u['username'] == self.user.username and u['avatar'] == new_avatar_url for u in users))
+            # 5. Kiểm tra API likes
+            likes_res = self.client.get(reverse('post_likes_api', args=[post.id]))
+            self.assertEqual(likes_res.status_code, 200)
+            users = likes_res.json()['users']
+            self.assertTrue(any(u['username'] == self.user.username and u['avatar'] == new_avatar_url for u in users))
 
-        # 6. Kiểm tra API add comment trả về avatar_url mới
-        comment_res = self.client.post(reverse('post_comment_api', args=[post.id]), {'content': 'Another comment'})
-        self.assertEqual(comment_res.status_code, 200)
-        self.assertEqual(comment_res.json()['comment']['avatar_url'], new_avatar_url)
-
-        # Clean up
-        save_user_custom_profiles({})
+            # 6. Kiểm tra API add comment trả về avatar_url mới
+            comment_res = self.client.post(reverse('post_comment_api', args=[post.id]), {'content': 'Another comment'})
+            self.assertEqual(comment_res.status_code, 200)
+            self.assertEqual(comment_res.json()['comment']['avatar_url'], new_avatar_url)
+        finally:
+            # Khôi phục dữ liệu ban đầu thay vì xóa trắng
+            save_user_custom_profiles(initial_profiles)
