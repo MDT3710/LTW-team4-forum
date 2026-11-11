@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <main class="doc-workspace">
+
+    
+    <!-- Tiêu đề trang -->
+    <header class="doc-header">
+      <div>
+        <h1 class="doc-header-title">Tải lên tài liệu mới</h1>
+        <p class="doc-header-subtitle">Điền thông tin và tải lên tệp văn bản để đưa vào quy trình phê duyệt</p>
+      </div>
+      <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Quay lại danh mục</a>
+    </header>
+
+    {% if error_message %}
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; padding: 14px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+        ✕ {{ error_message }}
+      </div>
+    {% endif %}
+
+    <!-- Layout 2 cột: Form nhập liệu & Thông tin bên lề -->
+    <form class="doc-two-col" action="{% url 'document_create' %}" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- Cột chính bên trái: Form chi tiết -->
+      <section class="doc-col-main">
+
+        <!-- Card 1: Thông tin cơ bản -->
+        <div class="doc-card">
+          <h2 class="doc-card-title">Thông tin cơ bản</h2>
+
+          <div class="doc-form-group">
+            <label class="doc-form-label" for="{{ form.title.id_for_label }}">Tên tài liệu <span class="required">*</span></label>
+            {{ form.title }}
+          </div>
+
+            <div class="doc-form-group">
+              <label class="doc-form-label" for="{{ form.category.id_for_label }}">Danh mục tài liệu <span class="required">*</span></label>
+              {{ form.category }}
+            </div>
+
+          <div class="doc-form-group">
+            <label class="doc-form-label" for="{{ form.description.id_for_label }}">Mô tả tóm tắt nội dung</label>
+            {{ form.description }}
+          </div>
+        </div>
+
+        <!-- Card 2: Đính kèm tệp tài liệu -->
+        <div class="doc-card">
+          <h2 class="doc-card-title">Tệp văn bản đính kèm <span class="required">*</span></h2>
+
+          <label for="doc-file-input" class="doc-dropzone" id="dropzone-area">
+            <svg class="doc-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="doc-dropzone-text" id="dropzone-title">
+              Kéo và thả tệp vào đây, hoặc <span style="color: var(--navy); text-decoration: underline;">chọn tệp từ thiết bị</span>
+            </p>
+            <p class="doc-dropzone-sub" id="dropzone-sub">
+              Kích thước tối đa với một tập tin 20 MB, số lượng tập tin đính kèm tối đa: 5
+            </p>
+
+            <!-- Render input file từ Django Form -->
+            {{ form.file }}
+          </label>
+        </div>
+
+        <script>
+          const MAX_FILE_SIZE_MB = 20;
+          const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024; // 20 MB
+          const MAX_FILE_COUNT = 5; // Giới hạn tối đa 5 tập tin
+
+          const fileInput = document.getElementById('doc-file-input');
+          const dropzoneArea = document.getElementById('dropzone-area');
+          const dropzoneTitle = document.getElementById('dropzone-title');
+          const dropzoneSub = document.getElementById('dropzone-sub');
+
+          function showError(message) {
+            fileInput.value = '';
+            dropzoneTitle.innerHTML = `<strong style="color: #e11d48;">✕ ${message}</strong>`;
+            dropzoneSub.textContent = `Kích thước tối đa với một tập tin 20 MB, số lượng tập tin đính kèm tối đa: 5`;
+            dropzoneArea.style.borderColor = '#e11d48';
+            dropzoneArea.style.background = '#fff1f2';
+          }
+
+          function validateAndDisplayFiles(fileList) {
+            if (!fileList || fileList.length === 0) return;
+
+            if (fileList.length > MAX_FILE_COUNT) {
+              showError(`Vượt quá số lượng cho phép! Bạn chỉ được chọn tối đa ${MAX_FILE_COUNT} tập tin (đang chọn ${fileList.length}).`);
+              return;
+            }
+
+            let totalSizeMB = 0;
+            for (let i = 0; i < fileList.length; i++) {
+              if (fileList[i].size > MAX_FILE_SIZE_BYTES) {
+                const fileSizeMB = (fileList[i].size / (1024 * 1024)).toFixed(2);
+                showError(`Tập tin "${fileList[i].name}" (${fileSizeMB} MB) vượt quá giới hạn ${MAX_FILE_SIZE_MB} MB!`);
+                return;
+              }
+              totalSizeMB += fileList[i].size / (1024 * 1024);
+            }
+
+            if (fileList.length === 1) {
+              dropzoneTitle.innerHTML = `<strong style="color: var(--teal-dark);">✓ Đã chọn tệp: ${fileList[0].name}</strong>`;
+              dropzoneSub.textContent = `Dung lượng: ${totalSizeMB.toFixed(2)} MB (Nhấn vào khung nếu muốn đổi tệp khác)`;
+            } else {
+              dropzoneTitle.innerHTML = `<strong style="color: var(--teal-dark);">✓ Đã chọn ${fileList.length} tập tin</strong>`;
+              dropzoneSub.textContent = `Tổng dung lượng: ${totalSizeMB.toFixed(2)} MB (Nhấn vào khung nếu muốn chọn lại)`;
+            }
+            dropzoneArea.style.borderColor = 'var(--teal)';
+            dropzoneArea.style.background = 'var(--teal-soft)';
+          }
+
+          fileInput.addEventListener('change', function() {
+            validateAndDisplayFiles(this.files);
+          });
+
+          dropzoneArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropzoneArea.style.borderColor = 'var(--navy)';
+            dropzoneArea.style.background = '#f1f5f9';
+          });
+
+          dropzoneArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            if (!fileInput.files.length) {
+              dropzoneArea.style.borderColor = '#cbd5e1';
+              dropzoneArea.style.background = '#fafafa';
+            }
+          });
+
+          dropzoneArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+              fileInput.files = e.dataTransfer.files;
+              validateAndDisplayFiles(e.dataTransfer.files);
+            }
+          });
+        </script>
+
+        <!-- Nút hành động -->
+        <div style="display: flex; justify-content: flex-end; gap: 14px;">
+          <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Hủy bỏ</a>
+          <button type="submit" class="doc-btn doc-btn-primary">Gửi phê duyệt</button>
+        </div>
+
+      </section>
+
+      <!-- Cột phụ bên phải: Trạng thái & Hướng dẫn -->
+      <aside class="doc-col-side">
+
+        <div class="doc-card">
+          <h3 class="doc-card-title">Thông tin khởi tạo</h3>
+
+          <div style="margin-bottom: 16px;">
+            <span class="doc-badge doc-badge-draft">Bản nháp mới</span>
+          </div>
+
+          <div class="doc-meta-list">
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Người tạo</span>
+              <span class="doc-meta-value">{{ request.user.get_full_name|default:request.user.username|default:"Nguyễn Minh Anh" }}</span>
+            </div>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Mã nhân viên</span>
+              <span class="doc-meta-value">NV-024</span>
+            </div>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Phòng ban</span>
+              <span class="doc-meta-value">Phòng Đào tạo</span>
+            </div>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Ngày khởi tạo</span>
+              <span class="doc-meta-value">{% now "d/m/Y" %}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-notice-box">
+          <svg class="doc-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <div class="doc-notice-content">
+            <h4>Quy trình kiểm duyệt</h4>
+            <p>Tài liệu sau khi nhấn "Gửi phê duyệt" sẽ được chuyển tới quản lý phân hệ kiểm tra nội dung trước khi xuất bản rộng rãi.</p>
+          </div>
+        </div>
+
+      </aside>
+
+    </form>
+
+  </main>
+
+{% endblock %}

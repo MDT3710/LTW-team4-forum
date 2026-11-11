@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <main class="doc-workspace">
+
+    <!-- Tiêu đề trang -->
+    <header class="doc-header">
+      <div>
+        <h1 class="doc-header-title">Duyệt tài liệu</h1>
+        <p class="doc-header-subtitle">Kiểm tra thông tin, nội dung văn bản và đưa ra quyết định phê duyệt</p>
+      </div>
+      <a href="{% url 'document_approve' %}" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
+    </header>
+
+    <!-- Điều hướng phân hệ (Tabs) -->
+    <nav class="doc-tabs">
+      <a href="{% url 'documents' %}" class="doc-tab">Danh mục tài liệu</a>
+      <a href="{% url 'document_approve' %}" class="doc-tab active">Tài liệu chờ duyệt ({{ pending_count|default:0 }})</a>
+      <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
+    </nav>
+
+    <!-- Layout 2 cột -->
+    <div class="doc-two-col">
+
+      <!-- Cột phụ bên trái: Thông tin tệp -->
+      <aside class="doc-col-side" style="width: 340px;">
+        <div class="doc-card">
+          <h2 class="doc-card-title">Thông tin hiện tại</h2>
+          <div style="margin-bottom: 16px;">
+             {% if doc.request_type == 'UPDATE' %}
+               <span class="doc-badge doc-badge-in-progress">Chờ duyệt (Cập nhật)</span>
+             {% else %}
+               <span class="doc-badge doc-badge-pending">Chờ duyệt (Tạo mới)</span>
+             {% endif %}
+          </div>
+
+          <div class="doc-meta-list">
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Người nộp</span>
+              <span class="doc-meta-value">
+                {% if proposal %}
+                  {{ proposal.submitted_by.get_full_name|default:proposal.submitted_by.username }}
+                {% else %}
+                  {{ doc.creator.get_full_name|default:doc.creator.username }}
+                {% endif %}
+              </span>
+            </div>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Mã tài liệu</span>
+              <span class="doc-meta-value">DOC-{{ doc.id|stringformat:"03d" }}</span>
+            </div>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Danh mục</span>
+              <span class="doc-meta-value">
+                {% if proposal and proposal.proposed_category %}
+                  {{ proposal.proposed_category.name }}
+                {% else %}
+                  {{ doc.category.name|default:"--" }}
+                {% endif %}
+              </span>
+            </div>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Thời điểm gửi</span>
+              <span class="doc-meta-value">
+                 {% if proposal %}
+                   {{ proposal.submitted_at|date:"H:i d/m/Y" }}
+                 {% else %}
+                   {{ doc.created_at|date:"H:i d/m/Y" }}
+                 {% endif %}
+              </span>
+            </div>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Phạm vi truy cập</span>
+              <span class="doc-meta-value">
+                 {% if proposal %}
+                   {{ proposal.get_proposed_scope_display|default:proposal.proposed_scope }}
+                 {% else %}
+                   {{ doc.get_access_scope_display|default:doc.access_scope }}
+                 {% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Cột chính bên phải: Xem trước tài liệu & Hành động phê duyệt -->
+      <section class="doc-col-main">
+        <div class="doc-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <div>
+              <h2 style="font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
+                {% if proposal %}
+                   {{ proposal.proposed_title|default:doc.title }}
+                {% else %}
+                   {{ doc.title }}
+                {% endif %}
+              </h2>
+              <p style="font-size: 13px; color: var(--ink-soft); line-height: 1.5;">
+                 {{ doc.description|default:"Chưa có mô tả cho tài liệu này." }}
+              </p>
+            </div>
+            {% if proposal and proposal.proposed_file %}
+              <a href="{{ proposal.proposed_file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Tải file đề xuất
+              </a>
+            {% elif doc.file %}
+               <a href="{{ doc.file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>
+                 Tải file gốc
+               </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Khung Quyết định phê duyệt -->
+        <div class="doc-card">
+          <h3 class="doc-card-title">Ý kiến phê duyệt</h3>
+          <form method="POST" action="{% url 'document_approve_detail' id=doc.id %}">
+            {% csrf_token %}
+            <div class="doc-form-group">
+              <textarea class="doc-form-textarea" id="approval-notes" name="rejection_reason" placeholder="Nhập lý do hoặc yêu cầu chỉnh sửa vào đây..."></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+              <button type="submit" name="action" value="reject" class="doc-btn doc-btn-danger">Từ chối duyệt</button>
+              <button type="submit" name="action" value="approve" class="doc-btn doc-btn-success">Phê duyệt tài liệu</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+    </div>
+  </main>
+{% endblock %}
