@@ -79,14 +79,17 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                if next_url and next_url != '/courses/':
+                if next_url and next_url not in ['/', '/home/', '/courses/']:
                     role = get_user_role(user)
                     if role == 'trainee' and '/trainer/' in next_url:
                         return redirect('trainee_courses')
                     if role == 'trainer' and '/trainee/' in next_url:
                         return redirect('trainer_courses')
                     return redirect(next_url)
-                return redirect('courses_home')
+                role = get_user_role(user)
+                if role == 'trainer':
+                    return redirect('trainer_courses')
+                return redirect('home')
             else:
                 error_msg = 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!'
         else:

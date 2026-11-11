@@ -3,9 +3,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from courses import views as courses_views
+from posts import views as posts_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('login/', posts_views.ScotsmateLoginView.as_view(), name='login'),
+    path('logout/', posts_views.ScotsmateLogoutView.as_view(), name='logout'),
     path('', include('home.urls')),
     path('', include('posts.urls')),
     path('posts/', include('posts.urls')),

@@ -19,10 +19,31 @@ class ScotsmateLoginView(auth_views.LoginView):
     View đăng nhập kế thừa Django contrib.auth.views.LoginView (Chương 7 MIS3010).
     Sử dụng ScotsmateAuthenticationForm và template login.html.
     Tự động chuyển hướng người dùng đã xác thực (redirect_authenticated_user=True).
+    Quản lý phiên người dùng và điều hướng theo vai trò thực tế:
+    - Trainer: Chuyển vào Cổng quản lý đào tạo (/courses/trainer/courses/)
+    - Trainee: Chuyển vào Bảng tin (/home/) hoặc đích đến theo tham số ?next=
     """
     template_name = 'login.html'
     authentication_form = ScotsmateAuthenticationForm
     redirect_authenticated_user = True
+
+    def get_success_url(self):
+        next_url = self.request.POST.get(self.redirect_field_name) or self.request.GET.get(self.redirect_field_name)
+        user = self.request.user
+
+        from courses.views import get_user_role
+        role = get_user_role(user)
+
+        if next_url and next_url not in ['/', '/home/', '/courses/']:
+            if role == 'trainee' and '/trainer/' in next_url:
+                return '/courses/trainee/courses/'
+            if role == 'trainer' and '/trainee/' in next_url:
+                return '/courses/trainer/courses/'
+            return next_url
+
+        if role == 'trainer':
+            return '/courses/trainer/courses/'
+        return '/home/'
 
 
 class ScotsmateLogoutView(auth_views.LogoutView):
@@ -318,7 +339,10 @@ def prepare_post_comments(post, current_user_id=None):
         c.reaction_count = get_comment_like_count(c.id)
         c.child_replies = []
         c.formatted_content = format_comment_content(c.content)
-        c.emp_avatar = get_profile_details(c.emp).get('avatar', '/static/img/profile_avatar_144.png')
+        try:
+            c.emp_avatar = get_profile_details(c.emp).get('avatar', '/static/img/profile_avatar_144.png')
+        except Exception:
+            c.emp_avatar = '/static/img/profile_avatar_144.png'
         comment_map[c.id] = c
 
     root_comments = []

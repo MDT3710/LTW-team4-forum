@@ -6,12 +6,19 @@ from posts.models import Post, PostReaction
 
 def index_view(request):
     """
-    Điều hướng khi truy cập trang web (đường dẫn gốc /):
-    - Luôn vào trang đăng nhập trước nếu chưa đăng nhập.
-    - Sau khi đăng nhập mới vào được trang home (Bảng tin).
+    Điều hướng khi mở trang web (đường dẫn gốc /):
+    - Nếu chưa đăng nhập: Luôn chuyển hướng ngay sang trang đăng nhập (/login/).
+    - Sau khi đăng nhập: Quản lý phiên người dùng và phân quyền theo vai trò:
+      + Giảng viên (Trainer): Chuyển vào Cổng quản lý đào tạo (/courses/trainer/courses/)
+      + Học viên / Nhân sự (Trainee): Chuyển vào Bảng tin (/home/)
     """
     if not request.user.is_authenticated:
         return redirect('login')
+
+    from courses.views import get_user_role
+    role = get_user_role(request.user)
+    if role == 'trainer':
+        return redirect('trainer_courses')
     return redirect('home')
 
 
@@ -22,7 +29,7 @@ def HomeView(request):
     Sau khi đăng nhập: nhận diện đúng người dùng đang truy cập (current_user).
     """
     if not request.user.is_authenticated:
-        return redirect('login')
+        return redirect('/login/?next=/home/')
 
     current_user = request.user
 
@@ -78,13 +85,21 @@ def HomeView(request):
 
     from posts.views import prepare_post_comments
     from posts.colleagues import get_profile_details
+    valid_posts = []
     for post in posts:
-        post.is_liked_by_user = post.id in liked_post_ids
-        post.author_avatar = get_profile_details(post.author).get('avatar', '/static/img/profile_avatar_144.png')
-        prepare_post_comments(post, current_user.id)
+        try:
+            author = post.author
+            if not author:
+                continue
+            post.is_liked_by_user = post.id in liked_post_ids
+            post.author_avatar = get_profile_details(author).get('avatar', '/static/img/profile_avatar_144.png')
+            prepare_post_comments(post, current_user.id)
+            valid_posts.append(post)
+        except Exception:
+            continue
 
     return render(request, 'home.html', {
-        'posts': posts,
+        'posts': valid_posts,
         'current_user': current_user,
         'search_query': query,
     })

@@ -37,7 +37,7 @@
     <!-- Form đăng nhập chuẩn -->
     <form method="POST" action="/login/" class="flex flex-col gap-4 text-xs">
       {% csrf_token %}
-      <input type="hidden" name="next" value="{{ next|default:'/courses/' }}">
+      <input type="hidden" name="next" value="{{ next|default:'' }}">
 
       <!-- Username Input -->
       <div>
