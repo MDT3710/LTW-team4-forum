@@ -1,4 +1,4 @@
-{%  extends 'base.html' %}
+{% extends 'base.html' %}
 {% block content %}
   <main class="survey-workspace">
     
@@ -8,7 +8,7 @@
         <h1 class="doc-header-title">Phê duyệt khảo sát</h1>
         <p class="doc-header-subtitle">Danh sách các biểu mẫu khảo sát do các phòng ban đệ trình đang chờ ban quản trị xét duyệt</p>
       </div>
-      <a href="create.html" class="doc-btn doc-btn-primary">
+      <a href="{% url 'SurveyCreate' %}" class="doc-btn doc-btn-primary">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -18,28 +18,29 @@
 
     <!-- Điều hướng phân hệ Tabs -->
     <nav class="doc-tabs">
-      <a href="list.html" class="doc-tab">Khảo sát cần làm</a>
-      <a href="history.html" class="doc-tab">Lịch sử đã làm</a>
-      <a href="approve_list.html" class="doc-tab active">Duyệt khảo sát</a>
-      <a href="published.html" class="doc-tab">Báo cáo & Phản hồi</a>
+      <a href="{% url 'MySurvey' %}" class="doc-tab">Khảo sát cần làm</a>
+      <a href="{% url 'SurveyHistory' %}" class="doc-tab">Lịch sử đã làm</a>
+      {% if request.user.managed_departments.exists %}
+        <a href="{% url 'SurveyApproveList' %}" class="doc-tab active">Duyệt khảo sát</a>
+      {% endif %}
+      <a href="{% url 'SurveyPublished' %}" class="doc-tab">Báo cáo & Phản hồi</a>
     </nav>
 
     <!-- Thanh tìm kiếm & bộ lọc -->
-    <section class="doc-toolbar">
+    <form method="GET" action="" class="doc-toolbar">
       <div class="doc-search-box" style="max-width: 100%;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" placeholder="Tìm kiếm khảo sát chờ duyệt theo tiêu đề hoặc người gửi...">
+        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm khảo sát chờ duyệt theo tiêu đề, người gửi hoặc phòng ban...">
       </div>
-      <button class="doc-filter-btn" type="button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-        </svg>
-        Bộ lọc
-      </button>
-    </section>
+      {% if search_query %}
+        <a href="{% url 'SurveyApproveList' %}" class="doc-btn doc-btn-secondary" style="height: 38px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+          Bỏ lọc
+        </a>
+      {% endif %}
+    </form>
 
     <!-- Bảng danh sách khảo sát chờ duyệt -->
     <section class="doc-table-card">
@@ -49,74 +50,74 @@
             <th>Tiêu đề khảo sát</th>
             <th>Người khởi tạo</th>
             <th>Phòng ban</th>
+            <th>Thời hạn nộp</th>
             <th>Ngày gửi duyệt</th>
             <th>Trạng thái</th>
-            <th style="text-align: right;">Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td class="doc-table-title">
-              <a href="approve_detail.html?id=201">Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026</a>
-            </td>
-            <td>Lê Thu Trang</td>
-            <td>Nhân sự & Hành chính</td>
-            <td>04/11/2026</td>
-            <td><span class="doc-badge doc-badge-pending">Chờ duyệt</span></td>
-            <td style="text-align: right;">
-              <a href="approve_detail.html?id=201" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 14px; font-size: 13px;">Duyệt ngay</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="approve_detail.html?id=202">Đánh giá chất lượng hỗ trợ của bộ phận IT Helpdesk</a>
-            </td>
-            <td>Vũ Quốc Đạt</td>
-            <td>Công nghệ & Hệ thống</td>
-            <td>03/11/2026</td>
-            <td><span class="doc-badge doc-badge-in-progress">Đang thẩm định</span></td>
-            <td style="text-align: right;">
-              <a href="approve_detail.html?id=202" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 14px; font-size: 13px;">Duyệt ngay</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="approve_detail.html?id=203">Khảo sát nhu cầu sử dụng xe buýt đưa đón nhân viên cơ sở 2</a>
-            </td>
-            <td>Nguyễn Minh Anh</td>
-            <td>Phòng Đào tạo</td>
-            <td>01/11/2026</td>
-            <td><span class="doc-badge doc-badge-pending">Chờ duyệt</span></td>
-            <td style="text-align: right;">
-              <a href="approve_detail.html?id=203" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 14px; font-size: 13px;">Duyệt ngay</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="approve_detail.html?id=204">Khảo sát ý kiến về kế hoạch tổ chức Gala Dinner cuối năm 2026</a>
-            </td>
-            <td>Hoàng Thúy Vy</td>
-            <td>Marketing & Truyền thông</td>
-            <td>28/10/2026</td>
-            <td><span class="doc-badge doc-badge-pending">Chờ duyệt</span></td>
-            <td style="text-align: right;">
-              <a href="approve_detail.html?id=204" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 14px; font-size: 13px;">Duyệt ngay</a>
-            </td>
-          </tr>
+          {% if page_obj %}
+            {% for survey in page_obj %}
+              <tr>
+                <td class="doc-table-title">
+                  <a href="{% url 'SurveyApproveDetail' survey.id %}" style="text-decoration: none; color: inherit; font-weight: 500;">
+                    {{ survey.name }}
+                  </a>
+                </td>
+                <td>{{ survey.creator.get_full_name|default:survey.creator.username }}</td>
+                <td>{{ survey.department.name|default:"-" }}</td>
+                <td>
+                  {% if survey.response_deadline %}
+                    {{ survey.response_deadline|date:"H:i d/m/Y" }}
+                    {% if survey.time_left %}
+                      <span style="font-size: 12px; color: var(--ink-soft);">({{ survey.time_left }})</span>
+                    {% endif %}
+                  {% else %}
+                    <span style="color: var(--ink-soft);">Không giới hạn</span>
+                  {% endif %}
+                </td>
+                <td>{{ survey.date_created|date:"d/m/Y" }}</td>
+                <td><span class="doc-badge doc-badge-pending">Chờ duyệt</span></td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 48px 20px; color: var(--ink-soft);">
+                {% if search_query %}
+                  Không tìm thấy khảo sát chờ duyệt nào khớp với từ khóa "<strong>{{ search_query }}</strong>".
+                {% else %}
+                  Hiện tại không có khảo sát nào đang chờ phê duyệt.
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
         </tbody>
       </table>
 
       <!-- Phân trang -->
-      <footer class="doc-table-pagination">
-        <div>Hiển thị 1 - 4 trong tổng số 4 biểu mẫu cần duyệt</div>
-        <div class="doc-page-controls">
-          <a href="#" class="doc-page-btn">&lt;</a>
-          <a href="#" class="doc-page-btn active">1</a>
-          <a href="#" class="doc-page-btn">&gt;</a>
-        </div>
-      </footer>
+      {% if page_obj and total_count > 0 %}
+        <footer class="doc-table-pagination">
+          <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} trong tổng số {{ total_count }} biểu mẫu cần duyệt</div>
+          {% if page_obj.has_other_pages %}
+            <div class="doc-page-controls">
+              {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&lt;</a>
+              {% endif %}
+              {% for p in page_obj.paginator.page_range %}
+                {% if page_obj.number == p %}
+                  <a href="?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn active">{{ p }}</a>
+                {% else %}
+                  <a href="?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">{{ p }}</a>
+                {% endif %}
+              {% endfor %}
+              {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&gt;</a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </footer>
+      {% endif %}
     </section>
 
   </main>
-
 {% endblock %}

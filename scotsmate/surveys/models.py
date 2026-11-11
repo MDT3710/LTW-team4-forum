@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.utils import timezone
 
 from home.models import *
 
@@ -26,13 +27,62 @@ class Survey(models.Model):
         related_name='approved_surveys',
         verbose_name="Người duyệt"
     )
-    name=models.CharField(max_length=100,verbose_name='Tên khảo sát')
-    date_created = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
-    is_approved = models.BooleanField(default=False, verbose_name="Đã duyệt")
-    is_respondable = models.BooleanField(default=True, verbose_name="Cho phép trả lời")
-    is_visible = models.BooleanField(default=True, verbose_name="Hiển thị")
-    description = models.TextField(blank=True, null=True, verbose_name="Mô tả")
-    response_limit = models.IntegerField(null=True, verbose_name="Giới hạn lượt trả lời")
+    name=models.CharField(
+        max_length=100,
+        verbose_name='Tên khảo sát'
+    )
+    date_created = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Ngày tạo"
+    )
+    is_approved = models.BooleanField(
+        default=False,
+        verbose_name="Đã duyệt"
+    )
+    is_respondable = models.BooleanField(
+        default=True,
+        verbose_name="Cho phép trả lời"
+    )
+    is_visible = models.BooleanField(
+        default=True,
+        verbose_name="Hiển thị"
+    )
+    anonymous = models.BooleanField(
+        default=False,
+        verbose_name="Trả lời ẩn danh"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Mô tả"
+    )
+    response_limit = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Giới hạn lượt trả lời"
+    )
+    response_deadline= models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name='Thời hạn trả lời'
+    )
+
+    @property
+    def time_left(self):
+        if not self.response_deadline:
+            return None
+        secs_left = (self.response_deadline - timezone.now()).total_seconds()
+        if secs_left>=86400:
+            time_left=secs_left//86400
+            unit='ngày'
+        elif secs_left>=3600:
+            time_left=secs_left//3600
+            unit='giờ'
+        else:
+            time_left=secs_left//60
+            unit='phút'
+        return f'Còn {time_left:.0f} {unit}'
 
     class Meta:
         db_table = 'survey'
@@ -59,9 +109,9 @@ class SurveyAccess(models.Model):
 
     class Meta:
         db_table = 'survey_access'
-        constraints = [
-            models.UniqueConstraint(fields=['emp', 'survey'], name='unique_emp_survey_access')
-        ]
+        # constraints = [
+        #     models.UniqueConstraint(fields=['emp', 'survey'], name='unique_emp_survey_access')
+        # ]
 
     def __str__(self) -> str:
         if self.can_view_responses == False and self.can_respond == False:
@@ -75,7 +125,10 @@ class SurveyAccess(models.Model):
 
 
 class SurveyEssayQuestion(models.Model):
-    max_character = models.IntegerField(verbose_name="Số ký tự tối đa")
+    max_character = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Số ký tự tối đa")
 
     class Meta:
         db_table = 'survey_essay_question'
@@ -143,19 +196,19 @@ class SurveyResponse(models.Model):
         related_name='responses',
         verbose_name="Khảo sát"
     )
-    respondant = models.ForeignKey(
+    respondent = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='survey_responses',
-        verbose_name="Người thực hiện khảo sát"
+        verbose_name="Người đã thực hiện khảo sát"
     )
-    submission_date = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian nộp")
+    submission_date = models.DateTimeField(null=True, verbose_name="Thời gian nộp") # cho phép null vì null thì nghĩa là có lưu nháp chứ chưa nộp
 
     class Meta:
         db_table = 'survey_response'
 
     def __str__(self) -> str:
-        return f"Response #{self.pk} - {self.survey.name} by {self.respondant.username}"
+        return f"Response #{self.pk} - {self.survey.name} by {self.respondent.username}"
 
 
 class SurveyResponseDetail(models.Model):

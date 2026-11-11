@@ -1,4 +1,5 @@
 {%  extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 
@@ -6,134 +7,101 @@
     
     <!-- Tiêu đề trang -->
     <header class="doc-header">
-      <div>
         <h1 class="doc-header-title">Tạo khảo sát mới</h1>
-        <p class="doc-header-subtitle">Thiết lập nội dung câu hỏi, thời gian áp dụng và đối tượng nhân viên tham gia</p>
-      </div>
       <div style="display: flex; gap: 12px; align-items: center;">
-        <span class="doc-badge doc-badge-draft">Bản nháp mới</span>
-        <a href="list.html" class="doc-btn doc-btn-secondary">Quay lại</a>
+        <a href="{% url 'MySurvey' %}" class="doc-btn doc-btn-secondary">Quay lại</a>
       </div>
     </header>
 
-    <!-- Layout 2 cột -->
-    <form class="doc-two-col" action="#" method="POST">
-      
-      <!-- Cột chính: Nội dung khảo sát -->
-      <section class="doc-col-main">
-        
-        <!-- Khối 1: Thông tin cơ bản -->
+      <form id="survey-form" class='doc-two-col' action="{% url 'SurveyCreate' %}" method="POST">
+          {% csrf_token %}
+{#          lưu JSON tại đây#}
+          {{ survey_info.questions_data }}
+          <!-- Cột chính: Nội dung khảo sát -->
+          <section class="doc-col-main">
+              <!-- Khối 1: Thông tin cơ bản -->
         <div class="doc-card">
           <h2 class="doc-card-title">1. Thông tin khảo sát</h2>
-          
           <div class="doc-form-group">
-            <label class="doc-form-label" for="surv-title">Tiêu đề khảo sát <span class="required">*</span></label>
-            <input class="doc-form-input" id="surv-title" type="text" placeholder="Ví dụ: Khảo sát mức độ hài lòng về môi trường làm việc..." required>
+            <div class="doc-form-label">Tên khảo sát <span class="required">*</span></div>
+              {{ survey_info.name }}
           </div>
-
           <div class="doc-form-group">
-            <label class="doc-form-label" for="surv-desc">Mô tả mục đích</label>
-            <textarea class="doc-form-textarea" id="surv-desc" placeholder="Giải thích ngắn gọn lý do thực hiện khảo sát này..."></textarea>
+            <div class="doc-form-label">Mô tả khảo sát</div>
+              {{ survey_info.description }}
           </div>
-
           <div class="doc-form-row">
             <div class="doc-form-group">
-              <label class="doc-form-label" for="surv-start">Thời gian bắt đầu <span class="required">*</span></label>
-              <input class="doc-form-input" id="surv-start" type="date" value="2026-11-05" required>
+              <div class="doc-form-label">Thời gian kết thúc</div>
+              {{ survey_info.response_deadline }}
             </div>
-            <div class="doc-form-group">
-              <label class="doc-form-label" for="surv-end">Thời gian kết thúc <span class="required">*</span></label>
-              <input class="doc-form-input" id="surv-end" type="date" value="2026-11-20" required>
-            </div>
+              <div class="doc-form-group">
+                  <div class="doc-form-label">Giới hạn số lần trả lời</div>
+                  {{ survey_info.response_limit }}
+              </div>
+              <div class="survey-option-label">
+                  {{ survey_info.anonymous }}
+                  <span>Khảo sát ẩn danh</span>
+              </div>
           </div>
         </div>
-
-        <!-- Khối 2: Thiết lập câu hỏi -->
+{#Khối 2: Phạm vi khảo sát#}
         <div class="doc-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 class="doc-card-title" style="margin-bottom: 0;">2. Danh sách câu hỏi</h2>
-            <button type="button" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Thêm câu hỏi
-            </button>
-          </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="doc-card-title" style="display: flex; gap: 20px; align-items: flex-end;">2. Phạm vi khảo sát</h2>
+            </div>
 
-          <!-- Câu hỏi mẫu 1 -->
-          <div style="background: #fafcff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin-bottom: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <strong>Câu 1: Lựa chọn đơn (Trắc nghiệm)</strong>
-              <span class="doc-badge doc-badge-in-progress">Bắt buộc</span>
-            </div>
-            <input class="doc-form-input" type="text" value="Bạn đánh giá thế nào về chất lượng hỗ trợ chuyên môn từ cấp quản lý?" style="margin-bottom: 10px;">
-            <div style="font-size: 13px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 6px; padding-left: 12px;">
-              <div>• Lựa chọn A: Rất tốt</div>
-              <div>• Lựa chọn B: Khá tốt</div>
-              <div>• Lựa chọn C: Cần cải thiện thêm</div>
-            </div>
-          </div>
+            <div class="doc-form-row">
+                <!-- Dropdown Chi nhánh -->
+                <div class="doc-form-group">
+                    <div class="doc-form-label">Chi nhánh</div>
+                    {{ survey_info.branches }}
+                </div>
 
-          <!-- Câu hỏi mẫu 2 -->
-          <div style="background: #fafcff; border: 1px solid var(--line); border-radius: 8px; padding: 18px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <strong>Câu 2: Câu hỏi tự luận</strong>
-              <span class="doc-badge doc-badge-draft">Tùy chọn</span>
+                <!-- Dropdown Phòng ban -->
+                <div class="doc-form-group">
+                    <div class="doc-form-label">Phòng ban</div>
+                    {{ survey_info.departments }}
+                </div>
             </div>
-            <input class="doc-form-input" type="text" value="Đóng góp ý kiến thêm hoặc nguyện vọng cá nhân của bạn...">
-          </div>
+
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                * Giữ phím Ctrl (hoặc Cmd trên Mac) để chọn nhiều mục. Bỏ trống nếu muốn áp dụng cho toàn công ty.
+            </p>
         </div>
-
-        <!-- Hành động lưu -->
-        <div style="display: flex; justify-content: flex-end; gap: 14px;">
-          <a href="list.html" class="doc-btn doc-btn-secondary">Hủy bỏ</a>
-          <button type="button" class="doc-btn doc-btn-secondary">Lưu bản nháp</button>
-          <button type="submit" class="doc-btn doc-btn-primary">Gửi phê duyệt</button>
-        </div>
-
-      </section>
-
-      <!-- Cột phụ: Cấu hình phát hành -->
-      <aside class="doc-col-side">
-        
+{#Khối 3: Nhóm câu hỏi động#}
         <div class="doc-card">
-          <h3 class="doc-card-title">Đối tượng tham gia</h3>
-          
-          <div class="doc-form-group">
-            <label class="doc-form-label" for="surv-target">Phạm vi khảo sát</label>
-            <select class="doc-form-select" id="surv-target">
-              <option value="all">Toàn bộ nhân sự trung tâm</option>
-              <option value="teachers">Đội ngũ Giáo viên / Giảng viên</option>
-              <option value="consultants">Bộ phận Tư vấn & Chăm sóc học viên</option>
-              <option value="admin">Khối Hành chính & Nhân sự</option>
-            </select>
-          </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="doc-card-title" style="margin-bottom: 0;">3. Danh sách câu hỏi</h2>
+                <button type="button" class="doc-btn doc-btn-secondary" id="btn-add-question" style="height: 36px; padding: 0 14px; font-size: 13px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Thêm câu hỏi
+                </button>
+            </div>
 
-          <div class="doc-form-group">
-            <label class="doc-form-label">Tùy chọn bảo mật</label>
-            <label class="survey-option-label" style="padding: 10px 12px;">
-              <input type="checkbox" checked>
-              <span style="font-size: 13px;">Ẩn danh người trả lời</span>
-            </label>
-          </div>
+            <!-- Tách container ra ngoài header -->
+            <div id="questions-container" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px;">
+                <!-- JavaScript sẽ render ở đây -->
+            </div>
+
+            <!-- Hành động lưu -->
+            <div style="display: flex; justify-content: flex-end; gap: 14px;">
+              <a href="{% url 'MySurvey' %}" class="doc-btn doc-btn-secondary">Hủy bỏ</a>
+              <button type="submit" class="doc-btn doc-btn-primary">Gửi phê duyệt</button>
+            </div>
         </div>
 
-        <div class="doc-notice-box">
-          <svg class="doc-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <div class="doc-notice-content">
-            <h4>Lưu ý xét duyệt</h4>
-            <p>Khảo sát sau khi gửi sẽ được duyệt bởi Trưởng bộ phận trước khi hệ thống gửi thông báo tới nhân viên.</p>
-          </div>
-        </div>
-
-      </aside>
-
-    </form>
-
+          </section>
+      </form>
   </main>
+
+    <!-- Khai báo jQuery trước -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- CSS và JS của Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="{% static 'js/survey_builder.js' %}"></script>
 {% endblock %}

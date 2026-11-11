@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-
 
   <main class="survey-workspace">
     
@@ -10,8 +10,20 @@
         <h1 class="doc-header-title">Thẩm định biểu mẫu khảo sát</h1>
         <p class="doc-header-subtitle">Kiểm tra chi tiết nội dung các câu hỏi, đối tượng và điều kiện phát hành</p>
       </div>
-      <a href="approve_list.html" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
+      <a href="{% url 'SurveyApproveList' %}" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
     </header>
+
+    {% if messages %}
+      <div style="margin-bottom: 20px;">
+        {% for message in messages %}
+          <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; font-size: 14px;
+                      {% if message.tags == 'error' %}background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;
+                      {% else %}background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
 
     <!-- Layout 2 cột -->
     <div class="doc-two-col">
@@ -23,12 +35,20 @@
         <div class="doc-card">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
             <div>
-              <span class="doc-badge doc-badge-pending" style="margin-bottom: 8px;">Đang chờ duyệt</span>
+              {% if survey.is_approved %}
+                <span class="doc-badge doc-badge-approved" style="margin-bottom: 8px;">Đã phê duyệt</span>
+              {% else %}
+                <span class="doc-badge doc-badge-pending" style="margin-bottom: 8px;">Đang chờ duyệt</span>
+              {% endif %}
               <h2 style="font-size: 20px; font-weight: 700; color: var(--ink); margin: 4px 0 8px 0;">
-                Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026
+                {{ survey.name }}
               </h2>
               <p style="font-size: 13px; color: var(--ink-soft); line-height: 1.5; margin: 0;">
-                Mục đích: Đánh giá cảm nhận của cán bộ giảng viên và nhân viên văn phòng về cơ sở vật chất, chế độ đãi ngộ và môi trường làm việc để nâng cao chất lượng nhân sự.
+                {% if survey.description %}
+                  {{ survey.description }}
+                {% else %}
+                  Mục đích: Thu thập ý kiến và thông tin đánh giá từ cán bộ giảng viên và nhân viên.
+                {% endif %}
               </p>
             </div>
           </div>
@@ -36,86 +56,158 @@
           <!-- Preview các câu hỏi -->
           <div style="background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
             <h3 style="font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 16px; text-transform: uppercase;">
-              Nội dung câu hỏi khảo sát (3 câu)
+              Nội dung câu hỏi khảo sát ({{ questions|length }} câu)
             </h3>
 
-            <!-- Câu 1 -->
-            <div style="background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px;">
-              <p style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">
-                Câu 1: Bạn đánh giá mức độ hài lòng tổng quan về môi trường làm việc tại ScotsMate như thế nào? <span style="color: #e11d48;">*</span>
-              </p>
-              <div style="font-size: 13px; color: var(--ink-soft); padding-left: 8px;">
-                <em>Dạng câu hỏi: Lựa chọn đơn (Trắc nghiệm 1 - 5 sao: Rất không hài lòng / Không hài lòng / Bình thường / Hài lòng / Rất hài lòng)</em>
-              </div>
-            </div>
+            {% if questions %}
+              {% for q in questions %}
+                <div style="background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px;">
+                  <p style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--ink);">
+                    Câu {{ q.index }}: {{ q.caption }}
+                    {% if q.is_required %}<span style="color: #e11d48;">*</span>{% endif %}
+                  </p>
 
-            <!-- Câu 2 -->
-            <div style="background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px;">
-              <p style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">
-                Câu 2: Những khía cạnh nào bạn cảm thấy trung tâm cần cải thiện và đầu tư thêm trong thời gian tới? <span style="color: #e11d48;">*</span>
-              </p>
-              <div style="font-size: 13px; color: var(--ink-soft); padding-left: 8px;">
-                <em>Dạng câu hỏi: Nhiều lựa chọn (Checkbox tối đa 3 lựa chọn)</em>
+                  <div style="font-size: 13px; color: var(--ink-soft); padding-left: 4px;">
+                    {% if q.is_mc %}
+                      <em>Dạng câu hỏi:
+                        {% if q.max_choice == 1 %}
+                          Lựa chọn đơn (Trắc nghiệm 1 lựa chọn)
+                        {% else %}
+                          Nhiều lựa chọn (Checkbox tối đa {{ q.max_choice }} lựa chọn)
+                        {% endif %}
+                      </em>
+                      {% if q.choices %}
+                        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px; padding-left: 4px;">
+                          {% for c in q.choices %}
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink);">
+                              <span style="display: inline-block; width: 14px; height: 14px; border: 1.5px solid #94a3b8;
+                                           border-radius: {% if q.max_choice == 1 %}50%{% else %}3px{% endif %}; flex-shrink: 0;"></span>
+                              <span>{{ c.content }}</span>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    {% elif q.is_essay %}
+                      <em>Dạng câu hỏi: Tự luận (
+                        {% if q.max_character %}
+                          Đoạn văn tự do, tối đa {{ q.max_character }} ký tự
+                        {% else %}
+                          Đoạn văn tự do
+                        {% endif %}
+                        {% if not q.is_required %}, tùy chọn{% endif %}
+                      )</em>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div style="padding: 24px; text-align: center; color: var(--ink-soft); font-size: 14px;">
+                Bài khảo sát này hiện chưa có câu hỏi nào.
               </div>
-            </div>
-
-            <!-- Câu 3 -->
-            <div style="background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px;">
-              <p style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">
-                Câu 3: Bạn có đề xuất hoặc nguyện vọng cụ thể nào muốn gửi gắm tới Ban giám đốc trung tâm?
-              </p>
-              <div style="font-size: 13px; color: var(--ink-soft); padding-left: 8px;">
-                <em>Dạng câu hỏi: Tự luận (Đoạn văn tự do, tùy chọn)</em>
-              </div>
-            </div>
+            {% endif %}
           </div>
 
           <!-- Nhận xét và nút duyệt -->
-          <div class="doc-form-group">
-            <label class="doc-form-label" for="surv-approve-comment">Ý kiến thẩm định của người duyệt</label>
-            <textarea class="doc-form-textarea" id="surv-approve-comment" placeholder="Nhập ý kiến đánh giá hoặc lý do yêu cầu sửa đổi (nếu có)..."></textarea>
-          </div>
+          <form method="POST">
+            {% csrf_token %}
+            <div class="doc-form-group">
+              <label class="doc-form-label" for="surv-approve-comment">Ý kiến thẩm định của người duyệt</label>
+              <textarea class="doc-form-textarea" id="surv-approve-comment" name="comment" placeholder="Nhập ý kiến đánh giá hoặc phản hồi (nếu có)..."></textarea>
+            </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-            <button type="button" class="doc-btn doc-btn-danger">Từ chối</button>
-            <button type="button" class="doc-btn doc-btn-secondary">Yêu cầu sửa</button>
-            <button type="button" class="doc-btn doc-btn-success">Phê duyệt & Phát hành</button>
-          </div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+              {% if not survey.is_approved %}
+                <button type="submit" name="action" value="reject" class="doc-btn doc-btn-danger" id="btn-reject-survey">Từ chối</button>
+                <button type="submit" name="action" value="approve" class="doc-btn doc-btn-success">Phê duyệt & Phát hành</button>
+              {% else %}
+                <span class="doc-badge doc-badge-approved" style="font-size: 13px; padding: 8px 16px;">
+                  ✓ Bài khảo sát này đã được phê duyệt
+                </span>
+              {% endif %}
+            </div>
+          </form>
 
         </div>
 
       </section>
 
-      <!-- Cột phụ: Thông tin đề xuất -->
+      <!-- Cột phụ: Thông tin thiết lập (theo thiết kế ảnh đính kèm) -->
       <aside class="doc-col-side">
         
-        <div class="doc-card">
-          <h3 class="doc-card-title">Thông tin đề xuất</h3>
+        <div class="doc-card" style="margin-bottom: 20px;">
+          <h3 class="doc-card-title" style="margin-bottom: 4px; font-size: 16px; font-weight: 700; color: var(--ink);">Thông tin thiết lập</h3>
+          <div style="font-size: 12px; color: var(--ink-soft); display: flex; align-items: center; gap: 5px; margin-bottom: 16px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>Chỉ xem · Không thể chỉnh sửa</span>
+          </div>
           
+          <div style="font-weight: 700; font-size: 13px; color: var(--ink); margin-bottom: 12px;">Thông tin chung</div>
+
           <div class="doc-meta-list">
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Người đề xuất</span>
-              <span class="doc-meta-value">Lê Thu Trang</span>
+            <div class="doc-meta-row" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="doc-meta-label" style="font-size: 12px; color: var(--ink-soft);">Người tạo</span>
+              <span class="doc-meta-value" style="font-size: 14px; font-weight: 600; color: var(--ink);">
+                {{ survey.creator.get_full_name|default:survey.creator.username }}
+              </span>
             </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Mã nhân viên</span>
-              <span class="doc-meta-value">NV-045</span>
+
+            <div class="doc-meta-row" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="doc-meta-label" style="font-size: 12px; color: var(--ink-soft);">Đơn vị phụ trách</span>
+              <span class="doc-meta-value" style="font-size: 14px; font-weight: 600; color: var(--ink);">
+                {{ survey.department.name }}
+              </span>
             </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Phòng ban</span>
-              <span class="doc-meta-value">Nhân sự & Hành chính</span>
+
+            <div class="doc-meta-row" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="doc-meta-label" style="font-size: 12px; color: var(--ink-soft);">Ngày gửi duyệt</span>
+              <span class="doc-meta-value" style="font-size: 14px; font-weight: 600; color: var(--ink);">
+                {{ survey.date_created|date:"H:i d/m/Y" }}
+              </span>
             </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Thời điểm gửi</span>
-              <span class="doc-meta-value">09:30 04/11/2026</span>
+
+            <div class="doc-meta-row" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="doc-meta-label" style="font-size: 12px; color: var(--ink-soft);">Người tham gia</span>
+              <a href="javascript:void(0)" id="btn-open-participants" style="font-size: 13px; font-weight: 600; color: var(--navy); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                Xem danh sách
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
             </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Đối tượng</span>
-              <span class="doc-meta-value">Toàn bộ nhân sự</span>
+
+            <div class="doc-meta-row" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="doc-meta-label" style="font-size: 12px; color: var(--ink-soft);">Người quản lý</span>
+              <a href="javascript:void(0)" id="btn-open-managers" style="font-size: 13px; font-weight: 600; color: var(--navy); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                Xem danh sách
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
             </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Thời hạn dự kiến</span>
-              <span class="doc-meta-value">15/11/2026</span>
+
+            <div class="doc-meta-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+              <span class="doc-meta-label" style="font-size: 13px; color: var(--ink-soft);">Phản hồi ẩn danh</span>
+              <span class="doc-meta-value" style="font-size: 13px; font-weight: 600; color: var(--ink);">
+                {% if survey.anonymous %}Có{% else %}Không{% endif %}
+              </span>
+            </div>
+
+            <div class="doc-meta-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+              <span class="doc-meta-label" style="font-size: 13px; color: var(--ink-soft);">Giới hạn phản hồi</span>
+              <span class="doc-meta-value" style="font-size: 13px; font-weight: 600; color: var(--ink);">
+                {% if survey.response_limit %}
+                  {{ survey.response_limit }} lần / người
+                {% else %}
+                  Không giới hạn
+                {% endif %}
+              </span>
             </div>
           </div>
         </div>
@@ -137,5 +229,79 @@
     </div>
 
   </main>
+
+  <!-- ================= POP-UP 1: DANH SÁCH NGƯỜI THAM GIA ================= -->
+  <div class="survey-modal-overlay" id="modal-participants" style="display: none;">
+    <div class="survey-modal-card">
+      <div class="survey-modal-header">
+        <div>
+          <h3 class="survey-modal-title">Danh sách người tham gia</h3>
+          <p class="survey-modal-subtitle">Khảo sát: {{ survey.name }}</p>
+        </div>
+        <button type="button" class="survey-modal-close" data-close-modal title="Đóng">&times;</button>
+      </div>
+
+      <div class="survey-modal-search-box">
+        <label class="survey-modal-search-label">Tìm kiếm</label>
+        <input type="text" class="survey-modal-search-input" placeholder="Tìm theo tên hoặc email">
+      </div>
+
+      <div class="survey-modal-body">
+        {% if participants %}
+          {% for p in participants %}
+            <div class="survey-user-row" data-search="{{ p.full_name }} {{ p.email }} {{ p.department_name }}">
+              <div class="survey-user-avatar">{{ p.initials }}</div>
+              <div class="survey-user-info">
+                <div class="survey-user-name">{{ p.full_name }}</div>
+                <div class="survey-user-dep">{{ p.department_name }}</div>
+              </div>
+              <div class="survey-user-email">{{ p.email }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="survey-modal-empty" style="display: block;">Chưa có người tham gia nào được gán quyền.</div>
+        {% endif %}
+        <div class="survey-modal-empty" style="display: none;">Không tìm thấy người tham gia phù hợp.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= POP-UP 2: DANH SÁCH NGƯỜI QUẢN LÝ ================= -->
+  <div class="survey-modal-overlay" id="modal-managers" style="display: none;">
+    <div class="survey-modal-card">
+      <div class="survey-modal-header">
+        <div>
+          <h3 class="survey-modal-title">Danh sách người quản lý</h3>
+          <p class="survey-modal-subtitle">Khảo sát: {{ survey.name }}</p>
+        </div>
+        <button type="button" class="survey-modal-close" data-close-modal title="Đóng">&times;</button>
+      </div>
+
+      <div class="survey-modal-search-box">
+        <label class="survey-modal-search-label">Tìm kiếm</label>
+        <input type="text" class="survey-modal-search-input" placeholder="Tìm theo tên hoặc email">
+      </div>
+
+      <div class="survey-modal-body">
+        {% if managers %}
+          {% for m in managers %}
+            <div class="survey-user-row" data-search="{{ m.full_name }} {{ m.email }} {{ m.department_name }}">
+              <div class="survey-user-avatar">{{ m.initials }}</div>
+              <div class="survey-user-info">
+                <div class="survey-user-name">{{ m.full_name }}</div>
+                <div class="survey-user-dep">{{ m.department_name }}</div>
+              </div>
+              <div class="survey-user-email">{{ m.email }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="survey-modal-empty" style="display: block;">Chưa có người quản lý nào được gán quyền.</div>
+        {% endif %}
+        <div class="survey-modal-empty" style="display: none;">Không tìm thấy người quản lý phù hợp.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/survey_approve_detail.js' %}"></script>
 
 {% endblock %}

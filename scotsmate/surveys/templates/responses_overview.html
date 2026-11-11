@@ -1,4 +1,5 @@
-{%  extends 'base.html' %}
+{% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 
@@ -7,12 +8,20 @@
     <!-- Tiêu đề trang & Hành động xuất file -->
     <header class="doc-header">
       <div>
-        <h1 class="doc-header-title">Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026</h1>
-        <p class="doc-header-subtitle">Tổng hợp và phân tích dữ liệu thống kê từ 48 lượt phản hồi của cán bộ nhân viên</p>
+        <h1 class="doc-header-title" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          {{ survey.name }}
+          {% if not survey.is_visible %}
+            <span class="doc-badge doc-badge-draft" style="font-size: 12px; font-weight: 600; color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1;">Đã ẩn</span>
+          {% endif %}
+          {% if not survey.is_respondable %}
+            <span class="doc-badge doc-badge-draft" style="font-size: 12px; font-weight: 600; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca;">Ngưng nhận phản hồi</span>
+          {% endif %}
+        </h1>
+        <p class="doc-header-subtitle">Tổng hợp và phân tích dữ liệu thống kê từ {{ total_responses }} lượt phản hồi của cán bộ nhân viên</p>
       </div>
       <div style="display: flex; gap: 12px;">
-        <a href="published.html" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
-        <a href="#" class="doc-btn doc-btn-primary">
+        <a href="{% url 'SurveyPublished' %}" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
+        <a href="{% url 'SurveyExportExcel' survey.id %}" class="doc-btn doc-btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -23,152 +32,214 @@
       </div>
     </header>
 
+    {% if messages %}
+      <div style="margin-bottom: 20px;">
+        {% for message in messages %}
+          <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; font-size: 14px;
+                      {% if message.tags == 'error' %}background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;
+                      {% else %}background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <!-- Tabs chuyển đổi giữa Tổng quan và Chi tiết từng người -->
     <nav class="doc-tabs">
-      <a href="responses_overview.html?id=301" class="doc-tab active">Tổng quan phân tích</a>
-      <a href="responses_detail.html?id=301" class="doc-tab">Chi tiết từng phản hồi (48)</a>
+      <a href="{% url 'ResponseOverview' survey.id %}" class="doc-tab active">Tổng quan phân tích</a>
+      <a href="{% url 'ResponseDetail' survey.id %}" class="doc-tab">Chi tiết từng phản hồi ({{ total_responses }})</a>
     </nav>
 
-    <!-- Thẻ tóm tắt số liệu chính -->
-    <section style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 100%;">
-      <div class="doc-card" style="padding: 20px;">
+    <!-- Thẻ tóm tắt số liệu (2 cột, max-width <= 2x height) -->
+    <section style="display: flex; gap: 20px; width: 100%; flex-wrap: wrap; margin-bottom: 24px;">
+
+      <!-- Card 1: Tổng lượt phản hồi -->
+      <div class="doc-card" style="padding: 20px; flex: 0 1 260px; max-width: 260px; min-width: 220px; box-sizing: border-box;">
         <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;">Tổng lượt phản hồi</div>
-        <div style="font-size: 28px; font-weight: 700; color: var(--navy);">48 / 60</div>
-        <div style="font-size: 12px; color: var(--teal-dark); margin-top: 4px;">Đạt 80% chỉ tiêu</div>
+        <div style="font-size: 28px; font-weight: 700; color: var(--navy);">
+          {{ total_responses }}{% if target_count > 0 %} / {{ target_count }}{% endif %}
+        </div>
+        <div style="font-size: 12px; color: var(--teal-dark); margin-top: 4px;">
+          {% if target_count > 0 %}
+            Đạt {{ completion_pct }}% chỉ tiêu
+          {% else %}
+            Đã ghi nhận phản hồi
+          {% endif %}
+        </div>
       </div>
 
-      <div class="doc-card" style="padding: 20px;">
-        <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;">Điểm hài lòng trung bình</div>
-        <div style="font-size: 28px; font-weight: 700; color: var(--teal-dark);">4.2 / 5.0</div>
-        <div style="font-size: 12px; color: var(--teal-dark); margin-top: 4px;">Mức đánh giá tích cực</div>
+      <!-- Card 2: Thời hạn & Trạng thái -->
+      <div class="doc-card" style="padding: 20px; flex: 0 1 260px; max-width: 260px; min-width: 220px; box-sizing: border-box;">
+        <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;">Thời hạn & Trạng thái</div>
+        <div style="font-size: 22px; font-weight: 700; color: var(--ink); margin-top: 2px;">
+          {% if not survey.is_respondable %}
+            <span style="color: #b91c1c;">Ngưng nhận</span>
+          {% elif not survey.is_visible %}
+            <span style="color: #64748b;">Đã ẩn</span>
+          {% elif is_open %}
+            {% if survey.response_deadline %}
+              {{ survey.time_left }}
+            {% else %}
+              Đang mở
+            {% endif %}
+          {% else %}
+            Đã kết thúc
+          {% endif %}
+        </div>
+        <div style="font-size: 12px; margin-top: 6px; color: {% if not survey.is_respondable %}#b91c1c{% elif not survey.is_visible %}#64748b{% elif is_open %}#16a34a{% else %}#94a3b8{% endif %};">
+          {% if not survey.is_respondable %}
+            Đã dừng nhận phản hồi
+          {% elif not survey.is_visible %}
+            Ẩn khỏi danh sách nhân sự
+          {% elif survey.response_deadline %}
+            Hạn: {{ survey.response_deadline|date:"H:i d/m/Y" }}
+          {% else %}
+            Không giới hạn thời gian
+          {% endif %}
+        </div>
       </div>
 
-      <div class="doc-card" style="padding: 20px;">
-        <div style="font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;">Số ý kiến đóng góp</div>
-        <div style="font-size: 28px; font-weight: 700; color: var(--navy);">18 ý kiến</div>
-        <div style="font-size: 12px; color: var(--ink-soft); margin-top: 4px;">Trong phần tự luận</div>
-      </div>
-
-      <div class="doc-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: center;">
-        <a href="surveys_participants_list_ex1.html" class="doc-btn doc-btn-secondary" style="height: 38px; font-size: 13px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-          </svg>
-          Danh sách người tham gia
-        </a>
-      </div>
     </section>
 
     <!-- Phân tích chi tiết từng câu hỏi -->
     <section style="display: flex; flex-direction: column; gap: 24px; width: 100%;">
       
-      <!-- Câu 1 Chart -->
-      <div class="doc-card">
-        <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 20px;">
-          Câu 1: Mức độ hài lòng tổng quan về môi trường làm việc tại ScotsMate
-        </h2>
-        
-        <div style="display: flex; flex-direction: column; gap: 14px; max-width: 800px;">
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Rất hài lòng (5★)</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 45%; background: var(--teal-dark);"></div>
-            </div>
-            <div class="survey-chart-percent">45% (22)</div>
-          </div>
+      {% if questions %}
+        {% for q in questions %}
 
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Hài lòng (4★)</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 38%; background: var(--navy);"></div>
+          {% if q.is_mc %}
+            <!-- Card phân tích câu trắc nghiệm -->
+            <div class="doc-card" style="padding: 24px;">
+              <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
+                Câu {{ q.index }}: {{ q.caption }}
+              </h2>
+              <p style="font-size: 13px; color: var(--ink-soft); margin: 0 0 20px 0;">
+                Dạng câu hỏi:
+                {% if q.max_choice == 1 %}
+                  Lựa chọn đơn (Trắc nghiệm 1 lựa chọn)
+                {% else %}
+                  Nhiều lựa chọn (Checkbox tối đa {{ q.max_choice }} lựa chọn)
+                {% endif %}
+              </p>
+              
+              <div style="display: flex; flex-direction: column; gap: 14px; max-width: 800px;">
+                {% for c in q.choices %}
+                  <div class="survey-chart-row">
+                    <div class="survey-chart-label" title="{{ c.content }}">{{ c.content }}</div>
+                    <div class="survey-chart-bar-bg">
+                      <div class="survey-chart-bar-val" style="width: {{ c.pct }}%; background: {% if forloop.first and c.count > 0 %}var(--teal-dark){% else %}var(--navy){% endif %};"></div>
+                    </div>
+                    <div class="survey-chart-percent">{{ c.pct }}% ({{ c.count }})</div>
+                  </div>
+                {% empty %}
+                  <div style="font-size: 13px; color: var(--ink-soft);">Chưa có phương án lựa chọn nào.</div>
+                {% endfor %}
+              </div>
             </div>
-            <div class="survey-chart-percent">38% (18)</div>
-          </div>
 
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Bình thường (3★)</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 12%; background: #94a3b8;"></div>
-            </div>
-            <div class="survey-chart-percent">12% (6)</div>
-          </div>
+          {% elif q.is_essay %}
+            <!-- Card phân tích câu tự luận (Phương án B: Hiển thị danh sách cuộn trực tiếp) -->
+            <div class="doc-card" style="padding: 24px;">
+              <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
+                Câu {{ q.index }}: {{ q.caption }}
+              </h2>
+              <p style="font-size: 13px; color: var(--ink-soft); margin: 0 0 16px 0;">
+                Đã thu thập được {{ q.answers|length }} ý kiến phản hồi{% if q.max_character %} (Giới hạn tối đa {{ q.max_character }} ký tự){% endif %}.
+              </p>
 
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Không hài lòng (2★)</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 5%; background: #f59e0b;"></div>
+              {% if q.answers %}
+                <div style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; padding-right: 6px;">
+                  {% for ans in q.answers %}
+                    <div style="background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; color: var(--ink-soft);">
+                        <span style="font-weight: 600; color: var(--navy); display: inline-flex; align-items: center; gap: 4px;">
+                          {% if survey.anonymous or ans.is_anonymous %}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            Người phản hồi ẩn danh #{{ forloop.counter }}
+                          {% else %}
+                            {{ ans.respondent_name }}{% if ans.department %} ({{ ans.department }}){% endif %}
+                          {% endif %}
+                        </span>
+                        <span>
+                          {% if survey.anonymous or ans.is_anonymous %}
+                            {{ ans.submission_date|date:"d/m/Y" }}
+                          {% else %}
+                            {{ ans.submission_date|date:"H:i d/m/Y" }}
+                          {% endif %}
+                        </span>
+                      </div>
+                      <div style="font-size: 13px; color: var(--ink); line-height: 1.5; white-space: pre-line;">
+                        {{ ans.text }}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div style="padding: 18px; background: #f8fafc; border-radius: 8px; text-align: center; color: var(--ink-soft); font-size: 13px;">
+                  Chưa có ý kiến phản hồi nào cho câu hỏi này.
+                </div>
+              {% endif %}
             </div>
-            <div class="survey-chart-percent">5% (2)</div>
-          </div>
 
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Rất không hài lòng (1★)</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 0%; background: #e11d48;"></div>
-            </div>
-            <div class="survey-chart-percent">0% (0)</div>
-          </div>
+          {% endif %}
+
+        {% endfor %}
+      {% else %}
+        <div class="doc-card" style="padding: 40px; text-align: center; color: var(--ink-soft); font-size: 14px;">
+          Bài khảo sát này hiện chưa có câu hỏi nào để phân tích.
         </div>
-      </div>
-
-      <!-- Câu 2 Chart -->
-      <div class="doc-card">
-        <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 20px;">
-          Câu 2: Các khía cạnh cần ưu tiên cải thiện trong thời gian tới
-        </h2>
-
-        <div style="display: flex; flex-direction: column; gap: 14px; max-width: 800px;">
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Cơ sở vật chất & Lab</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 68%; background: var(--navy);"></div>
-            </div>
-            <div class="survey-chart-percent">68% (33)</div>
-          </div>
-
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Chương trình tập huấn</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 52%; background: var(--navy);"></div>
-            </div>
-            <div class="survey-chart-percent">52% (25)</div>
-          </div>
-
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Chính sách khen thưởng</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 44%; background: var(--navy);"></div>
-            </div>
-            <div class="survey-chart-percent">44% (21)</div>
-          </div>
-
-          <div class="survey-chart-row">
-            <div class="survey-chart-label">Hoạt động gắn kết</div>
-            <div class="survey-chart-bar-bg">
-              <div class="survey-chart-bar-val" style="width: 31%; background: var(--navy);"></div>
-            </div>
-            <div class="survey-chart-percent">31% (15)</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Câu 3 Tự luận Card -->
-      <div class="doc-card" style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <h2 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
-            Câu 3: Đóng góp ý kiến và đề xuất nguyện vọng tự do
-          </h2>
-          <p style="font-size: 13px; color: var(--ink-soft); margin: 0;">
-            Đã thu thập được 18 phản hồi chi tiết từ nhân sự các cơ sở.
-          </p>
-        </div>
-        <a href="surveys_essay_response_list_ex1.html" class="doc-btn doc-btn-primary" style="height: 40px; font-size: 13px;">
-          Xem danh sách 18 ý kiến
-        </a>
-      </div>
+      {% endif %}
 
     </section>
+
+    <!-- Cụm nút quản trị khảo sát (ở cuối trang bên phải) -->
+    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 16px; padding-top: 24px; border-top: 1px solid var(--line);">
+      <form method="POST" style="display: inline-flex; gap: 12px;">
+        {% csrf_token %}
+
+        <!-- Nút Ẩn / Bỏ ẩn khảo sát (is_visible) -->
+        {% if survey.is_visible %}
+          <button type="submit" name="action" value="toggle_visible" class="doc-btn doc-btn-secondary" onclick="return confirm('Bạn có chắc chắn muốn ẨN bài khảo sát này khỏi danh sách chung của nhân sự không?');" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            Ẩn khảo sát
+          </button>
+        {% else %}
+          <button type="submit" name="action" value="toggle_visible" class="doc-btn doc-btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Bỏ ẩn khảo sát
+          </button>
+        {% endif %}
+
+        <!-- Nút Ngưng nhận phản hồi / Tiếp tục nhận phản hồi (is_respondable) -->
+        {% if survey.is_respondable %}
+          <button type="submit" name="action" value="toggle_respondable" class="doc-btn doc-btn-danger" onclick="return confirm('Bạn có chắc chắn muốn NGƯNG nhận phản hồi cho khảo sát này? Nhân sự sẽ không thể nộp thêm bài.');" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="10" y1="15" x2="10" y2="9"></line>
+              <line x1="14" y1="15" x2="14" y2="9"></line>
+            </svg>
+            Ngưng nhận phản hồi
+          </button>
+        {% else %}
+          <button type="submit" name="action" value="toggle_respondable" class="doc-btn doc-btn-success" style="display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Tiếp tục nhận phản hồi
+          </button>
+        {% endif %}
+
+      </form>
+    </div>
 
   </main>
 

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 
@@ -7,14 +8,17 @@
     <!-- Tiêu đề trang -->
     <header class="doc-header">
       <div>
-        <h1 class="doc-header-title">Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026</h1>
-        <p class="doc-header-subtitle">Ý kiến phản hồi của bạn hoàn toàn bảo mật và đóng góp vào cải thiện phúc lợi nhân sự</p>
+        <h1 class="doc-header-title">{{ survey.name }}</h1>
+        <p class="doc-header-subtitle">
+          {{ survey.description|default:"Ý kiến phản hồi của bạn hoàn toàn bảo mật và đóng góp vào cải thiện phúc lợi nhân sự" }}
+        </p>
       </div>
-      <a href="list.html" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
+      <a href="{% url 'MySurvey' %}" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
     </header>
 
     <!-- Layout 2 cột: Nội dung làm bài & Thông tin tóm tắt -->
-    <form class="doc-two-col" action="#" method="POST">
+    <form class="doc-two-col" id="survey-take-form" method="POST" action="" data-is-view-mode="{{ is_view_mode|yesno:'1,0' }}">
+      {% csrf_token %}
       
       <!-- Cột chính bên trái: Các câu hỏi -->
       <section class="doc-col-main">
@@ -23,80 +27,117 @@
           <!-- Thanh tiến độ -->
           <div class="survey-progress-container">
             <div class="survey-progress-labels">
-              <span>Tiến độ hoàn thành: 2 / 3 câu hỏi</span>
-              <strong>67%</strong>
+              <span id="progress-text">Tiến độ hoàn thành: {{ answered_count }} / {{ total_questions }} câu hỏi</span>
+              <strong id="progress-percent-label">{{ progress_percent }}%</strong>
             </div>
             <div class="survey-progress-track">
-              <div class="survey-progress-fill" style="width: 67%;"></div>
+              <div class="survey-progress-fill" id="progress-fill-bar" style="width: {{ progress_percent }}%;"></div>
             </div>
           </div>
 
-          <!-- Câu hỏi 1: Lựa chọn đơn (Radio) -->
-          <div class="survey-question-card" style="padding: 0; border: none; box-shadow: none;">
-            <h2 class="survey-question-title">1. Bạn đánh giá mức độ hài lòng tổng quan về môi trường làm việc tại ScotsMate như thế nào? <span style="color: #e11d48;">*</span></h2>
-            <div class="survey-options-grid">
-              <label class="survey-option-label">
-                <input type="radio" name="q1" value="1">
-                <span>Rất không hài lòng</span>
-              </label>
-              <label class="survey-option-label">
-                <input type="radio" name="q1" value="2">
-                <span>Không hài lòng</span>
-              </label>
-              <label class="survey-option-label">
-                <input type="radio" name="q1" value="3">
-                <span>Bình thường</span>
-              </label>
-              <label class="survey-option-label" style="background: var(--blue-soft); border-color: var(--navy);">
-                <input type="radio" name="q1" value="4" checked>
-                <strong>Hài lòng</strong>
-              </label>
-              <label class="survey-option-label">
-                <input type="radio" name="q1" value="5">
-                <span>Rất hài lòng</span>
-              </label>
+          {% if not questions %}
+            <div style="text-align: center; padding: 40px 20px; color: var(--ink-soft);">
+              <p>Khảo sát này hiện chưa có câu hỏi nào.</p>
             </div>
-          </div>
+          {% endif %}
 
-          <hr style="border: 0; border-top: 1px solid var(--line); margin: 24px 0;">
+          {% for q in questions %}
+            <div class="survey-question-card" id="card-{{ q.id }}"
+                 data-qid="{{ q.id }}"
+                 data-required="{{ q.is_required|yesno:'1,0' }}"
+                 data-type="{% if q.is_mc %}mc{% else %}essay{% endif %}"
+                 data-max-choice="{{ q.max_choice }}"
+                 data-max-char="{{ q.max_character|default:0 }}"
+                 style="padding: 0; border: none; box-shadow: none; transition: outline 0.2s ease;">
+              
+              <h2 class="survey-question-title">
+                {{ q.index }}. {{ q.caption }}
+                {% if q.is_required %}<span style="color: #e11d48;">*</span>{% endif %}
+                {% if q.is_mc and q.max_choice > 1 %}
+                  <span style="font-size: 13px; font-weight: normal; color: var(--ink-soft);">(Chọn tối đa {{ q.max_choice }})</span>
+                {% elif q.is_essay and q.max_character %}
+                  <span style="font-size: 13px; font-weight: normal; color: var(--ink-soft);">(Tối đa {{ q.max_character }} ký tự)</span>
+                {% endif %}
+              </h2>
 
-          <!-- Câu hỏi 2: Nhiều lựa chọn (Checkbox) -->
-          <div class="survey-question-card" style="padding: 0; border: none; box-shadow: none;">
-            <h2 class="survey-question-title">2. Những khía cạnh nào bạn cảm thấy trung tâm cần cải thiện và đầu tư thêm trong thời gian tới? (Chọn tối đa 3) <span style="color: #e11d48;">*</span></h2>
-            <div class="survey-options-list">
-              <label class="survey-option-label" style="background: var(--blue-soft); border-color: var(--navy);">
-                <input type="checkbox" name="q2" value="cs_vc" checked>
-                <span>Cơ sở vật chất, trang thiết bị giảng dạy và phòng Lab máy tính</span>
-              </label>
-              <label class="survey-option-label" style="background: var(--blue-soft); border-color: var(--navy);">
-                <input type="checkbox" name="q2" value="dao_tao" checked>
-                <span>Chương trình tập huấn chuyên môn định kỳ và cơ hội phát triển cá nhân</span>
-              </label>
-              <label class="survey-option-label">
-                <input type="checkbox" name="q2" value="phuc_loi">
-                <span>Chính sách khen thưởng, bảo hiểm và chế độ đãi ngộ ngoài lương</span>
-              </label>
-              <label class="survey-option-label">
-                <input type="checkbox" name="q2" value="hoat_dong">
-                <span>Hoạt động gắn kết đội ngũ (Team building, sinh hoạt ngoại khóa)</span>
-              </label>
+              <!-- Cảnh báo lỗi ngay tại chỗ (Inline Validation Alert) -->
+              <div class="survey-question-error" id="error-{{ q.id }}"
+                   style="{% if q.error_msg %}display: flex;{% else %}display: none;{% endif %} align-items: center; gap: 8px; color: #e11d48; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; font-weight: 500;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span class="error-text">{{ q.error_msg|default:'' }}</span>
+              </div>
+
+              {% if q.is_mc %}
+                <!-- Trắc nghiệm đơn (Radio) -->
+                {% if q.max_choice == 1 %}
+                  <div class="{% if q.is_grid %}survey-options-grid{% else %}survey-options-list{% endif %}">
+                    {% for choice in q.choices %}
+                      <label class="survey-option-label">
+                        <input type="radio" name="question_{{ q.id }}" value="{{ choice.id }}"
+                               {% if choice.id|stringformat:"s" in q.selected_choice_ids %}checked{% endif %}
+                               {% if is_view_mode %}disabled{% endif %}>
+                        <span>{{ choice.content }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <!-- Trắc nghiệm nhiều lựa chọn (Checkbox) -->
+                  <div class="survey-options-list">
+                    {% for choice in q.choices %}
+                      <label class="survey-option-label">
+                        <input type="checkbox" name="question_{{ q.id }}" value="{{ choice.id }}"
+                               {% if choice.id|stringformat:"s" in q.selected_choice_ids %}checked{% endif %}
+                               {% if is_view_mode %}disabled{% endif %}>
+                        <span>{{ choice.content }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% elif q.is_essay %}
+                <!-- Tự luận (Textarea) -->
+                <textarea class="doc-form-textarea"
+                          name="question_{{ q.id }}"
+                          id="essay-{{ q.id }}"
+                          rows="4"
+                          placeholder="Nhập ý kiến đóng góp của bạn tại đây..."
+                          {% if is_view_mode %}disabled{% endif %}
+                          {% if q.max_character %}maxlength="{{ q.max_character }}"{% endif %}>{{ q.user_answer }}</textarea>
+                {% if q.max_character %}
+                  <div style="display: flex; justify-content: flex-end; font-size: 12px; color: var(--ink-soft); margin-top: 4px;">
+                    <span id="char-count-{{ q.id }}">{{ q.user_answer|length }}</span> / {{ q.max_character }} ký tự
+                  </div>
+                {% endif %}
+              {% endif %}
+
             </div>
-          </div>
 
-          <hr style="border: 0; border-top: 1px solid var(--line); margin: 24px 0;">
+            {% if not forloop.last %}
+              <hr style="border: 0; border-top: 1px solid var(--line); margin: 24px 0;">
+            {% endif %}
+          {% endfor %}
 
-          <!-- Câu hỏi 3: Tự luận (Textarea) -->
-          <div class="survey-question-card" style="padding: 0; border: none; box-shadow: none;">
-            <h2 class="survey-question-title">3. Bạn có đề xuất hoặc nguyện vọng cụ thể nào muốn gửi gắm tới Ban giám đốc trung tâm?</h2>
-            <p class="survey-question-desc">Hãy chia sẻ cởi mở để ban lãnh đạo có giải pháp hỗ trợ bạn tốt nhất.</p>
-            <textarea class="doc-form-textarea" rows="4" placeholder="Nhập ý kiến đóng góp của bạn tại đây..."></textarea>
-          </div>
-
-          <!-- Nút hành động -->
-          <div style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 24px;">
-            <button type="button" class="doc-btn doc-btn-secondary">Lưu bản nháp</button>
-            <button type="submit" class="doc-btn doc-btn-primary">Gửi bài khảo sát</button>
-          </div>
+          <!-- Nút hành động hoặc thông báo khi xem lại -->
+          {% if is_view_mode %}
+            <div style="margin-top: 28px; padding: 14px 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px; color: #166534; font-size: 14px; font-weight: 500;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span>Bạn đã hoàn thành và nộp khảo sát này vào lúc <strong>{{ existing_response.submission_date|date:"H:i d/m/Y" }}</strong>.</span>
+              </div>
+              <a href="{% url 'MySurvey' %}" class="doc-btn doc-btn-secondary">Quay lại danh sách</a>
+            </div>
+          {% else %}
+            <div style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 24px;">
+              <button type="submit" name="action" value="draft" class="doc-btn doc-btn-secondary" id="btn-save-draft">Lưu bản nháp</button>
+              <button type="submit" name="action" value="submit" class="doc-btn doc-btn-primary" id="btn-submit-survey">Gửi bài khảo sát</button>
+            </div>
+          {% endif %}
 
         </div>
       </section>
@@ -108,25 +149,39 @@
           <h3 class="doc-card-title">Thông tin khảo sát</h3>
           
           <div style="margin-bottom: 16px;">
-            <span class="doc-badge doc-badge-in-progress">Đang thực hiện</span>
+            {% if is_view_mode %}
+              <span class="doc-badge doc-badge-approved">Đã hoàn thành</span>
+            {% elif is_draft %}
+              <span class="doc-badge doc-badge-in-progress">Lưu nháp</span>
+            {% elif user_submitted_count > 0 %}
+              <span class="doc-badge doc-badge-approved">Thực hiện lại</span>
+            {% else %}
+              <span class="doc-badge doc-badge-pending">Chưa thực hiện</span>
+            {% endif %}
           </div>
 
           <div class="doc-meta-list">
             <div class="doc-meta-row">
               <span class="doc-meta-label">Mã khảo sát</span>
-              <span class="doc-meta-value">SURV-2026-03</span>
+              <span class="doc-meta-value">SURV-{{ survey.id|stringformat:"04d" }}</span>
             </div>
             <div class="doc-meta-row">
               <span class="doc-meta-label">Người tạo</span>
-              <span class="doc-meta-value">Phòng Nhân sự & Hành chính</span>
+              <span class="doc-meta-value">{{ survey.department.name|default:survey.creator.get_full_name|default:survey.creator.username }}</span>
             </div>
             <div class="doc-meta-row">
               <span class="doc-meta-label">Thời hạn nộp</span>
-              <span class="doc-meta-value">23:59 15/11/2026</span>
+              <span class="doc-meta-value">
+                {% if survey.response_deadline %}
+                  {{ survey.response_deadline|date:"H:i d/m/Y" }}
+                {% else %}
+                  Không giới hạn
+                {% endif %}
+              </span>
             </div>
             <div class="doc-meta-row">
               <span class="doc-meta-label">Tổng số câu</span>
-              <span class="doc-meta-value">3 câu hỏi</span>
+              <span class="doc-meta-value">{{ total_questions }} câu hỏi</span>
             </div>
           </div>
         </div>
@@ -139,7 +194,11 @@
           </svg>
           <div class="doc-notice-content">
             <h4>Bảo mật thông tin</h4>
-            <p>Mọi câu trả lời của bạn sẽ được ẩn danh trong các báo cáo thống kê gửi lên Ban giám đốc.</p>
+            {% if survey.anonymous %}
+              <p>Mọi câu trả lời của bạn trong khảo sát này sẽ được ẩn danh.</p>
+            {% else %}
+              <p>Ý kiến phản hồi của bạn được ghi nhận cùng tài khoản nhân sự nhằm phục vụ công tác theo dõi và cải tiến nội bộ.</p>
+            {% endif %}
           </div>
         </div>
 
@@ -148,5 +207,7 @@
     </form>
 
   </main>
+
+  <script src="{% static 'js/survey_taker.js' %}"></script>
 
 {% endblock %}
