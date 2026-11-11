@@ -225,6 +225,8 @@ class PostViewTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertNotContains(res, 'id="sidebar-following-count"')
         self.assertNotContains(res, 'id="following-modal"')
+        self.assertNotContains(res, 'Giới thiệu · Quyền riêng tư · Điều khoản')
+        self.assertNotContains(res, 'profile-sidebar-footer')
         self.assertContains(res, 'id="btn-edit-bio"')
 
     def test_other_profile_view_no_follow_button(self):
