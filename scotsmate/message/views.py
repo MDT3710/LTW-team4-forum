@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .models import Attachment, Conversation, ConversationMember, Message
 
@@ -635,7 +636,7 @@ def api_send_message(request):
             'sender_id': current_user.id,
             'sender_name': sender_info['display_name'],
             'content': new_msg.content or '',
-            'created_at': new_msg.created_at.strftime('%H:%M'),
+            'created_at': timezone.localtime(new_msg.created_at).strftime('%H:%M'),
             'is_me': True,
             'attachment': att_info,
         }
@@ -687,7 +688,7 @@ def api_get_messages(request, convo_id):
             'sender_id': m.sender.id,
             'sender_name': sender_info['display_name'],
             'content': m.content or '',
-            'created_at': m.created_at.strftime('%H:%M'),
+            'created_at': timezone.localtime(m.created_at).strftime('%H:%M'),
             'is_me': (m.sender.id == current_user.id),
             'attachment': att_data,
         })

@@ -91,9 +91,12 @@ def HomeView(request):
         except Exception:
             continue
 
-    from events.models import Event
+    from events.models import Event, EventRegistration
+    from courses.models import CourseEnrollment
     from django.utils import timezone
     now = timezone.now()
+
+    # 1. Danh sách sự kiện sắp tới toàn hệ thống
     upcoming_events = list(
         Event.objects.filter(status=Event.STATUS_UPCOMING, date_start__gte=now)
         .order_by('date_start')[:3]
@@ -101,9 +104,72 @@ def HomeView(request):
     for ev in upcoming_events:
         ev.is_registered = ev.registrations.filter(user=current_user).exists()
 
+    # 2. Lịch cá nhân của người dùng (Sự kiện đã đăng ký + Khóa học đang tham gia)
+    calendar_days_dict = {}
+
+    user_event_regs = (
+        EventRegistration.objects.filter(user=current_user, event__date_start__gte=now)
+        .select_related('event')
+        .order_by('event__date_start')[:4]
+    )
+    for reg in user_event_regs:
+        ev = reg.event
+        day_key = timezone.localtime(ev.date_start).strftime('%d/%m')
+        if day_key not in calendar_days_dict:
+            calendar_days_dict[day_key] = []
+        time_str = timezone.localtime(ev.date_start).strftime('%H:%M')
+        if ev.date_end:
+            time_str += ' – ' + timezone.localtime(ev.date_end).strftime('%H:%M')
+        calendar_days_dict[day_key].append({
+            'title': ev.title,
+            'time': time_str,
+            'location': ev.location,
+            'url': f'/events/{ev.id}/',
+            'type': 'event',
+            'icon': 'calendar'
+        })
+
+    user_courses = (
+        CourseEnrollment.objects.filter(emp=current_user, is_completed=False)
+        .select_related('course')
+        .order_by('-enrollment_date')[:2]
+    )
+    for en in user_courses:
+        day_key = timezone.localtime(en.course.date_end).strftime('%d/%m') if en.course.date_end else 'Đang học'
+        if day_key not in calendar_days_dict:
+            calendar_days_dict[day_key] = []
+        calendar_days_dict[day_key].append({
+            'title': f'Khóa: {en.course.title}',
+            'time': 'Bài kiểm tra cuối khóa',
+            'location': 'Trực tuyến LMS',
+            'url': f'/courses/trainee/courses/{en.course.id}/',
+            'type': 'course',
+            'icon': 'book'
+        })
+
+    if not calendar_days_dict:
+        for ev in upcoming_events[:2]:
+            day_key = timezone.localtime(ev.date_start).strftime('%d/%m')
+            if day_key not in calendar_days_dict:
+                calendar_days_dict[day_key] = []
+            calendar_days_dict[day_key].append({
+                'title': ev.title,
+                'time': timezone.localtime(ev.date_start).strftime('%H:%M'),
+                'location': ev.location,
+                'url': f'/events/{ev.id}/',
+                'type': 'suggested_event',
+                'icon': 'calendar'
+            })
+
+    calendar_schedule = [
+        {'date': k, 'items': v}
+        for k, v in calendar_days_dict.items()
+    ]
+
     return render(request, 'home.html', {
         'posts': valid_posts,
         'current_user': current_user,
         'search_query': query,
         'upcoming_events': upcoming_events,
+        'calendar_schedule': calendar_schedule,
     })

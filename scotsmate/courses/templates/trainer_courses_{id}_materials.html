@@ -37,7 +37,7 @@
         Tổng quan khóa học
       </a>
       <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
-        Tài liệu & Bài giảng ({{ materials_count|default:materials|length }})
+        Tài liệu & Bài giảng ({{ course.materials.count }})
       </a>
       <a href="/courses/trainer/courses/{{ course.id }}/exam/setup/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
         Thiết lập bài thi {% if exam %}<span class="text-emerald-600 font-bold">✓</span>{% endif %}

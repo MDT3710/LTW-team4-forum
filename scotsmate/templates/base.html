@@ -404,20 +404,6 @@
     </div>
   </header>
 
-  {% if messages %}
-    <div class="max-w-[1440px] mx-auto px-12 pt-4">
-      {% for message in messages %}
-        <div class="p-3.5 mb-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-3 shadow-xs {% if message.tags == 'error' or message.tags == 'danger' %}bg-rose-50 text-rose-800 border border-rose-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-900 border border-amber-200{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-900 border border-emerald-200{% else %}bg-[#edf4fb] text-[#134c81] border border-blue-200{% endif %}">
-          <div class="flex items-center gap-2.5">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>{{ message }}</span>
-          </div>
-          <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 font-bold ml-2">✕</button>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-
   {% block content %}
   {% endblock %}
 

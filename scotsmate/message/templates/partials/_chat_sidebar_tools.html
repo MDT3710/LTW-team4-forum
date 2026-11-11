@@ -1,40 +1,41 @@
-      <!-- 2 nút tròn: Tắt thông báo & Tìm kiếm -->
-      <div class="flex items-center justify-center gap-8 py-1">
-        <form method="POST" action="{% url 'toggle_mute' convo_id %}" class="sidebar-mute-form">
+      <!-- 2 nút thao tác nhanh: Tắt thông báo & Tìm kiếm -->
+      <div class="grid grid-cols-2 gap-3 py-1">
+        <form method="POST" action="{% url 'toggle_mute' convo_id %}" class="m-0">
           {% csrf_token %}
-          <button type="submit" id="toggle-mute-btn" class="sidebar-action-btn {% if is_muted %}is-active{% endif %} flex flex-col items-center gap-1.5 text-slate-600 hover:text-[#134c81] transition group" aria-pressed="{% if is_muted %}true{% else %}false{% endif %}">
-            <div class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-[#134c81] group-hover:bg-slate-50 transition">
+          <button type="submit" id="toggle-mute-btn" class="w-full py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300 transition flex flex-col items-center justify-center gap-1.5 cursor-pointer {% if is_muted %}text-[#134c81] bg-blue-50 border-blue-200{% else %}text-slate-600{% endif %}" aria-pressed="{% if is_muted %}true{% else %}false{% endif %}">
+            <div class="w-8 h-8 rounded-full {% if is_muted %}bg-blue-100 text-[#134c81]{% else %}bg-white text-slate-600{% endif %} flex items-center justify-center shadow-xs">
               {% if is_muted %}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   <path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path>
                   <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path>
-                  <path d="M18 8a6 6 0 0 0-9.33-5"></path>
                   <line x1="1" y1="1" x2="23" y2="23"></line>
                 </svg>
               {% else %}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
               {% endif %}
             </div>
-            <span class="text-[11px] text-slate-500">{% if is_muted %}Bật thông báo{% else %}Tắt thông báo{% endif %}</span>
+            <span class="text-[11px] font-medium {% if is_muted %}text-[#134c81] font-semibold{% else %}text-slate-600{% endif %}">
+              {% if is_muted %}Bật chuông{% else %}Tắt chuông{% endif %}
+            </span>
           </button>
         </form>
 
-        <button type="button" id="toggle-chat-search" class="sidebar-action-btn flex flex-col items-center gap-1.5 text-slate-600 hover:text-[#134c81] transition group" aria-expanded="false">
-          <div class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-[#134c81] group-hover:bg-slate-50 transition">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <button type="button" id="toggle-chat-search" class="w-full py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300 transition flex flex-col items-center justify-center gap-1.5 cursor-pointer text-slate-600" aria-expanded="false">
+          <div class="w-8 h-8 rounded-full bg-white text-slate-600 flex items-center justify-center shadow-xs">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
           </div>
-          <span class="text-[11px] text-slate-500">Tìm kiếm</span>
+          <span class="text-[11px] font-medium text-slate-600">Tìm kiếm</span>
         </button>
       </div>
 
-      <!-- Ô tìm kiếm tin nhắn trong đoạn chat -->
+      <!-- Ô tìm kiếm tin nhắn trong đoạn chat (mặc định ẩn) -->
       <div id="in-chat-search-panel" class="sidebar-search-panel is-hidden">
         <div class="sidebar-search-input-row">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400 shrink-0">
@@ -48,22 +49,24 @@
       </div>
 
       <!-- File phương tiện và file -->
-      <div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
-        <h4 class="text-xs font-bold text-slate-900 m-0 pt-2">File phương tiện và file</h4>
-        <div class="flex flex-col text-xs">
-          <button type="button" class="sidebar-accordion-trigger flex items-center justify-between py-2 text-slate-600 hover:text-[#134c81] transition" data-drawer-target="media-panel" aria-expanded="false">
-            <div class="flex items-center gap-2.5">
-              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+        <h4 class="text-xs font-bold text-slate-900 m-0 pt-1">File phương tiện & Tài liệu</h4>
+        
+        <div class="flex flex-col gap-1 text-xs">
+          <!-- Accordion 1: File phương tiện -->
+          <button type="button" class="sidebar-accordion-trigger flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-slate-50 text-slate-700 hover:text-[#134c81] transition" data-drawer-target="media-panel" aria-expanded="false">
+            <div class="flex items-center gap-2">
+              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <circle cx="8.5" cy="8.5" r="1.5"></circle>
                 <polyline points="21 15 16 10 5 21"></polyline>
               </svg>
-              <span>File phương tiện ({{ media_files|length }})</span>
+              <span class="font-medium">File phương tiện ({{ media_files|length }})</span>
             </div>
             <svg class="accordion-chevron text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
 
-          <div id="media-panel" class="sidebar-drawer is-hidden">
+          <div id="media-panel" class="sidebar-drawer is-hidden px-1">
             {% if media_files %}
               <div class="sidebar-media-grid">
                 {% for att in media_files %}
@@ -81,26 +84,25 @@
             {% endif %}
           </div>
 
-          <button type="button" class="sidebar-accordion-trigger flex items-center justify-between py-2 text-slate-600 hover:text-[#134c81] transition" data-drawer-target="file-panel" aria-expanded="false">
-            <div class="flex items-center gap-2.5">
-              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <!-- Accordion 2: File tài liệu -->
+          <button type="button" class="sidebar-accordion-trigger flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-slate-50 text-slate-700 hover:text-[#134c81] transition" data-drawer-target="file-panel" aria-expanded="false">
+            <div class="flex items-center gap-2">
+              <svg class="text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
               </svg>
-              <span>File ({{ document_files|length }})</span>
+              <span class="font-medium">File tài liệu ({{ document_files|length }})</span>
             </div>
             <svg class="accordion-chevron text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
 
-          <div id="file-panel" class="sidebar-drawer is-hidden">
+          <div id="file-panel" class="sidebar-drawer is-hidden px-1">
             {% if document_files %}
-              <div class="sidebar-doc-list">
+              <div class="sidebar-doc-list flex flex-col gap-1.5">
                 {% for att in document_files %}
-                  <a href="{{ att.file.url }}" target="_blank" class="sidebar-doc-item" title="{{ att.file_name }}">
-                    <span class="sidebar-doc-name">{{ att.file_name }}</span>
-                    {% if att.file_size_display %}
-                      <span class="sidebar-doc-size">{{ att.file_size_display }}</span>
-                    {% endif %}
+                  <a href="{{ att.file.url }}" target="_blank" class="sidebar-doc-item flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-50 text-slate-700 text-xs no-underline" title="{{ att.file_name }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span class="sidebar-doc-name truncate">{{ att.file_name }}</span>
                   </a>
                 {% endfor %}
               </div>

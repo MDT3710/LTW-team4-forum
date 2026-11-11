@@ -1,70 +1,70 @@
-    <!-- CỘT 1: Sidebar danh sách cuộc trò chuyện (248px) -->
-    <aside class="conversation-list w-[248px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-4 shrink-0 shadow-sm self-start min-h-[680px]">
-      <div class="convo-header flex items-center justify-between w-full">
-        <h2 class="convo-title text-lg font-bold text-slate-900 m-0">Hộp thư</h2>
-        <a href="{% url 'group_create' %}" class="convo-add-btn inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm no-underline">
+    <!-- CỘT 1: Sidebar danh sách cuộc trò chuyện (260px) -->
+    <aside class="conversation-list w-[260px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 shrink-0 shadow-sm self-start min-h-[680px]">
+      <div class="convo-header flex items-center justify-between w-full pb-1">
+        <h2 class="convo-title text-base font-bold text-slate-900 m-0">Hộp thư</h2>
+        <a href="{% url 'group_create' %}" class="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm no-underline">
           + Thêm mới
         </a>
       </div>
 
       <!-- Tìm kiếm cuộc trò chuyện -->
-      <div class="convo-search flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-        <svg class="text-slate-400 shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+        <svg class="text-slate-400 shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <input id="sidebar-convo-search" type="text" placeholder="Tìm cuộc trò chuyện..." class="bg-transparent border-none outline-none text-xs w-full text-slate-700">
       </div>
 
       <!-- Danh sách hội thoại động từ SQLite -->
-      <nav id="sidebar-convo-list" class="convo-items flex flex-col gap-1.5 flex-1">
+      <nav id="sidebar-convo-list" class="flex flex-col gap-1.5 flex-1 overflow-y-auto">
         {% for convo in conversations %}
           {% if convo.convo_type == 'group' %}
-            <a href="{% url 'group_detail' convo.id %}" data-convo-name="{{ convo.display_name|lower }}" class="convo-item p-2.5 rounded-xl flex flex-col gap-1.5 {% if current_group and convo.id == current_group.id %}bg-[#edf4fb] border border-blue-200/50{% else %}hover:bg-[#edf4fb] transition border border-transparent{% endif %} no-underline">
-              <div class="convo-identity flex items-center gap-2.5">
-                <div class="convo-avatar w-8 h-8 rounded-full {% if current_group and convo.id == current_group.id %}bg-white shadow-xs{% else %}bg-[#edf4fb]{% endif %} text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0">
-                  {{ convo.display_initials }}
+            <a href="{% url 'group_detail' convo.id %}" data-convo-name="{{ convo.display_name|lower }}" class="convo-item {% if current_group and convo.id == current_group.id %}active{% endif %}">
+              <div class="convo-avatar">
+                {{ convo.display_initials }}
+              </div>
+              <div class="convo-content">
+                <div class="convo-top-row">
+                  <span class="convo-name">{{ convo.display_name }}</span>
+                  <span class="convo-time">
+                    {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Mới{% endif %}
+                  </span>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">{{ convo.display_name }}</p>
-                  <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">
+                <div class="convo-bottom-row">
+                  <span class="convo-snippet">
                     {% if convo.last_msg %}{{ convo.last_msg.content|default:"[Tệp đính kèm]" }}{% else %}Nhóm • {{ convo.member_count }} thành viên{% endif %}
-                  </p>
+                  </span>
+                  {% if convo.is_muted %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" class="shrink-0">
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  {% endif %}
                 </div>
               </div>
-              <span class="convo-time text-[10px] {% if current_group and convo.id == current_group.id %}text-[#134c81] font-semibold{% else %}text-slate-400{% endif %} self-end">
-                {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Mới{% endif %}
-                {% if convo.is_muted %}
-                  <span class="convo-muted-badge" title="Đã tắt thông báo">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  </span>
-                {% endif %}
-              </span>
             </a>
           {% else %}
-            <a href="{% url 'inbox_detail' convo.target_user_id %}" data-convo-name="{{ convo.display_name|lower }}" class="convo-item p-2.5 rounded-xl flex flex-col gap-1.5 {% if active_convo and convo.id == active_convo.id %}bg-[#edf4fb] border border-blue-200/50{% else %}hover:bg-[#edf4fb] transition border border-transparent{% endif %} no-underline">
-              <div class="convo-identity flex items-center gap-2.5">
-                <div class="convo-avatar w-8 h-8 rounded-full {% if active_convo and convo.id == active_convo.id %}bg-white shadow-xs{% else %}bg-blue-100{% endif %} text-[#134c81] font-bold text-xs flex items-center justify-center shrink-0">
-                  {{ convo.display_initials }}
+            <a href="{% url 'inbox_detail' convo.target_user_id %}" data-convo-name="{{ convo.display_name|lower }}" class="convo-item {% if active_convo and convo.id == active_convo.id %}active{% endif %}">
+              <div class="convo-avatar">
+                {{ convo.display_initials }}
+              </div>
+              <div class="convo-content">
+                <div class="convo-top-row">
+                  <span class="convo-name">{{ convo.display_name }}</span>
+                  <span class="convo-time">
+                    {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Mới{% endif %}
+                  </span>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="convo-name text-xs font-semibold text-slate-900 truncate m-0">{{ convo.display_name }}</p>
-                  <p class="convo-subtitle text-[11px] text-slate-500 truncate m-0">
+                <div class="convo-bottom-row">
+                  <span class="convo-snippet">
                     {% if convo.last_msg %}{{ convo.last_msg.content|default:"[Tệp đính kèm]" }}{% else %}Trò chuyện 1-1{% endif %}
-                  </p>
+                  </span>
+                  {% if convo.is_muted %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" class="shrink-0">
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  {% endif %}
                 </div>
               </div>
-              <span class="convo-time text-[10px] {% if active_convo and convo.id == active_convo.id %}text-[#134c81] font-semibold{% else %}text-slate-400{% endif %} self-end">
-                {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Mới{% endif %}
-                {% if convo.is_muted %}
-                  <span class="convo-muted-badge" title="Đã tắt thông báo">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/><path d="M18 8a6 6 0 0 0-9.33-5"/><line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  </span>
-                {% endif %}
-              </span>
             </a>
           {% endif %}
         {% empty %}
@@ -74,7 +74,7 @@
         {% endfor %}
       </nav>
 
-      <a href="{% url 'inbox_create' %}" class="w-full inline-flex items-center justify-center h-9 rounded-xl border border-slate-200 bg-white text-[#134c81] text-xs font-semibold hover:bg-slate-50 transition no-underline mt-2">
+      <a href="{% url 'inbox_create' %}" class="w-full inline-flex items-center justify-center h-9 rounded-xl border border-slate-200 bg-white text-[#134c81] text-xs font-semibold hover:bg-slate-50 transition no-underline mt-auto">
         + Tạo cuộc trò chuyện
       </a>
     </aside>
