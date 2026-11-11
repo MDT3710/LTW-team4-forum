@@ -100,6 +100,41 @@ class PostViewTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('newfeeds'))
 
+    def test_login_with_next_param(self):
+        anonymous_client = Client()
+        response = anonymous_client.post(reverse('login') + '?next=' + reverse('profile'), {
+            'username': 'minhanh',
+            'password': 'password123'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('profile'))
+
+    def test_authenticated_user_visiting_login_redirected(self):
+        # Người dùng đã đăng nhập vào /login/ sẽ tự động chuyển hướng theo redirect_authenticated_user
+        response = self.client.get(reverse('login'))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('newfeeds'))
+
+    def test_login_invalid_credentials(self):
+        anonymous_client = Client()
+        response = anonymous_client.post(reverse('login'), {
+            'username': 'minhanh',
+            'password': 'wrongpassword'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Tên đăng nhập hoặc mật khẩu không chính xác')
+
+    def test_logout_redirects_to_login(self):
+        # Đăng xuất qua GET hoặc POST đều chuyển về trang login
+        res_get = self.client.get(reverse('logout'))
+        self.assertEqual(res_get.status_code, 302)
+        self.assertRedirects(res_get, reverse('login'))
+
+        self.client.login(username='minhanh', password='password123')
+        res_post = self.client.post(reverse('logout'))
+        self.assertEqual(res_post.status_code, 302)
+        self.assertRedirects(res_post, reverse('login'))
+
     def test_post_create_get(self):
         response = self.client.get(reverse('post_create'))
         self.assertEqual(response.status_code, 200)

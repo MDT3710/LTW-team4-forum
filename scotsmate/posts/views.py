@@ -10,46 +10,35 @@ from django.db.models import Q
 from django.utils import timezone
 from .models import Post, PostAttachment, PostReaction, PostComment
 from .colleagues import get_profile_details
-from .forms import PostForm, PostCommentForm, PostAttachmentForm
+from django.contrib.auth import views as auth_views
+from .forms import PostForm, PostCommentForm, PostAttachmentForm, ScotsmateAuthenticationForm
 
 
-def login_view(request):
+class ScotsmateLoginView(auth_views.LoginView):
     """
-    Xử lý trang đăng nhập hệ thống:
-    Hỗ trợ xác thực người dùng auth_user thực tế và ghi nhận phiên (session).
-    Hỗ trợ cả mật khẩu gợi ý trên giao diện (password123 / adminpassword123) lẫn 123456.
+    View đăng nhập kế thừa Django contrib.auth.views.LoginView (Chương 7 MIS3010).
+    Sử dụng ScotsmateAuthenticationForm và template dual_column.html.
+    Tự động chuyển hướng người dùng đã xác thực (redirect_authenticated_user=True).
     """
-    if request.user.is_authenticated:
-        return redirect('newfeeds')
-
-    error_msg = None
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-
-        user = authenticate(request, username=username, password=password)
-        if user is None:
-            # Hỗ trợ linh hoạt cả 123456 lẫn password123 / adminpassword123
-            u = User.objects.filter(username=username).first()
-            if u and (password in ['123456', 'password123', 'admin123', 'adminpassword123']):
-                user = u
-
-        if user is not None:
-            login(request, user)
-            next_url = request.GET.get('next') or request.POST.get('next')
-            if next_url:
-                return redirect(next_url)
-            return redirect('newfeeds')
-        else:
-            error_msg = 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!'
-
-    return render(request, 'dual_column.html', {'error_msg': error_msg})
+    template_name = 'dual_column.html'
+    authentication_form = ScotsmateAuthenticationForm
+    redirect_authenticated_user = True
 
 
-def logout_view(request):
-    """Đăng xuất khỏi hệ thống và chuyển về trang đăng nhập"""
-    logout(request)
-    return redirect('login')
+class ScotsmateLogoutView(auth_views.LogoutView):
+    """
+    View đăng xuất kế thừa Django contrib.auth.views.LogoutView (Chương 7 MIS3010).
+    Hỗ trợ cả GET và POST để liên kết menu Đăng xuất hoạt động trơn tru.
+    """
+    http_method_names = ['get', 'post', 'options']
+
+    def get(self, request, *args, **kwargs):
+        return self.post(request, *args, **kwargs)
+
+
+# Tương thích ngược với các URL / tests cũ
+login_view = ScotsmateLoginView.as_view()
+logout_view = ScotsmateLogoutView.as_view()
 
 
 def post_create_view(request):

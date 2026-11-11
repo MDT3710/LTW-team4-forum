@@ -1,5 +1,31 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 from .models import Post, PostAttachment, PostComment
+
+
+class ScotsmateAuthenticationForm(AuthenticationForm):
+    """
+    Form đăng nhập kế thừa Django AuthenticationForm (Chương 7 MIS3010).
+    Tùy biến thông báo lỗi tiếng Việt và các thuộc tính trường nhập liệu.
+    """
+    error_messages = {
+        'invalid_login': 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!',
+        'inactive': 'Tài khoản này hiện đang bị vô hiệu hóa.',
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        super().__init__(request=request, *args, **kwargs)
+        self.fields['username'].widget.attrs.update({
+            'class': 'login-input',
+            'id': 'username',
+            'placeholder': 'Tên đăng nhập (vd: minhanh, thuha, admin)',
+            'autofocus': True,
+        })
+        self.fields['password'].widget.attrs.update({
+            'class': 'login-input',
+            'id': 'password',
+            'placeholder': 'Mật khẩu',
+        })
 
 
 class PostForm(forms.ModelForm):
