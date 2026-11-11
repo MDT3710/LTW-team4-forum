@@ -107,15 +107,7 @@
       <section class="card create-post">
         <div class="composer">
           <div class="avatar avatar-lg" style="border-radius: 50%; overflow: hidden;">
-            {% if current_user.username == 'thuha' %}
-              <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% elif current_user.username == 'phuonglinh' %}
-              <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% elif current_user.username == 'ngocanh' %}
-              <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% else %}
-              <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-            {% endif %}
+            <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
           </div>
           <div class="composer-body">
             <span class="composer-label">Chia sẻ với đồng nghiệp</span>
@@ -152,34 +144,27 @@
           <div class="post-body">
             <div class="author-row">
               <a href="/profile/{{ post.author.username }}/" class="avatar" style="border-radius: 50%; overflow: hidden; width: 44px; height: 44px; display: block; flex-shrink: 0; cursor: pointer; text-decoration: none;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
-                {% if post.author_avatar %}
-                  <img src="{{ post.author_avatar }}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
-                {% elif post.author.username == 'thuha' %}
-                  <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif post.author.username == 'phuonglinh' %}
-                  <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% elif post.author.username == 'ngocanh' %}
-                  <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% else %}
-                  <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                {% endif %}
+                <img class="user-avatar-sync-{{ post.author.username }}" src="{{ post.author_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
               </a>
               <div class="author-info">
                 <span class="author-name">
                   <a href="/profile/{{ post.author.username }}/" class="author-profile-link" style="color: inherit; text-decoration: none; font-weight: inherit; transition: color 0.15s;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='inherit'; this.style.textDecoration='none';" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">{{ post.author.get_full_name|default:post.author.username }}</a>
-                  {% if post.title and post.title != post.content %}
-                    <span class="author-topic-arrow">▶</span>
-                    <span class="author-topic">{{ post.title }}</span>
-                  {% endif %}
                 </span>
-                <span class="author-meta">
-                  <span>{{ post.created_at|timesince }} trước · Scots English</span>
-                  <svg class="am" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
+                <span class="author-meta" style="display: flex; align-items: center; gap: 6px;">
+                  <span>{{ post.created_at_vi }} · Scots English</span>
+                  <span id="post-vis-badge-{{ post.id }}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b;" title="Phạm vi: {{ post.visibility|default:'Toàn công ty' }}">
+                    <span>·</span>
+                    {% if post.visibility == 'Chỉ mình tôi' %}
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Chỉ mình tôi"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      <span class="vis-text">Chỉ mình tôi</span>
+                    {% elif post.visibility == 'Phòng ban' %}
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Phòng ban"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                      <span class="vis-text">Phòng ban</span>
+                    {% else %}
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Toàn công ty"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                      <span class="vis-text">Toàn công ty</span>
+                    {% endif %}
+                  </span>
                 </span>
               </div>
               {% if current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
@@ -275,15 +260,7 @@
               </button>
               <div class="comment-box">
                 <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden;">
-                  {% if current_user.username == 'thuha' %}
-                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif current_user.username == 'phuonglinh' %}
-                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif current_user.username == 'ngocanh' %}
-                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% else %}
-                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-                  {% endif %}
+                  <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                 </div>
                 <input class="text-input" type="text" placeholder="Viết bình luận… (Enter để gửi)" aria-label="Bình luận" onkeydown="if(event.key==='Enter'){ submitComment({{ post.id }}, this); }" />
               </div>
@@ -297,15 +274,7 @@
                 <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start;">
                   <div style="display: flex; gap: 8px; flex: 1;">
                     <a href="/profile/{{ comment.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">
-                      {% if comment.emp.username == 'thuha' %}
-                        <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif comment.emp.username == 'phuonglinh' %}
-                        <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif comment.emp.username == 'ngocanh' %}
-                        <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% else %}
-                        <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% endif %}
+                      <img class="user-avatar-sync-{{ comment.emp.username }}" src="{{ comment.emp_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                     </a>
                     <div class="comment-body" style="flex: 1;">
                       <div class="comment-bubble">
@@ -347,15 +316,7 @@
                   <div class="comment comment-reply-item" id="comment-item-{{ reply.id }}" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="display: flex; gap: 8px; flex: 1;">
                       <a href="/profile/{{ reply.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">
-                        {% if reply.emp.username == 'thuha' %}
-                          <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% elif reply.emp.username == 'phuonglinh' %}
-                          <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% elif reply.emp.username == 'ngocanh' %}
-                          <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% else %}
-                          <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                        {% endif %}
+                        <img class="user-avatar-sync-{{ reply.emp.username }}" src="{{ reply.emp_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                       </a>
                       <div class="comment-body" style="flex: 1;">
                         <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
@@ -397,15 +358,7 @@
                 <div class="inline-reply-box" id="reply-box-{{ comment.id }}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                      {% if current_user.username == 'thuha' %}
-                        <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif current_user.username == 'phuonglinh' %}
-                        <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% elif current_user.username == 'ngocanh' %}
-                        <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      {% else %}
-                        <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-                      {% endif %}
+                      <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                     </div>
                     <input type="text" 
                            class="reply-text-input" 
@@ -721,7 +674,7 @@
                       <div class="inline-reply-box" id="reply-box-${data.comment.id}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                           <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                            <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                           </div>
                           <input type="text" class="reply-text-input" id="reply-input-${data.comment.id}" placeholder="Trả lời ${data.comment.author}… (Enter để gửi, Esc để đóng)" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; background: #ffffff;" onkeydown="if(event.key==='Enter'){ submitReply(${postId}, ${data.comment.id}, this); } else if(event.key==='Escape'){ closeReplyBox(${data.comment.id}); }" />
                         </div>
@@ -813,6 +766,8 @@
                 document.getElementById('edit-post-id').value = postId;
                 document.getElementById('edit-post-title').value = data.title || '';
                 document.getElementById('edit-post-content').value = data.content || '';
+                const visSelect = document.getElementById('edit-post-visibility');
+                if (visSelect) visSelect.value = data.visibility || 'Toàn công ty';
 
                 editExistingAttachments = data.attachments || [];
                 editRemovedAttachmentIds = [];
@@ -992,6 +947,10 @@
           const formData = new FormData();
           formData.append('title', title);
           formData.append('content', content);
+          const visSelect = document.getElementById('edit-post-visibility');
+          if (visSelect) {
+            formData.append('visibility', visSelect.value);
+          }
 
           editRemovedAttachmentIds.forEach(id => {
             formData.append('remove_attachments', id);
@@ -1025,6 +984,21 @@
               if (badgeEl) {
                 badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
                 badgeEl.style.display = 'inline-block';
+              }
+
+              // Cập nhật huy hiệu phạm vi hiển thị trên bài viết
+              const visBadge = document.getElementById(`post-vis-badge-${postId}`);
+              if (visBadge && data.visibility) {
+                let iconSvg = '';
+                if (data.visibility === 'Chỉ mình tôi') {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
+                } else if (data.visibility === 'Phòng ban') {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+                } else {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>';
+                }
+                visBadge.innerHTML = `<span>·</span> ${iconSvg} <span class="vis-text">${data.visibility}</span>`;
+                visBadge.title = `Phạm vi: ${data.visibility}`;
               }
 
               updatePostPhotosDOM(postId, data.attachments || []);
@@ -1172,9 +1146,14 @@
       </div>
       <div style="padding: 22px; overflow-y: auto; flex: 1;">
         <input type="hidden" id="edit-post-id" />
+        <input type="hidden" id="edit-post-title" value="" />
         <div style="margin-bottom: 16px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
-          <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Phạm vi hiển thị bài viết</label>
+          <select id="edit-post-visibility" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; background: #ffffff; color: #1e293b; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'">
+            <option value="Toàn công ty">🌐 Toàn công ty (Tất cả nhân viên Scots English)</option>
+            <option value="Phòng ban">👥 Phòng ban (Chỉ đồng nghiệp trong cùng phòng ban)</option>
+            <option value="Chỉ mình tôi">🔒 Chỉ mình tôi (Chỉ riêng bạn có thể xem)</option>
+          </select>
         </div>
         <div style="margin-bottom: 16px;">
           <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>

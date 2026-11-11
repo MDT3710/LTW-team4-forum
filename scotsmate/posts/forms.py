@@ -1,5 +1,31 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 from .models import Post, PostAttachment, PostComment
+
+
+class ScotsmateAuthenticationForm(AuthenticationForm):
+    """
+    Form đăng nhập kế thừa Django AuthenticationForm (Chương 7 MIS3010).
+    Tùy biến thông báo lỗi tiếng Việt và các thuộc tính trường nhập liệu.
+    """
+    error_messages = {
+        'invalid_login': 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!',
+        'inactive': 'Tài khoản này hiện đang bị vô hiệu hóa.',
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        super().__init__(request=request, *args, **kwargs)
+        self.fields['username'].widget.attrs.update({
+            'class': 'login-input',
+            'id': 'username',
+            'placeholder': 'Tên đăng nhập (vd: minhanh, thuha, admin)',
+            'autofocus': True,
+        })
+        self.fields['password'].widget.attrs.update({
+            'class': 'login-input',
+            'id': 'password',
+            'placeholder': 'Mật khẩu',
+        })
 
 
 class PostForm(forms.ModelForm):
@@ -8,7 +34,7 @@ class PostForm(forms.ModelForm):
     """
     class Meta:
         model = Post
-        fields = ['title', 'content']
+        fields = ['title', 'content', 'visibility']
         widgets = {
             'title': forms.TextInput(attrs={
                 'id': 'post-title-input',
@@ -22,11 +48,21 @@ class PostForm(forms.ModelForm):
                 'rows': 4,
                 'required': True,
             }),
+            'visibility': forms.TextInput(attrs={
+                'id': 'post-visibility-input',
+            }),
         }
         labels = {
             'title': 'Chủ đề / Tiêu đề',
             'content': 'Nội dung bài viết',
+            'visibility': 'Phạm vi hiển thị',
         }
+
+    def clean_visibility(self):
+        visibility = self.cleaned_data.get('visibility', '').strip()
+        if visibility not in [Post.VISIBILITY_COMPANY, Post.VISIBILITY_DEPARTMENT, Post.VISIBILITY_PRIVATE]:
+            return Post.VISIBILITY_COMPANY
+        return visibility
 
     def clean_content(self):
         content = self.cleaned_data.get('content', '').strip()

@@ -231,6 +231,12 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      position: relative;
+    }
+
+    .privacy-dropdown-wrap {
+      position: relative;
+      display: inline-block;
     }
 
     .privacy-pill {
@@ -249,8 +255,10 @@
       transition: all 0.2s ease;
     }
 
-    .privacy-pill:hover {
+    .privacy-pill:hover,
+    .privacy-dropdown-wrap.open .privacy-pill {
       background: #e2edf8;
+      box-shadow: 0 2px 6px rgba(19, 76, 129, 0.12);
     }
 
     .privacy-pill svg {
@@ -259,22 +267,136 @@
       stroke: #134c81;
     }
 
-    .topic-pill {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 100px;
-      padding: 6px 14px;
-      font-size: 14px;
-      font-weight: 400;
-      color: #64748b;
-      cursor: pointer;
-      transition: all 0.2s ease;
+    .privacy-arrow {
+      transition: transform 0.2s ease;
     }
 
-    .topic-pill:hover {
-      border-color: #cbd5e1;
+    .privacy-dropdown-wrap.open .privacy-arrow {
+      transform: rotate(180deg);
+    }
+
+    /* Privacy Dropdown Window (Cửa sổ xổ xuống) */
+    .privacy-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 320px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.15), 0 8px 12px -6px rgba(15, 23, 42, 0.08);
+      padding: 8px;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      animation: privacyDropdownFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes privacyDropdownFade {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .privacy-dropdown-wrap.open .privacy-menu {
+      display: flex;
+    }
+
+    .privacy-menu-header {
+      padding: 6px 10px 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    .privacy-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
       color: #19334b;
+      user-select: none;
+    }
+
+    .privacy-item:hover {
       background: #f8fafc;
+    }
+
+    .privacy-item.selected {
+      background: #edf4fb;
+    }
+
+    .privacy-item-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #134c81;
+      transition: all 0.15s ease;
+    }
+
+    .privacy-item.selected .privacy-item-icon {
+      background: #134c81;
+      color: #ffffff;
+    }
+
+    .privacy-item-icon svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+    }
+
+    .privacy-item-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .privacy-item-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #19334b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .privacy-item.selected .privacy-item-title {
+      color: #134c81;
+    }
+
+    .privacy-item-desc {
+      font-size: 11.5px;
+      color: #64748b;
+      line-height: 1.35;
+    }
+
+    .privacy-check-icon {
+      color: #134c81;
+      display: none;
+    }
+
+    .privacy-item.selected .privacy-check-icon {
+      display: inline-flex;
     }
 
     /* Composer */
@@ -579,10 +701,7 @@
       <span class="header-subtitle">Tạo bài đăng mới</span>
     </div>
 
-    <div class="header-right">
-      <a class="btn-action-secondary" href="{% url 'home' %}">Hủy</a>
-      <button class="btn-action-primary" id="btn-save-draft" onclick="saveDraft()">Lưu nháp</button>
-    </div>
+    <div class="header-right"></div>
   </header>
 
   <!-- ======================= 2. PAGE BODY ======================= -->
@@ -602,34 +721,101 @@
         <input type="hidden" name="title" id="post-title-input" value="" />
         <section class="create-card profile-card">
           <div class="profile-avatar-wrap" style="width: 48px; height: 48px; border-radius: 50%; overflow: hidden;">
-            {% if current_user.username == 'thuha' %}
-              <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% elif current_user.username == 'phuonglinh' %}
-              <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% elif current_user.username == 'ngocanh' %}
-              <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-            {% else %}
-              <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-            {% endif %}
+            <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
           </div>
           <div class="profile-details">
             <span class="profile-author-name">{{ current_user.get_full_name|default:current_user.username }}</span>
             <div class="privacy-controls">
-              <!-- Privacy Pill with interactive dropdown toggle -->
-              <div class="privacy-pill" id="privacy-toggle" onclick="cyclePrivacy()" title="Nhấn để đổi phạm vi hiển thị">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="2" y1="12" x2="22" y2="12"></line>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
-                <span id="privacy-label">Toàn công ty</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </div>
+              <input type="hidden" name="visibility" id="post-visibility-input" value="Toàn công ty" />
 
-              <!-- Topic Selector -->
-              <button type="button" class="topic-pill" id="btn-topic" onclick="selectTopic()">+ Chọn chủ đề</button>
+              <div class="privacy-dropdown-wrap" id="privacy-dropdown-wrap">
+                <!-- Dropdown Trigger Button -->
+                <div class="privacy-pill" id="privacy-toggle" onclick="togglePrivacyMenu(event)" title="Nhấn để chọn phạm vi hiển thị">
+                  <span id="privacy-icon" style="display: inline-flex; align-items: center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                  </span>
+                  <span id="privacy-label">Toàn công ty</span>
+                  <svg class="privacy-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Cửa sổ xổ xuống chọn phạm vi hiển thị -->
+                <div class="privacy-menu" id="privacy-menu" onclick="event.stopPropagation()">
+                  <div class="privacy-menu-header">Phạm vi hiển thị bài viết</div>
+
+                  <!-- 1. Toàn công ty -->
+                  <div class="privacy-item selected" data-value="Toàn công ty" onclick="selectPrivacy('Toàn công ty', 'company', event)">
+                    <div class="privacy-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                      </svg>
+                    </div>
+                    <div class="privacy-item-info">
+                      <div class="privacy-item-title">
+                        <span>Toàn công ty</span>
+                        <span class="privacy-check-icon">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </span>
+                      </div>
+                      <span class="privacy-item-desc">Tất cả nhân viên Scots English đều xem được</span>
+                    </div>
+                  </div>
+
+                  <!-- 2. Phòng ban -->
+                  <div class="privacy-item" data-value="Phòng ban" onclick="selectPrivacy('Phòng ban', 'department', event)">
+                    <div class="privacy-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                    </div>
+                    <div class="privacy-item-info">
+                      <div class="privacy-item-title">
+                        <span>Phòng ban</span>
+                        <span class="privacy-check-icon">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </span>
+                      </div>
+                      <span class="privacy-item-desc">Chỉ thành viên trong phòng ban của bạn</span>
+                    </div>
+                  </div>
+
+                  <!-- 3. Chỉ mình tôi -->
+                  <div class="privacy-item" data-value="Chỉ mình tôi" onclick="selectPrivacy('Chỉ mình tôi', 'private', event)">
+                    <div class="privacy-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    </div>
+                    <div class="privacy-item-info">
+                      <div class="privacy-item-title">
+                        <span>Chỉ mình tôi</span>
+                        <span class="privacy-check-icon">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </span>
+                      </div>
+                      <span class="privacy-item-desc">Chỉ riêng bạn có thể nhìn thấy bài viết này</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -705,34 +891,63 @@
 
 <!-- Interactive Client-side Scripting -->
 <script>
-  // Chuyển đổi quyền riêng tư: Toàn công ty -> Phòng ban -> Nội bộ -> Toàn công ty
-  const privacyLevels = ['Toàn công ty', 'Phòng ban', 'Chỉ mình tôi'];
-  let privacyIndex = 0;
-  function cyclePrivacy() {
-    privacyIndex = (privacyIndex + 1) % privacyLevels.length;
-    document.getElementById('privacy-label').textContent = privacyLevels[privacyIndex];
+  // Quản lý menu xổ xuống chọn phạm vi hiển thị (Toàn công ty / Phòng ban / Chỉ mình tôi)
+  const privacyIcons = {
+    company: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="2" y1="12" x2="22" y2="12"></line>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+    </svg>`,
+    department: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>`,
+    private: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>`
+  };
+
+  function togglePrivacyMenu(e) {
+    if (e) e.stopPropagation();
+    const wrap = document.getElementById('privacy-dropdown-wrap');
+    if (wrap) wrap.classList.toggle('open');
   }
 
-  // Chọn chủ đề
-  function selectTopic() {
-    const topics = ['Văn hóa doanh nghiệp', 'Thông báo chung', 'Đào tạo & Kỹ năng', 'Sự kiện & Hoạt động', 'Công nghệ'];
-    const promptMsg = 'Chọn số (1-5) hoặc nhập chủ đề bài viết:\n\n' + topics.map((t, i) => `${i + 1}. ${t}`).join('\n');
-    const chosen = prompt(promptMsg);
-    if (chosen) {
-      let topicText = chosen.trim();
-      const num = parseInt(topicText);
-      if (!isNaN(num) && num >= 1 && num <= topics.length) {
-        topicText = topics[num - 1];
+  function selectPrivacy(label, type, e) {
+    if (e) e.stopPropagation();
+    const labelEl = document.getElementById('privacy-label');
+    const iconEl = document.getElementById('privacy-icon');
+    const inputEl = document.getElementById('post-visibility-input');
+
+    if (labelEl) labelEl.textContent = label;
+    if (iconEl) iconEl.innerHTML = privacyIcons[type] || privacyIcons.company;
+    if (inputEl) inputEl.value = label;
+
+    // Cập nhật trạng thái selected trên các mục của dropdown
+    const items = document.querySelectorAll('.privacy-item');
+    items.forEach(item => {
+      if (item.getAttribute('data-value') === label) {
+        item.classList.add('selected');
+      } else {
+        item.classList.remove('selected');
       }
-      document.getElementById('post-title-input').value = topicText;
-      const topicBtn = document.getElementById('btn-topic');
-      topicBtn.textContent = '#' + topicText;
-      topicBtn.style.color = '#134c81';
-      topicBtn.style.borderColor = '#134c81';
-      topicBtn.style.fontWeight = '600';
-      topicBtn.style.background = '#edf4fb';
-    }
+    });
+
+    // Đóng menu
+    const wrap = document.getElementById('privacy-dropdown-wrap');
+    if (wrap) wrap.classList.remove('open');
   }
+
+  // Đóng cửa sổ xổ xuống khi click ra bên ngoài
+  document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('privacy-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      wrap.classList.remove('open');
+    }
+  });
 
   let selectedMediaFiles = [];
   let selectedDocFiles = [];

@@ -54,18 +54,26 @@
     box-sizing: border-box;
   }
 
-  .profile-avatar-overlap {
+  .profile-avatar-container {
     position: absolute;
     left: 32px;
     top: -64px;
     width: 144px;
     height: 144px;
+    z-index: 10;
+  }
+
+  .profile-avatar-overlap {
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     border: 4px solid #ffffff;
     box-shadow: 0 4px 16px rgba(19, 76, 129, 0.12);
     overflow: hidden;
     background: #ffffff;
-    z-index: 10;
   }
 
   .profile-avatar-overlap img {
@@ -325,15 +333,7 @@
     text-decoration: underline;
   }
 
-  .profile-sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 4px;
-    font-size: 13px;
-    color: #64748b;
-    line-height: 1.5;
-  }
+
 
   /* Right Column (Activity Feed, 832px) */
   .profile-feed-col {
@@ -720,10 +720,14 @@
       align-items: flex-start;
       gap: 16px;
     }
-    .profile-avatar-overlap {
+    .profile-avatar-container {
       position: static;
       margin-top: -50px;
       margin-bottom: 8px;
+      width: 100px;
+      height: 100px;
+    }
+    .profile-avatar-overlap {
       width: 100px;
       height: 100px;
     }
@@ -766,52 +770,68 @@
   <!-- ======================= 1. PROFILE HEADER ======================= -->
   <section class="profile-header-card">
     <!-- Cover Photo -->
-    <div class="profile-cover-wrap">
+    <div class="profile-cover-wrap" style="position: relative;">
       <img
+        id="profile-cover-img"
         class="profile-cover-img"
-        src="{% static 'img/profile_cover.png' %}"
+        src="{{ profile_details.cover|default:'/static/img/profile_cover.png' }}"
         alt="Cover Photo"
-        onerror="this.style.background='linear-gradient(120deg, #0f6fb3 0%, #1bc1a0 55%, #134c81 100%)'" />
+        style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;"
+        onerror="this.src='/static/img/profile_cover.png';" />
+      {% if current_user.id == profile_user.id %}
+      <input type="file" id="cover-file-input" accept="image/*" style="display: none;" onchange="uploadProfileCover(this)" />
+      <button type="button" class="btn-change-cover" onclick="document.getElementById('cover-file-input').click()" title="Đổi ảnh bìa trang cá nhân" style="position: absolute; right: 20px; bottom: 20px; background: rgba(15, 23, 42, 0.75); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(6px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s ease;" onmouseover="this.style.background='rgba(15, 23, 42, 0.9)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.background='rgba(15, 23, 42, 0.75)'; this.style.transform='none';">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+        <span>Đổi ảnh bìa</span>
+      </button>
+      {% endif %}
     </div>
 
     <!-- Identity Row -->
     <div class="profile-identity-row">
       <!-- Portrait overlapping avatar -->
-      <div class="profile-avatar-overlap">
-        {% if profile_details.avatar %}
-          <img src="{{ profile_details.avatar }}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
-        {% elif profile_user.username == 'thuha' %}
-          <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
-        {% elif profile_user.username == 'phuonglinh' %}
-          <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
-        {% elif profile_user.username == 'ngocanh' %}
-          <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" />
-        {% else %}
-          <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ profile_user.get_full_name|default:profile_user.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
+      <div class="profile-avatar-container">
+        <div class="profile-avatar-overlap">
+          <img
+            id="profile-avatar-img"
+            class="user-avatar-sync-{{ profile_user.username }}{% if current_user.id == profile_user.id %} current-user-avatar-sync{% endif %}"
+            src="{{ profile_details.avatar|default:'/static/img/profile_avatar_144.png' }}"
+            alt="{{ profile_user.get_full_name|default:profile_user.username }}"
+            style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;"
+            onerror="this.src='/static/img/profile_avatar_144.png';" />
+        </div>
+        {% if current_user.id == profile_user.id %}
+        <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" onchange="uploadProfileAvatar(this)" />
+        <button type="button" onclick="document.getElementById('avatar-file-input').click()" title="Đổi ảnh đại diện" style="position: absolute; right: 2px; bottom: 2px; width: 38px; height: 38px; border-radius: 50%; background: #134c81; color: #ffffff; border: 3px solid #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: all 0.2s ease;" onmouseover="this.style.background='#0f3d68'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='#134c81'; this.style.transform='scale(1)';">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </button>
         {% endif %}
       </div>
 
       <!-- Identity meta -->
       <div class="profile-meta-block">
         <h1 class="profile-meta-name">{{ profile_user.get_full_name|default:profile_user.username }}</h1>
-        <span class="profile-meta-role">
+        <span class="profile-meta-role" id="profile-header-role">
           {{ profile_details.role|default:"Giáo viên · Scots English" }}
         </span>
         <div class="profile-meta-counts">
           <span style="font-weight: 600; color: #134c81;">{{ posts_count }} bài viết</span>
           <span>·</span>
-          <span>Email: {{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span>
+          <span id="profile-header-email">Email: <span id="profile-header-email-val">{{ profile_details.email|default:profile_user.email|default:profile_user.username }}</span></span>
         </div>
       </div>
 
       <!-- Actions (Ẩn khi vào trang cá nhân của chính mình) -->
       {% if current_user.id != profile_user.id %}
       <div class="profile-actions-wrap">
-        <button type="button" class="btn-profile-secondary" onclick="alert('Mở hộp thoại nhắn tin với {{ profile_user.get_full_name|default:profile_user.username }}')">
+        <button type="button" class="btn-profile-primary" onclick="alert('Mở hộp thoại nhắn tin với {{ profile_user.get_full_name|default:profile_user.username }}')">
           Nhắn tin
-        </button>
-        <button type="button" class="btn-profile-primary" id="btn-follow-toggle" onclick="toggleFollow()">
-          Theo dõi
         </button>
       </div>
       {% endif %}
@@ -826,136 +846,125 @@
     <aside class="profile-left-col">
 
       <!-- Card 1: Giới thiệu -->
-      <div class="card-std">
-        <h2 class="card-sec-title">Giới thiệu</h2>
-        <p class="bio-text">{{ profile_details.bio|default:"Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh." }}</p>
-        <hr class="divider-line" />
-        <div class="info-detail-list">
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+      <div class="card-std" id="profile-bio-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <h2 class="card-sec-title" style="margin: 0;">Giới thiệu</h2>
+          {% if current_user.id == profile_user.id %}
+          <button type="button" id="btn-edit-bio" onclick="startEditingBio()" style="border: none; background: none; color: #134c81; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; transition: background 0.15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
             </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Chức vụ</span>
-              <span class="info-detail-val">{{ profile_details.job_title|default:"Giáo viên tiếng Anh" }}</span>
-            </div>
-          </div>
+            <span>Chỉnh sửa</span>
+          </button>
+          {% endif %}
+        </div>
 
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Chi nhánh</span>
-              <span class="info-detail-val">{{ profile_details.branch|default:"Cầu Giấy, Hà Nội" }}</span>
-            </div>
-          </div>
+        <!-- Mode xem thông tin (Display Mode) -->
+        <div id="profile-info-display-mode">
+          <p class="bio-text" id="bio-display-text" style="white-space: pre-wrap; margin-bottom: 0;">{{ profile_details.bio|default:"Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh." }}</p>
 
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Ngày tham gia</span>
-              <span class="info-detail-val">{{ profile_details.join_date|default:"15/08/2022" }}</span>
+          <hr class="divider-line" />
+          <div class="info-detail-list">
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Chức vụ</span>
+                <span class="info-detail-val" id="profile-display-job_title">{{ profile_details.job_title|default:"Giáo viên tiếng Anh" }}</span>
+              </div>
             </div>
-          </div>
 
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Email</span>
-              <a class="info-detail-val info-detail-link" href="mailto:{{ profile_details.email|default:'minhanh.nguyen@scotsmate.vn' }}">{{ profile_details.email|default:"minhanh.nguyen@scotsmate.vn" }}</a>
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Chi nhánh</span>
+                <span class="info-detail-val" id="profile-display-branch">{{ profile_details.branch|default:"Cầu Giấy, Hà Nội" }}</span>
+              </div>
             </div>
-          </div>
 
-          <div class="info-detail-item">
-            <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-            </svg>
-            <div class="info-detail-content">
-              <span class="info-detail-label">Phone</span>
-              <span class="info-detail-val">{{ profile_details.phone|default:"090 123 4567" }}</span>
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Ngày tham gia</span>
+                <span class="info-detail-val" id="profile-display-join_date">{{ profile_details.join_date|default:"15/08/2022" }}</span>
+              </div>
+            </div>
+
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Email</span>
+                <a class="info-detail-val info-detail-link" id="profile-display-email" href="mailto:{{ profile_details.email|default:profile_user.email|default:'user@scotsenglish.edu.vn' }}">{{ profile_details.email|default:profile_user.email|default:"user@scotsenglish.edu.vn" }}</a>
+              </div>
+            </div>
+
+            <div class="info-detail-item">
+              <svg class="info-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              <div class="info-detail-content">
+                <span class="info-detail-label">Phone</span>
+                <span class="info-detail-val" id="profile-display-phone">{{ profile_details.phone|default:"090 123 4567" }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Card 2: Following (36 người) -->
-      <div class="card-std">
-        <div class="following-header-row">
-          <h2 class="card-sec-title" style="margin: 0;">Following</h2>
-          <span class="following-badge-count" id="sidebar-following-count">36 người</span>
+        <!-- Mode chỉnh sửa tất cả thông tin (Edit Mode) -->
+        {% if current_user.id == profile_user.id %}
+        <div id="profile-info-edit-mode" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Lời giới thiệu</label>
+              <textarea id="info-edit-bio" rows="3" placeholder="Nhập lời giới thiệu..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: inherit; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Chức vụ</label>
+              <input type="text" id="info-edit-job_title" placeholder="VD: Quản trị viên hệ thống" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Chi nhánh</label>
+              <input type="text" id="info-edit-branch" placeholder="VD: Hội sở Scots English" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Ngày tham gia</label>
+              <input type="text" id="info-edit-join_date" placeholder="VD: 15/08/2022" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Email</label>
+              <input type="email" id="info-edit-email" placeholder="VD: admin@scotsmate.vn" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Số điện thoại</label>
+              <input type="tel" id="info-edit-phone" placeholder="VD: 090 123 4567" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+            <button type="button" onclick="cancelEditingBio()" style="padding: 7px 16px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Hủy</button>
+            <button type="button" id="btn-save-bio" onclick="saveEditingBio()" style="padding: 7px 18px; border: none; border-radius: 6px; background: #134c81; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#0f3d68'" onmouseout="this.style.background='#134c81'">Lưu thay đổi</button>
+          </div>
         </div>
-
-        <div class="following-avatar-grid">
-          <!-- 1. Thu Hà -->
-          <a href="/profile/thuha/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Thu Hà">
-            <div class="following-avatar-wrap">
-              <img src="{% static 'img/avatar_thuha_colleague.png' %}" alt="Thu Hà" />
-            </div>
-            <span class="following-person-name">Thu Hà</span>
-          </a>
-
-          <!-- 2. Hoàng Nam -->
-          <a href="/profile/hoangnam/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Hoàng Nam">
-            <div class="following-avatar-wrap">
-              <img src="{% static 'img/avatar_hoangnam.png' %}" alt="Hoàng Nam" />
-            </div>
-            <span class="following-person-name">Hoàng Nam</span>
-          </a>
-
-          <!-- 3. Lan Phương -->
-          <a href="/profile/lanphuong/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Lan Phương">
-            <div class="following-avatar-wrap">
-              <img src="{% static 'img/avatar_lanphuong.png' %}" alt="Lan Phương" />
-            </div>
-            <span class="following-person-name">Lan Phương</span>
-          </a>
-
-          <!-- 4. Đức Anh -->
-          <a href="/profile/ducanh/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Đức Anh">
-            <div class="following-avatar-wrap">
-              <img src="{% static 'img/avatar_ducanh.png' %}" alt="Đức Anh" />
-            </div>
-            <span class="following-person-name">Đức Anh</span>
-          </a>
-
-          <!-- 5. Mai Linh -->
-          <a href="/profile/mailinh/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Mai Linh">
-            <div class="following-avatar-wrap">
-              <img src="{% static 'img/avatar_mailinh.png' %}" alt="Mai Linh" />
-            </div>
-            <span class="following-person-name">Mai Linh</span>
-          </a>
-
-          <!-- 6. Quang Huy -->
-          <a href="/profile/quanghuy/" class="following-person-cell" style="text-decoration: none; color: inherit;" title="Xem hồ sơ Quang Huy">
-            <div class="following-avatar-wrap">
-              <img src="{% static 'img/avatar_quanghuy.png' %}" alt="Quang Huy" />
-            </div>
-            <span class="following-person-name">Quang Huy</span>
-          </a>
-        </div>
-
-        <hr class="divider-line" />
-        <button type="button" class="btn-view-all-following" onclick="openFollowingModal()" style="width: 100%; border: none; background: none; font-size: 14px; font-weight: 600; color: #134c81; cursor: pointer; padding: 6px 0; text-align: center; transition: color 0.15s;" onmouseover="this.style.color='#0f3d68'" onmouseout="this.style.color='#134c81'">
-          Xem tất cả
-        </button>
-      </div>
-
-      <!-- Community Sidebar Footer -->
-      <div class="profile-sidebar-footer">
-        <span>Giới thiệu · Quyền riêng tư · Điều khoản</span>
-        <span>© 2026 ScotsMate. Cùng nhau phát triển.</span>
+        {% endif %}
       </div>
 
     </aside>
@@ -965,33 +974,38 @@
 
       <!-- Card: Tạo bài viết -->
       {% if current_user.id == profile_user.id %}
-      <div class="card-std">
+      <div class="card-std" style="padding: 20px;">
         <form id="profile-post-create-form" method="POST" action="{% url 'post_create' %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}" />
 
-          <div class="compose-entry-row">
-            <div class="compose-avatar-thumb">
-              {% if current_user.username == 'thuha' %}
-                <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
-              {% elif current_user.username == 'phuonglinh' %}
-                <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
-              {% elif current_user.username == 'ngocanh' %}
-                <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" />
-              {% else %}
-                <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-              {% endif %}
-            </div>
-            <div class="compose-interactive-field">
-              <span class="compose-label-text">Tạo bài viết</span>
-              <input type="text" name="content" id="profile-composer-text" class="compose-input-trigger" placeholder="Bạn đang nghĩ gì?" style="width: 100%; box-sizing: border-box; outline: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 16px; background: #f8fafc; font-size: 14px; font-family: inherit; transition: all 0.2s ease;" onfocus="this.style.borderColor='#134c81'; this.style.background='#ffffff';" onblur="if(!this.value){this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';}" required />
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 1px solid #e2e8f0;">
+                <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='/static/img/profile_avatar_144.png';" />
+              </div>
+              <div>
+                <div style="font-weight: 700; font-size: 15px; color: #19334b;">{{ current_user.get_full_name|default:current_user.username }}</div>
+                <div style="position: relative; display: inline-block; margin-top: 3px;">
+                  <select name="visibility" id="profile-post-visibility" style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 26px 3px 10px; font-size: 12px; font-weight: 600; color: #134c81; background: #edf4fb; cursor: pointer; outline: none; -webkit-appearance: none; -moz-appearance: none; appearance: none; transition: all 0.15s ease;" title="Chọn phạm vi hiển thị">
+                    <option value="Toàn công ty">🌐 Toàn công ty</option>
+                    <option value="Phòng ban">👥 Phòng ban</option>
+                    <option value="Chỉ mình tôi">🔒 Chỉ mình tôi</option>
+                  </select>
+                  <svg style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); pointer-events: none; width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Danh sách tệp đã chọn ở trang cá nhân (Ảnh/Video, Tài liệu) -->
-          <div id="profile-attachments-preview" style="display: none; margin-top: 14px; flex-direction: column; gap: 8px;"></div>
+          <div style="margin-bottom: 12px;">
+            <textarea name="content" id="profile-composer-text" rows="3" placeholder="Bạn đang nghĩ gì? Chia sẻ điều gì đó với đồng nghiệp..." style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; font-size: 14px; font-family: inherit; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none; background: #f8fafc; transition: all 0.2s ease;" onfocus="this.style.borderColor='#134c81'; this.style.background='#ffffff';" onblur="if(!this.value){this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';}" required></textarea>
+          </div>
 
-          <hr class="divider-line" />
+          <!-- Danh sách tệp đã chọn ở trang cá nhân (Ảnh/Video, Tài liệu) -->
+          <div id="profile-attachments-preview" style="display: none; margin-bottom: 14px; flex-direction: column; gap: 8px;"></div>
+
+          <hr class="divider-line" style="margin: 12px 0 14px 0;" />
 
           <div class="compose-bottom-bar">
             <div class="compose-tools-group">
@@ -1017,7 +1031,7 @@
             </div>
 
             <!-- Nút Đăng bài -->
-            <button type="submit" class="btn-profile-primary" style="height: 40px; padding: 0 20px; border: none; cursor: pointer; font-size: 14px; font-weight: 600;">
+            <button type="submit" class="btn-profile-primary" style="height: 40px; padding: 0 22px; border: none; cursor: pointer; font-size: 14px; font-weight: 600;">
               Đăng bài
             </button>
           </div>
@@ -1041,34 +1055,26 @@
         <!-- Post Header -->
         <div class="post-author-row" style="position: relative;">
           <a href="/profile/{{ post.author.username }}/" class="post-author-avatar" style="display: block; text-decoration: none; cursor: pointer;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
-            {% if post.author_avatar %}
-              <img src="{{ post.author_avatar }}" alt="{{ post.author.get_full_name|default:post.author.username }}" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
-            {% elif post.author.username == 'thuha' %}
-              <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" />
-            {% elif post.author.username == 'phuonglinh' %}
-              <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" />
-            {% else %}
-              <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ post.author.get_full_name|default:post.author.username }}" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-            {% endif %}
+            <img class="user-avatar-sync-{{ post.author.username }}" src="{{ post.author_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ post.author.get_full_name|default:post.author.username }}" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
           </a>
           <div class="post-author-info">
             <div style="display: flex; align-items: center; gap: 8px;">
               <a href="/profile/{{ post.author.username }}/" class="post-author-name" style="text-decoration: none; color: #19334b; font-weight: 700; transition: color 0.15s;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='#19334b'; this.style.textDecoration='none';" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">{{ post.author.get_full_name|default:post.author.username }}</a>
-              {% if post.title and post.title != post.content %}
-                <span class="author-topic-arrow" style="font-size: 11px; color: #64748b;">▶</span>
-                <span class="author-topic" style="font-weight: 700; color: #19334b; font-size: 14px;">{{ post.title }}</span>
-              {% endif %}
             </div>
             <div class="post-meta-sub">
-              <span>{{ post.created_at|timesince }} trước</span>
+              <span>{{ post.created_at_vi }}</span>
               <span>·</span>
-              <span class="privacy-chip">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="2" y1="12" x2="22" y2="12"></line>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
-                <span>Công khai</span>
+              <span class="privacy-chip" id="post-vis-badge-{{ post.id }}" title="Phạm vi: {{ post.visibility|default:'Toàn công ty' }}">
+                {% if post.visibility == 'Chỉ mình tôi' %}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  <span class="vis-text">Chỉ mình tôi</span>
+                {% elif post.visibility == 'Phòng ban' %}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  <span class="vis-text">Phòng ban</span>
+                {% else %}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                  <span class="vis-text">Toàn công ty</span>
+                {% endif %}
               </span>
             </div>
           </div>
@@ -1175,15 +1181,7 @@
           </button>
           <div class="comment-input-wrap" style="flex: 1; display: flex; align-items: center; gap: 8px;">
             <div class="comment-avatar-small" style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
-              {% if current_user.username == 'thuha' %}
-                <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-              {% elif current_user.username == 'phuonglinh' %}
-                <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-              {% elif current_user.username == 'ngocanh' %}
-                <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" />
-              {% else %}
-                <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-              {% endif %}
+              <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
             </div>
             <input
               type="text"
@@ -1201,15 +1199,7 @@
             <div class="comment" id="comment-item-{{ comment.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 8px 12px;">
               <div style="display: flex; gap: 8px; flex: 1;">
                 <a href="/profile/{{ comment.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ comment.emp.get_full_name|default:comment.emp.username }}">
-                  {% if comment.emp.username == 'thuha' %}
-                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif comment.emp.username == 'phuonglinh' %}
-                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif comment.emp.username == 'ngocanh' %}
-                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% else %}
-                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% endif %}
+                  <img class="user-avatar-sync-{{ comment.emp.username }}" src="{{ comment.emp_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ comment.emp.get_full_name|default:comment.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                 </a>
                 <div style="flex: 1;">
                   <div>
@@ -1251,15 +1241,7 @@
               <div class="comment comment-reply-item" id="comment-item-{{ reply.id }}" style="display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: 8px; padding: 6px 10px;">
                 <div style="display: flex; gap: 8px; flex: 1;">
                   <a href="/profile/{{ reply.emp.username }}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân của {{ reply.emp.get_full_name|default:reply.emp.username }}">
-                    {% if reply.emp.username == 'thuha' %}
-                      <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                    {% elif reply.emp.username == 'phuonglinh' %}
-                      <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                    {% elif reply.emp.username == 'ngocanh' %}
-                      <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                    {% else %}
-                      <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                    {% endif %}
+                    <img class="user-avatar-sync-{{ reply.emp.username }}" src="{{ reply.emp_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ reply.emp.get_full_name|default:reply.emp.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
                   </a>
                   <div style="flex: 1;">
                     <div>
@@ -1301,15 +1283,7 @@
             <div class="inline-reply-box" id="reply-box-{{ comment.id }}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
               <div style="display: flex; gap: 8px; align-items: center;">
                 <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                  {% if current_user.username == 'thuha' %}
-                    <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif current_user.username == 'phuonglinh' %}
-                    <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% elif current_user.username == 'ngocanh' %}
-                    <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                  {% else %}
-                    <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-                  {% endif %}
+                  <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ current_user.get_full_name|default:current_user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
                 </div>
                 <input type="text" 
                        class="reply-text-input" 
@@ -1351,9 +1325,14 @@
       </div>
       <div style="padding: 22px; overflow-y: auto; flex: 1;">
         <input type="hidden" id="edit-post-id" />
+        <input type="hidden" id="edit-post-title" value="" />
         <div style="margin-bottom: 16px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
-          <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Phạm vi hiển thị bài viết</label>
+          <select id="edit-post-visibility" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; background: #ffffff; color: #1e293b; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'">
+            <option value="Toàn công ty">🌐 Toàn công ty (Tất cả nhân viên Scots English)</option>
+            <option value="Phòng ban">👥 Phòng ban (Chỉ đồng nghiệp trong cùng phòng ban)</option>
+            <option value="Chỉ mình tôi">🔒 Chỉ mình tôi (Chỉ riêng bạn có thể xem)</option>
+          </select>
         </div>
         <div style="margin-bottom: 16px;">
           <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>
@@ -1410,50 +1389,6 @@
     </div>
   </div>
     </main>
-
-    <!-- Following Modal (Xem tất cả người đang theo dõi) -->
-    <div id="following-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px;" onclick="if(event.target === this) closeFollowingModal()">
-      <div style="background: #ffffff; border-radius: 14px; width: 100%; max-width: 520px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
-        <!-- Modal Header -->
-        <div style="padding: 16px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-shrink: 0;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; border-radius: 8px; background: #edf4fb; display: flex; align-items: center; justify-content: center; color: #134c81;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </div>
-            <div>
-              <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #134c81;">Đang theo dõi (Following)</h3>
-              <span id="following-modal-count" style="font-size: 12px; color: #64748b;">36 đồng nghiệp</span>
-            </div>
-          </div>
-          <button type="button" onclick="closeFollowingModal()" style="border: none; background: none; font-size: 24px; line-height: 1; color: #94a3b8; cursor: pointer; border-radius: 6px; padding: 2px 6px;" onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
-        </div>
-
-        <!-- Search Bar -->
-        <div style="padding: 12px 22px; border-bottom: 1px solid #f1f5f9; background: #ffffff; flex-shrink: 0;">
-          <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="following-search-input" placeholder="Tìm kiếm theo tên hoặc chức vụ..." style="border: none; background: transparent; outline: none; width: 100%; font-size: 13px; color: #1e293b;" oninput="filterFollowingList(this.value)" />
-          </div>
-        </div>
-
-        <!-- Scrollable List of Following Colleagues -->
-        <div id="following-modal-list" style="padding: 16px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px;">
-        </div>
-
-        <!-- Modal Footer -->
-        <div style="padding: 12px 22px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; flex-shrink: 0;">
-          <button type="button" onclick="closeFollowingModal()" style="padding: 8px 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #475569; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Đóng</button>
-        </div>
-      </div>
-    </div>
 
     <!-- Likes Modal -->
     <div id="likes-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; padding: 16px;" onclick="if(event.target === this) closeLikesModal()">
@@ -1592,9 +1527,9 @@
                 const replyHtml = `
                   <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
                     <div style="display: flex; gap: 8px; flex: 1;">
-                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                        <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      </div>
+                      <a href="/profile/${data.comment.username || ''}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân">
+                        <img class="user-avatar-sync-${data.comment.username || ''}" src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                      </a>
                       <div class="comment-body" style="flex: 1;">
                         <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
                           <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
@@ -1711,9 +1646,9 @@
                 const replyHtml = `
                   <div class="comment comment-reply-item" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start; animation: fadeIn 0.3s ease;">
                     <div style="display: flex; gap: 8px; flex: 1;">
-                      <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                        <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                      </div>
+                      <a href="/profile/${data.comment.username || ''}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân">
+                        <img class="user-avatar-sync-${data.comment.username || ''}" src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                      </a>
                       <div class="comment-body" style="flex: 1;">
                         <div class="comment-bubble" style="background: #f1f5f9; padding: 6px 12px; border-radius: 12px;">
                           <span class="comment-author" style="font-size: 13px; font-weight: 600;">${data.comment.author}</span>
@@ -1744,9 +1679,9 @@
                     <div class="comment-thread" id="comment-thread-${data.comment.id}" style="margin-top: 12px; animation: fadeIn 0.3s ease;">
                       <div class="comment" id="comment-item-${data.comment.id}" style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div style="display: flex; gap: 8px; flex: 1;">
-                          <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0;">
-                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-                          </div>
+                          <a href="/profile/${data.comment.username || ''}/" class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 32px; height: 32px; flex-shrink: 0; display: block; text-decoration: none;" title="Xem trang cá nhân">
+                            <img class="user-avatar-sync-${data.comment.username || ''}" src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="${data.comment.author}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                          </a>
                           <div class="comment-body" style="flex: 1;">
                             <div class="comment-bubble">
                               <span class="comment-author">${data.comment.author}</span>
@@ -1771,7 +1706,7 @@
                       <div class="inline-reply-box" id="reply-box-${data.comment.id}" style="display: none; margin-left: 36px; padding-left: 10px; border-left: 2px solid #e2e8f0; margin-top: 8px;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                           <div class="avatar avatar-sm" style="border-radius: 50%; overflow: hidden; width: 28px; height: 28px; flex-shrink: 0;">
-                            <img src="${data.comment.avatar_url || '/static/img/profile_avatar_144.png'}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                            <img class="current-user-avatar-sync user-avatar-sync-{{ current_user.username }}" src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                           </div>
                           <input type="text" class="reply-text-input" id="reply-input-${data.comment.id}" placeholder="Trả lời ${data.comment.author}… (Enter để gửi, Esc để đóng)" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 13px; outline: none; background: #ffffff;" onkeydown="if(event.key==='Enter'){ submitReply(${postId}, ${data.comment.id}, this); } else if(event.key==='Escape'){ closeReplyBox(${data.comment.id}); }" />
                         </div>
@@ -1901,6 +1836,8 @@
                 document.getElementById('edit-post-id').value = postId;
                 document.getElementById('edit-post-title').value = data.title || '';
                 document.getElementById('edit-post-content').value = data.content || '';
+                const visSelect = document.getElementById('edit-post-visibility');
+                if (visSelect) visSelect.value = data.visibility || 'Toàn công ty';
 
                 editExistingAttachments = data.attachments || [];
                 editRemovedAttachmentIds = [];
@@ -2080,6 +2017,10 @@
           const formData = new FormData();
           formData.append('title', title);
           formData.append('content', content);
+          const visSelect = document.getElementById('edit-post-visibility');
+          if (visSelect) {
+            formData.append('visibility', visSelect.value);
+          }
 
           editRemovedAttachmentIds.forEach(id => {
             formData.append('remove_attachments', id);
@@ -2113,6 +2054,21 @@
               if (badgeEl) {
                 badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
                 badgeEl.style.display = 'inline-block';
+              }
+
+              // Cập nhật huy hiệu phạm vi hiển thị trên bài viết
+              const visBadge = document.getElementById(`post-vis-badge-${postId}`);
+              if (visBadge && data.visibility) {
+                let iconSvg = '';
+                if (data.visibility === 'Chỉ mình tôi') {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
+                } else if (data.visibility === 'Phòng ban') {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+                } else {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
+                }
+                visBadge.innerHTML = `${iconSvg} <span class="vis-text">${data.visibility}</span>`;
+                visBadge.title = `Phạm vi: ${data.visibility}`;
               }
 
               updatePostPhotosDOM(postId, data.attachments || []);
@@ -2179,27 +2135,7 @@
         }
 
 
-  let isFollowing = false;
-  let followerCount = 248;
-  function toggleFollow() {
-    const btn = document.getElementById('btn-follow-toggle');
-    const countEl = document.getElementById('followers-count-text');
-    isFollowing = !isFollowing;
-    if (isFollowing) {
-      btn.textContent = 'Đang theo dõi';
-      btn.style.background = '#edf4fb';
-      btn.style.color = '#134c81';
-      btn.style.borderColor = '#134c81';
-      followerCount++;
-    } else {
-      btn.textContent = 'Theo dõi';
-      btn.style.background = '#134c81';
-      btn.style.color = '#ffffff';
-      btn.style.borderColor = '#134c81';
-      followerCount--;
-    }
-    if (countEl) countEl.textContent = followerCount + ' người theo dõi';
-  }
+
 
   function showLikesModal(postId) {
     fetch(`/posts/${postId}/likes/`)
@@ -2351,154 +2287,211 @@
   }
 
   
-  // Danh sách 36 đồng nghiệp đang theo dõi
-  const FOLLOWING_COLLEAGUES = [
-    { id: 1, name: "Thu Hà Nguyễn", username: "thuha", role: "Giáo viên tiếng Anh · Scots English Cầu Giấy", avatar: "/static/img/avatar_thuha_colleague.png", isFollowing: true },
-    { id: 2, name: "Hoàng Nam", username: "hoangnam", role: "Quản lý học vụ · Scots English Đống Đa", avatar: "/static/img/avatar_hoangnam.png", isFollowing: true },
-    { id: 3, name: "Lan Phương", username: "lanphuong", role: "Chuyên viên khảo thí & Đào tạo giáo viên", avatar: "/static/img/avatar_lanphuong.png", isFollowing: true },
-    { id: 4, name: "Đức Anh", username: "ducanh", role: "Giáo viên luyện thi IELTS chuyên sâu", avatar: "/static/img/avatar_ducanh.png", isFollowing: true },
-    { id: 5, name: "Mai Linh", username: "mailinh", role: "Trưởng bộ môn Tiếng Anh Trẻ em", avatar: "/static/img/avatar_mailinh.png", isFollowing: true },
-    { id: 6, name: "Quang Huy", username: "quanghuy", role: "Điều phối viên học liệu & Học vụ", avatar: "/static/img/avatar_quanghuy.png", isFollowing: true },
-    { id: 7, name: "Phương Linh Lê", username: "phuonglinh", role: "Giáo viên tiếng Anh giao tiếp", avatar: "/static/img/avatar_phuonglinh.png", isFollowing: true },
-    { id: 8, name: "Ngọc Anh Đỗ", username: "ngocanh", role: "Giáo viên tiếng Anh trẻ em", avatar: "/static/img/avatar_ngocanh.png", isFollowing: true },
-    { id: 9, name: "Trần Bảo Trân", username: "tranbaotran", role: "Giảng viên kỹ năng mềm & Thuyết trình", avatar: "/static/img/avatar_tranbaotran.png", isFollowing: true },
-    { id: 10, name: "Nguyễn Tiến Dũng", username: "tiendung", role: "Giám đốc cơ sở · Scots English Hà Đông", avatar: "/static/img/avatar_tiendung.svg", isFollowing: true },
-    { id: 11, name: "Phạm Thanh Hương", username: "thanhhuong", role: "Trưởng nhóm Tư vấn tuyển sinh", avatar: "/static/img/avatar_thanhhuong.svg", isFollowing: true },
-    { id: 12, name: "Vũ Đình Long", username: "dinhlong", role: "Kỹ sư hệ thống & Hỗ trợ kỹ thuật", avatar: "/static/img/avatar_dinhlong.svg", isFollowing: true },
-    { id: 13, name: "Đỗ Thị Thu Trang", username: "thutrang", role: "Giáo viên ngữ pháp & Viết học thuật", avatar: "/static/img/avatar_thutrang.svg", isFollowing: true },
-    { id: 14, name: "Lê Văn Hoàng", username: "vanhoang", role: "Điều phối viên sự kiện & Hoạt động ngoại khóa", avatar: "/static/img/avatar_vanhoang.svg", isFollowing: true },
-    { id: 15, name: "Bùi Thu Thảo", username: "thuthao", role: "Trưởng phòng Truyền thông & Thương hiệu", avatar: "/static/img/avatar_thuthao.svg", isFollowing: true },
-    { id: 16, name: "Hoàng Diệu Linh", username: "dieulinh", role: "Chuyên viên nghiên cứu & Phát triển giáo trình", avatar: "/static/img/avatar_dieulinh.svg", isFollowing: true },
-    { id: 17, name: "Nguyễn Minh Quân", username: "minhquan", role: "Giảng viên tiếng Anh giao tiếp người lớn", avatar: "/static/img/avatar_minhquan.svg", isFollowing: true },
-    { id: 18, name: "Đinh Thị Hải Yến", username: "haiyen", role: "Chuyên viên khảo thí chứng chỉ Cambridge", avatar: "/static/img/avatar_haiyen.svg", isFollowing: true },
-    { id: 19, name: "Trần Văn Minh", username: "vanminh", role: "Chuyên gia huấn luyện phát âm & Ngữ điệu", avatar: "/static/img/avatar_vanminh.svg", isFollowing: true },
-    { id: 20, name: "Nguyễn Bích Ngọc", username: "bichngoc", role: "Chuyên viên chăm sóc học viên & Phụ huynh", avatar: "/static/img/avatar_bichngoc.svg", isFollowing: true },
-    { id: 21, name: "Lê Hải Đăng", username: "haidang", role: "Thiết kế đồ họa & Sản xuất học liệu đa phương tiện", avatar: "/static/img/avatar_haidang.svg", isFollowing: true },
-    { id: 22, name: "Vũ Thùy Dung", username: "thuydung", role: "Quản lý khảo thí IELTS & Mock Test", avatar: "/static/img/avatar_thuydung.svg", isFollowing: true },
-    { id: 23, name: "Tạ Quang Thắng", username: "quangthang", role: "Giáo viên tiếng Anh tổng quát", avatar: "/static/img/avatar_quangthang.svg", isFollowing: true },
-    { id: 24, name: "Đỗ Mai Phương", username: "maiphuong", role: "Chuyên viên nhân sự & Đãi ngộ", avatar: "/static/img/avatar_maiphuong.svg", isFollowing: true },
-    { id: 25, name: "Nguyễn Tuấn Kiệt", username: "tuankiet", role: "Giáo viên phát âm & Giao tiếp cơ bản", avatar: "/static/img/avatar_tuankiet.svg", isFollowing: true },
-    { id: 26, name: "Hoàng Thanh Hà", username: "thanhha", role: "Chuyên viên kế toán tài chính cơ sở", avatar: "/static/img/avatar_thanhha.svg", isFollowing: true },
-    { id: 27, name: "Phùng Đức Cường", username: "duccuong", role: "Quản trị mạng & Cơ sở dữ liệu học tập", avatar: "/static/img/avatar_duccuong.svg", isFollowing: true },
-    { id: 28, name: "Ngô Thu Hiền", username: "thuhien", role: "Giáo viên chương trình hè Quốc tế", avatar: "/static/img/avatar_thuhien.svg", isFollowing: true },
-    { id: 29, name: "Đặng Phương Nam", username: "phuongnam", role: "Điều phối viên hợp tác quốc tế", avatar: "/static/img/avatar_phuongnam.svg", isFollowing: true },
-    { id: 30, name: "Dương Diệu Hương", username: "dieuhuong", role: "Giáo viên tiếng Anh thiếu niên", avatar: "/static/img/avatar_dieuhuong.svg", isFollowing: true },
-    { id: 31, name: "Bùi Văn Hùng", username: "vanhung", role: "Kỹ thuật viên phòng lab & Thiết bị âm thanh", avatar: "/static/img/avatar_vanhung.svg", isFollowing: true },
-    { id: 32, name: "Nguyễn Thị Kim Oanh", username: "kimoanh", role: "Chuyên viên tuyển dụng nhân sự giảng dạy", avatar: "/static/img/avatar_kimoanh.svg", isFollowing: true },
-    { id: 33, name: "Vũ Quốc Trung", username: "quoctrung", role: "Giảng viên tiếng Anh học thuật & Du học", avatar: "/static/img/avatar_quoctrung.svg", isFollowing: true },
-    { id: 34, name: "Trần Thị Thảo", username: "thithao", role: "Chuyên viên tổ chức sự kiện học sinh", avatar: "/static/img/avatar_thithao.svg", isFollowing: true },
-    { id: 35, name: "Mai Quốc Việt", username: "quocviet", role: "Chuyên viên đào tạo kỹ năng thế kỷ 21", avatar: "/static/img/avatar_quocviet.svg", isFollowing: true },
-    { id: 36, name: "Lê Thị Ánh Tuyết", username: "anhtuyet", role: "Giáo viên mầm non song ngữ", avatar: "/static/img/avatar_anhtuyet.svg", isFollowing: true }
-  ];
+  // Profile Cover Upload
+  function uploadProfileCover(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('cover', file);
 
-  function openFollowingModal() {
-    renderFollowingModalList(FOLLOWING_COLLEAGUES);
-    const modal = document.getElementById('following-modal');
-    if (modal) {
-      modal.style.display = 'flex';
-      const searchInput = document.getElementById('following-search-input');
-      if (searchInput) {
-        searchInput.value = '';
-        setTimeout(() => searchInput.focus(), 50);
+    fetch('/profile/update/cover/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        const coverImg = document.getElementById('profile-cover-img');
+        if (coverImg) {
+          coverImg.src = data.cover_url + '?t=' + new Date().getTime();
+        }
+      } else {
+        alert(data.error || 'Có lỗi xảy ra khi đổi ảnh bìa.');
       }
-    }
-  }
-
-  function closeFollowingModal() {
-    const modal = document.getElementById('following-modal');
-    if (modal) modal.style.display = 'none';
-  }
-
-  function filterFollowingList(query) {
-    const q = (query || '').trim().toLowerCase();
-    if (!q) {
-      renderFollowingModalList(FOLLOWING_COLLEAGUES);
-      return;
-    }
-    const filtered = FOLLOWING_COLLEAGUES.filter(p => {
-      return p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q);
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Không thể tải ảnh bìa lên. Vui lòng thử lại.');
     });
-    renderFollowingModalList(filtered);
   }
 
-  function toggleFollowPerson(id, btn) {
-    const person = FOLLOWING_COLLEAGUES.find(p => p.id === id);
-    if (!person) return;
+  // Profile Avatar Upload
+  function uploadProfileAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('avatar', file);
 
-    person.isFollowing = !person.isFollowing;
-    const count = FOLLOWING_COLLEAGUES.filter(p => p.isFollowing).length;
-
-    if (person.isFollowing) {
-      btn.textContent = 'Đang theo dõi';
-      btn.style.background = '#edf4fb';
-      btn.style.color = '#134c81';
-      btn.style.borderColor = '#bfdbfe';
-    } else {
-      btn.textContent = '+ Theo dõi';
-      btn.style.background = '#134c81';
-      btn.style.color = '#ffffff';
-      btn.style.borderColor = '#134c81';
-    }
-
-    const modalCount = document.getElementById('following-modal-count');
-    if (modalCount) modalCount.textContent = `${count} đồng nghiệp`;
-    const sidebarCount = document.getElementById('sidebar-following-count');
-    if (sidebarCount) sidebarCount.textContent = `${count} người`;
+    fetch('/profile/update/avatar/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        const newUrl = data.avatar_url + '?t=' + new Date().getTime();
+        const avatarImg = document.getElementById('profile-avatar-img');
+        if (avatarImg) {
+          avatarImg.src = newUrl;
+        }
+        const topbarAvatar = document.getElementById('topbar-user-avatar');
+        if (topbarAvatar) {
+          topbarAvatar.src = newUrl;
+        }
+        document.querySelectorAll('.current-user-avatar-sync').forEach(img => {
+          img.src = newUrl;
+        });
+        const currentUsername = '{{ current_user.username }}';
+        if (currentUsername) {
+          document.querySelectorAll('.user-avatar-sync-' + currentUsername).forEach(img => {
+            img.src = newUrl;
+          });
+        }
+      } else {
+        alert(data.error || 'Có lỗi xảy ra khi đổi ảnh đại diện.');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Không thể tải ảnh đại diện lên. Vui lòng thử lại.');
+    });
   }
 
-  function renderFollowingModalList(list) {
-    const container = document.getElementById('following-modal-list');
-    if (!container) return;
+  // Profile Info Editing (Bio + all fields below)
+  function startEditingBio() {
+    const displayMode = document.getElementById('profile-info-display-mode');
+    const editMode = document.getElementById('profile-info-edit-mode');
+    const editBtn = document.getElementById('btn-edit-bio');
 
-    if (!list || list.length === 0) {
-      container.innerHTML = `
-        <div style="text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 14px;">
-          Không tìm thấy đồng nghiệp phù hợp.
-        </div>
-      `;
-      return;
+    const getVal = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.innerText.trim() : '';
+    };
+
+    const bioInput = document.getElementById('info-edit-bio');
+    const jobInput = document.getElementById('info-edit-job_title');
+    const branchInput = document.getElementById('info-edit-branch');
+    const joinDateInput = document.getElementById('info-edit-join_date');
+    const emailInput = document.getElementById('info-edit-email');
+    const phoneInput = document.getElementById('info-edit-phone');
+
+    if (bioInput) bioInput.value = getVal('bio-display-text');
+    if (jobInput) jobInput.value = getVal('profile-display-job_title');
+    if (branchInput) branchInput.value = getVal('profile-display-branch');
+    if (joinDateInput) joinDateInput.value = getVal('profile-display-join_date');
+    if (emailInput) emailInput.value = getVal('profile-display-email');
+    if (phoneInput) phoneInput.value = getVal('profile-display-phone');
+
+    if (displayMode) displayMode.style.display = 'none';
+    if (editMode) {
+      editMode.style.display = 'block';
+      if (bioInput) bioInput.focus();
+    }
+    if (editBtn) editBtn.style.display = 'none';
+  }
+
+  function cancelEditingBio() {
+    const displayMode = document.getElementById('profile-info-display-mode');
+    const editMode = document.getElementById('profile-info-edit-mode');
+    if (displayMode) displayMode.style.display = 'block';
+    if (editMode) editMode.style.display = 'none';
+    const editBtn = document.getElementById('btn-edit-bio');
+    if (editBtn) editBtn.style.display = 'inline-flex';
+  }
+
+  function saveEditingBio() {
+    const saveBtn = document.getElementById('btn-save-bio');
+    const bio = document.getElementById('info-edit-bio').value.trim();
+    const job_title = document.getElementById('info-edit-job_title').value.trim();
+    const branch = document.getElementById('info-edit-branch').value.trim();
+    const join_date = document.getElementById('info-edit-join_date').value.trim();
+    const email = document.getElementById('info-edit-email').value.trim();
+    const phone = document.getElementById('info-edit-phone').value.trim();
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Đang lưu...';
     }
 
-    container.innerHTML = list.map(p => {
-      const profileUrl = p.username ? `/profile/${p.username}/` : '#';
-      const avatarHtml = p.avatar ?
-        `<a href="${profileUrl}" style="display: block; width: 100%; height: 100%;"><img src="${p.avatar}" alt="${p.name}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/static/img/profile_avatar_144.png';" /></a>` :
-        `<a href="${profileUrl}" style="display: flex; width: 100%; height: 100%; text-decoration: none; background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 15px; align-items: center; justify-content: center;">${p.name.charAt(0)}</a>`;
+    const formData = new FormData();
+    formData.append('bio', bio);
+    formData.append('job_title', job_title);
+    formData.append('branch', branch);
+    formData.append('join_date', join_date);
+    formData.append('email', email);
+    formData.append('phone', phone);
 
-      const nameTag = p.username ?
-        `<a href="${profileUrl}" style="font-weight: 600; font-size: 14px; color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='#1e293b'; this.style.textDecoration='none'">${p.name}</a>` :
-        `<span style="font-weight: 600; font-size: 14px; color: #1e293b;">${p.name}</span>`;
+    fetch('/profile/update/bio/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Lưu thay đổi';
+      }
+      if (data.success) {
+        const bioEl = document.getElementById('bio-display-text');
+        if (bioEl) bioEl.textContent = data.bio || 'Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.';
 
-      const btnStyle = p.isFollowing ?
-        'background: #edf4fb; color: #134c81; border: 1px solid #bfdbfe;' :
-        'background: #134c81; color: #ffffff; border: 1px solid #134c81;';
-      const btnText = p.isFollowing ? 'Đang theo dõi' : '+ Theo dõi';
+        const jobTitleEl = document.getElementById('profile-display-job_title');
+        if (jobTitleEl) jobTitleEl.textContent = data.job_title;
 
-      return `
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; transition: background 0.15s;">
-          <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
-            <div style="width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 1px solid #cbd5e1;">
-              ${avatarHtml}
-            </div>
-            <div style="overflow: hidden; flex: 1;">
-              <div>${nameTag}</div>
-              <div style="font-size: 12px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${p.role}">
-                ${p.role}
-              </div>
-            </div>
-          </div>
-          <button type="button" onclick="toggleFollowPerson(${p.id}, this)" style="${btnStyle} padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.15s;">
-            ${btnText}
-          </button>
-        </div>
-      `;
-    }).join('');
+        const headerRoleEl = document.getElementById('profile-header-role');
+        if (headerRoleEl) headerRoleEl.textContent = data.job_title ? (data.job_title + ' · Scots English') : '';
+
+        const branchEl = document.getElementById('profile-display-branch');
+        if (branchEl) branchEl.textContent = data.branch;
+
+        const joinDateEl = document.getElementById('profile-display-join_date');
+        if (joinDateEl) joinDateEl.textContent = data.join_date;
+
+        const emailEl = document.getElementById('profile-display-email');
+        if (emailEl) {
+          emailEl.textContent = data.email;
+          emailEl.href = 'mailto:' + data.email;
+        }
+
+        const headerEmailEl = document.getElementById('profile-header-email');
+        if (headerEmailEl) headerEmailEl.textContent = 'Email: ' + (data.email || '');
+
+        const headerEmailVal = document.getElementById('profile-header-email-val');
+        if (headerEmailVal) headerEmailVal.textContent = data.email || '';
+
+        const topbarEmailEl = document.getElementById('topbar-user-email');
+        if (topbarEmailEl) topbarEmailEl.textContent = data.email || '';
+
+        const phoneEl = document.getElementById('profile-display-phone');
+        if (phoneEl) phoneEl.textContent = data.phone;
+
+        cancelEditingBio();
+      } else {
+        alert(data.error || 'Có lỗi xảy ra khi lưu thông tin.');
+      }
+    })
+    .catch(err => {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Lưu thay đổi';
+      }
+      console.error(err);
+      alert('Không thể lưu thông tin. Vui lòng thử lại.');
+    });
   }
 
   // Keyboard shortcut ESC to close modals
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      closeFollowingModal();
       if (typeof closeLikesModal === 'function') closeLikesModal();
       if (typeof closeEditPostModal === 'function') closeEditPostModal();
     }
