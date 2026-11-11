@@ -8,6 +8,16 @@ class Post(models.Model):
     Bảng: post
     Đại diện cho bài viết được tạo bởi nhân viên/người dùng.
     """
+    VISIBILITY_COMPANY = 'Toàn công ty'
+    VISIBILITY_DEPARTMENT = 'Phòng ban'
+    VISIBILITY_PRIVATE = 'Chỉ mình tôi'
+
+    VISIBILITY_CHOICES = [
+        (VISIBILITY_COMPANY, 'Toàn công ty'),
+        (VISIBILITY_DEPARTMENT, 'Phòng ban'),
+        (VISIBILITY_PRIVATE, 'Chỉ mình tôi'),
+    ]
+
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -17,6 +27,13 @@ class Post(models.Model):
     )
     title = models.CharField(max_length=200, blank=True, default='', verbose_name="Tiêu đề")
     content = models.TextField(verbose_name="Nội dung bài viết")
+    visibility = models.CharField(
+        max_length=50,
+        choices=VISIBILITY_CHOICES,
+        default=VISIBILITY_COMPANY,
+        blank=True,
+        verbose_name="Phạm vi hiển thị"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Thời gian cập nhật")
 

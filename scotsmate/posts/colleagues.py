@@ -501,6 +501,36 @@ COLLEAGUES_DATA = {
 }
 
 
+def get_user_department(user_or_username):
+    """
+    Xác định phòng ban thực tế của nhân viên / người dùng Scots English.
+    Dùng để lọc phạm vi hiển thị bài viết theo 'Phòng ban'.
+    """
+    if not user_or_username:
+        return "Phòng Đào tạo & Giảng dạy"
+
+    uname = getattr(user_or_username, 'username', str(user_or_username)).lower()
+
+    if uname in COLLEAGUES_DATA and 'department' in COLLEAGUES_DATA[uname]:
+        return COLLEAGUES_DATA[uname]['department']
+
+    data = COLLEAGUES_DATA.get(uname, {})
+    title = (data.get('job_title') or data.get('role') or '').lower()
+
+    if any(k in title for k in ['học vụ', 'khảo thí', 'giáo trình', 'học liệu']):
+        return "Phòng Quản lý Học vụ & Khảo thí"
+    elif any(k in title for k in ['tuyển sinh', 'chăm sóc học viên']):
+        return "Phòng Tuyển sinh & CSKH"
+    elif any(k in title for k in ['truyền thông', 'sự kiện', 'thiết kế']):
+        return "Phòng Truyền thông & Sự kiện"
+    elif any(k in title for k in ['nhân sự', 'tuyển dụng', 'tài chính', 'kế toán']):
+        return "Phòng Hành chính - Nhân sự"
+    elif any(k in title for k in ['quản trị', 'kỹ sư', 'kỹ thuật', 'lab', 'mạng']):
+        return "Phòng Công nghệ & Quản trị"
+
+    return "Phòng Đào tạo & Giảng dạy"
+
+
 def get_profile_details(user):
     """
     Trả về thông tin chi tiết hồ sơ cá nhân của user dựa trên username hoặc thông tin tài khoản.
@@ -515,6 +545,7 @@ def get_profile_details(user):
         full_name = user.get_full_name()
         if full_name:
             data['name'] = full_name
+        data['department'] = get_user_department(uname)
         return data
 
     # Fallback cho user ngoài danh sách
@@ -525,6 +556,7 @@ def get_profile_details(user):
         "username": uname,
         "role": "Quản trị viên hệ thống" if is_admin else "Giáo viên · Scots English",
         "job_title": "Quản trị viên" if is_admin else "Giáo viên tiếng Anh",
+        "department": get_user_department(uname),
         "branch": "Hội sở Scots English",
         "email": getattr(user, 'email', '') or f"{uname}@scotsenglish.edu.vn",
         "phone": "090 123 4567",

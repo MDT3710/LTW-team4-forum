@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.utils import timezone
 from .models import Post, PostAttachment, PostReaction, PostComment
 from .colleagues import get_profile_details
@@ -72,6 +73,11 @@ def post_create_view(request):
                 first_line = post.content.split('\n')[0].strip()
                 post.title = first_line[:100] if first_line else "Bài viết mới"
 
+            # Phạm vi hiển thị bài viết
+            vis = request.POST.get('visibility') or form.cleaned_data.get('visibility')
+            if vis in [Post.VISIBILITY_COMPANY, Post.VISIBILITY_DEPARTMENT, Post.VISIBILITY_PRIVATE]:
+                post.visibility = vis
+
             post.save()
 
             # Xử lý lưu các tệp đính kèm vào bảng `post_attachment`
@@ -123,7 +129,21 @@ def profile_view(request, username=None):
     else:
         profile_user = current_user
 
-    posts = list(Post.objects.filter(author=profile_user).prefetch_related(
+    posts_qs = Post.objects.filter(author=profile_user)
+    if profile_user != current_user:
+        # Nếu xem trang cá nhân của đồng nghiệp khác:
+        # - Tuyệt đối không hiển thị bài 'Chỉ mình tôi' của họ
+        # - Chỉ hiển thị bài 'Phòng ban' nếu người xem cùng phòng ban với tác giả (hoặc là superuser)
+        from posts.colleagues import get_user_department
+        viewer_dept = get_user_department(current_user)
+        target_dept = get_user_department(profile_user)
+
+        profile_vis_filter = Q(visibility=Post.VISIBILITY_COMPANY) | Q(visibility='') | Q(visibility__isnull=True)
+        if current_user.is_superuser or viewer_dept == target_dept:
+            profile_vis_filter |= Q(visibility=Post.VISIBILITY_DEPARTMENT)
+        posts_qs = posts_qs.filter(profile_vis_filter)
+
+    posts = list(posts_qs.prefetch_related(
         'attachments', 'reactions', 'reactions__emp', 'comments', 'comments__emp'
     ).order_by('-created_at')) if profile_user else []
 
@@ -477,13 +497,19 @@ def edit_post_api(request, post_id):
             'success': True,
             'title': post.title,
             'content': post.content,
+            'visibility': post.visibility or Post.VISIBILITY_COMPANY,
             'attachments': attachments
         })
 
     if request.method == 'POST':
         form = PostForm(request.POST, instance=post)
         if form.is_valid():
-            post = form.save()
+            post = form.save(commit=False)
+
+            vis = request.POST.get('visibility') or form.cleaned_data.get('visibility')
+            if vis in [Post.VISIBILITY_COMPANY, Post.VISIBILITY_DEPARTMENT, Post.VISIBILITY_PRIVATE]:
+                post.visibility = vis
+            post.save()
 
             # 1. Xóa các tệp/ảnh cũ nếu người dùng bấm bỏ bớt ảnh
             remove_ids = request.POST.getlist('remove_attachments') or request.POST.getlist('remove_attachment_ids')
@@ -529,6 +555,7 @@ def edit_post_api(request, post_id):
                 'message': 'Cập nhật bài viết thành công.',
                 'title': post.title,
                 'content': post.content,
+                'visibility': post.visibility,
                 'updated_at': post.updated_at.strftime('%H:%M %d/%m/%Y'),
                 'attachments': updated_attachments
             })

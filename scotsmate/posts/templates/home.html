@@ -172,14 +172,21 @@
                     <span class="author-topic">{{ post.title }}</span>
                   {% endif %}
                 </span>
-                <span class="author-meta">
+                <span class="author-meta" style="display: flex; align-items: center; gap: 6px;">
                   <span>{{ post.created_at|timesince }} trước · Scots English</span>
-                  <svg class="am" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
+                  <span id="post-vis-badge-{{ post.id }}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b;" title="Phạm vi: {{ post.visibility|default:'Toàn công ty' }}">
+                    <span>·</span>
+                    {% if post.visibility == 'Chỉ mình tôi' %}
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Chỉ mình tôi"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      <span class="vis-text">Chỉ mình tôi</span>
+                    {% elif post.visibility == 'Phòng ban' %}
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Phòng ban"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                      <span class="vis-text">Phòng ban</span>
+                    {% else %}
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Toàn công ty"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                      <span class="vis-text">Toàn công ty</span>
+                    {% endif %}
+                  </span>
                 </span>
               </div>
               {% if current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
@@ -813,6 +820,8 @@
                 document.getElementById('edit-post-id').value = postId;
                 document.getElementById('edit-post-title').value = data.title || '';
                 document.getElementById('edit-post-content').value = data.content || '';
+                const visSelect = document.getElementById('edit-post-visibility');
+                if (visSelect) visSelect.value = data.visibility || 'Toàn công ty';
 
                 editExistingAttachments = data.attachments || [];
                 editRemovedAttachmentIds = [];
@@ -992,6 +1001,10 @@
           const formData = new FormData();
           formData.append('title', title);
           formData.append('content', content);
+          const visSelect = document.getElementById('edit-post-visibility');
+          if (visSelect) {
+            formData.append('visibility', visSelect.value);
+          }
 
           editRemovedAttachmentIds.forEach(id => {
             formData.append('remove_attachments', id);
@@ -1025,6 +1038,21 @@
               if (badgeEl) {
                 badgeEl.innerText = `(Đã chỉnh sửa lúc ${data.updated_at})`;
                 badgeEl.style.display = 'inline-block';
+              }
+
+              // Cập nhật huy hiệu phạm vi hiển thị trên bài viết
+              const visBadge = document.getElementById(`post-vis-badge-${postId}`);
+              if (visBadge && data.visibility) {
+                let iconSvg = '';
+                if (data.visibility === 'Chỉ mình tôi') {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>';
+                } else if (data.visibility === 'Phòng ban') {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+                } else {
+                  iconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>';
+                }
+                visBadge.innerHTML = `<span>·</span> ${iconSvg} <span class="vis-text">${data.visibility}</span>`;
+                visBadge.title = `Phạm vi: ${data.visibility}`;
               }
 
               updatePostPhotosDOM(postId, data.attachments || []);
@@ -1175,6 +1203,14 @@
         <div style="margin-bottom: 16px;">
           <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Tiêu đề bài viết</label>
           <input type="text" id="edit-post-title" placeholder="Tiêu đề bài viết..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Phạm vi hiển thị bài viết</label>
+          <select id="edit-post-visibility" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-size: 14px; box-sizing: border-box; outline: none; background: #ffffff; color: #1e293b; cursor: pointer; transition: border-color 0.2s;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'">
+            <option value="Toàn công ty">🌐 Toàn công ty (Tất cả nhân viên Scots English)</option>
+            <option value="Phòng ban">👥 Phòng ban (Chỉ đồng nghiệp trong cùng phòng ban)</option>
+            <option value="Chỉ mình tôi">🔒 Chỉ mình tôi (Chỉ riêng bạn có thể xem)</option>
+          </select>
         </div>
         <div style="margin-bottom: 16px;">
           <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">Nội dung bài viết *</label>

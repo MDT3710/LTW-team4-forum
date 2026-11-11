@@ -8,7 +8,7 @@ class PostForm(forms.ModelForm):
     """
     class Meta:
         model = Post
-        fields = ['title', 'content']
+        fields = ['title', 'content', 'visibility']
         widgets = {
             'title': forms.TextInput(attrs={
                 'id': 'post-title-input',
@@ -22,11 +22,21 @@ class PostForm(forms.ModelForm):
                 'rows': 4,
                 'required': True,
             }),
+            'visibility': forms.TextInput(attrs={
+                'id': 'post-visibility-input',
+            }),
         }
         labels = {
             'title': 'Chủ đề / Tiêu đề',
             'content': 'Nội dung bài viết',
+            'visibility': 'Phạm vi hiển thị',
         }
+
+    def clean_visibility(self):
+        visibility = self.cleaned_data.get('visibility', '').strip()
+        if visibility not in [Post.VISIBILITY_COMPANY, Post.VISIBILITY_DEPARTMENT, Post.VISIBILITY_PRIVATE]:
+            return Post.VISIBILITY_COMPANY
+        return visibility
 
     def clean_content(self):
         content = self.cleaned_data.get('content', '').strip()
