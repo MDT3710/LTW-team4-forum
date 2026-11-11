@@ -6,49 +6,39 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.utils import timezone
 from .models import Post, PostAttachment, PostReaction, PostComment
 from .colleagues import get_profile_details
-from .forms import PostForm, PostCommentForm, PostAttachmentForm
+from django.contrib.auth import views as auth_views
+from .forms import PostForm, PostCommentForm, PostAttachmentForm, ScotsmateAuthenticationForm
 
 
-def login_view(request):
+class ScotsmateLoginView(auth_views.LoginView):
     """
-    Xử lý trang đăng nhập hệ thống:
-    Hỗ trợ xác thực người dùng auth_user thực tế và ghi nhận phiên (session).
-    Hỗ trợ cả mật khẩu gợi ý trên giao diện (password123 / adminpassword123) lẫn 123456.
+    View đăng nhập kế thừa Django contrib.auth.views.LoginView (Chương 7 MIS3010).
+    Sử dụng ScotsmateAuthenticationForm và template login.html.
+    Tự động chuyển hướng người dùng đã xác thực (redirect_authenticated_user=True).
     """
-    if request.user.is_authenticated:
-        return redirect('newfeeds')
-
-    error_msg = None
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-
-        user = authenticate(request, username=username, password=password)
-        if user is None:
-            # Hỗ trợ linh hoạt cả 123456 lẫn password123 / adminpassword123
-            u = User.objects.filter(username=username).first()
-            if u and (password in ['123456', 'password123', 'admin123', 'adminpassword123']):
-                user = u
-
-        if user is not None:
-            login(request, user)
-            next_url = request.GET.get('next') or request.POST.get('next')
-            if next_url:
-                return redirect(next_url)
-            return redirect('newfeeds')
-        else:
-            error_msg = 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!'
-
-    return render(request, 'dual_column.html', {'error_msg': error_msg})
+    template_name = 'login.html'
+    authentication_form = ScotsmateAuthenticationForm
+    redirect_authenticated_user = True
 
 
-def logout_view(request):
-    """Đăng xuất khỏi hệ thống và chuyển về trang đăng nhập"""
-    logout(request)
-    return redirect('login')
+class ScotsmateLogoutView(auth_views.LogoutView):
+    """
+    View đăng xuất kế thừa Django contrib.auth.views.LogoutView (Chương 7 MIS3010).
+    Hỗ trợ cả GET và POST để liên kết menu Đăng xuất hoạt động trơn tru.
+    """
+    http_method_names = ['get', 'post', 'options']
+
+    def get(self, request, *args, **kwargs):
+        return self.post(request, *args, **kwargs)
+
+
+# Tương thích ngược với các URL / tests cũ
+login_view = ScotsmateLoginView.as_view()
+logout_view = ScotsmateLogoutView.as_view()
 
 
 def post_create_view(request):
@@ -71,6 +61,11 @@ def post_create_view(request):
             if not post.title:
                 first_line = post.content.split('\n')[0].strip()
                 post.title = first_line[:100] if first_line else "Bài viết mới"
+
+            # Phạm vi hiển thị bài viết
+            vis = request.POST.get('visibility') or form.cleaned_data.get('visibility')
+            if vis in [Post.VISIBILITY_COMPANY, Post.VISIBILITY_DEPARTMENT, Post.VISIBILITY_PRIVATE]:
+                post.visibility = vis
 
             post.save()
 
@@ -96,7 +91,7 @@ def post_create_view(request):
             next_url = request.POST.get('next')
             if next_url:
                 return redirect(next_url)
-            return redirect('newfeeds')
+            return redirect('home')
         else:
             messages.error(request, 'Nội dung bài viết không được để trống hoặc không hợp lệ.')
     else:
@@ -123,7 +118,21 @@ def profile_view(request, username=None):
     else:
         profile_user = current_user
 
-    posts = list(Post.objects.filter(author=profile_user).prefetch_related(
+    posts_qs = Post.objects.filter(author=profile_user)
+    if profile_user != current_user:
+        # Nếu xem trang cá nhân của đồng nghiệp khác:
+        # - Tuyệt đối không hiển thị bài 'Chỉ mình tôi' của họ
+        # - Chỉ hiển thị bài 'Phòng ban' nếu người xem cùng phòng ban với tác giả (hoặc là superuser)
+        from posts.colleagues import get_user_department
+        viewer_dept = get_user_department(current_user)
+        target_dept = get_user_department(profile_user)
+
+        profile_vis_filter = Q(visibility=Post.VISIBILITY_COMPANY) | Q(visibility='') | Q(visibility__isnull=True)
+        if current_user.is_superuser or viewer_dept == target_dept:
+            profile_vis_filter |= Q(visibility=Post.VISIBILITY_DEPARTMENT)
+        posts_qs = posts_qs.filter(profile_vis_filter)
+
+    posts = list(posts_qs.prefetch_related(
         'attachments', 'reactions', 'reactions__emp', 'comments', 'comments__emp'
     ).order_by('-created_at')) if profile_user else []
 
@@ -186,17 +195,11 @@ def post_likes_api(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     reactions = post.reactions.select_related('emp').all()
     user_list = []
+    from .colleagues import get_profile_details
     for r in reactions:
         u = r.emp
         name = u.get_full_name() or u.username
-        if u.username == 'thuha':
-            avatar = '/static/img/avatar_thuha.png'
-        elif u.username == 'phuonglinh':
-            avatar = '/static/img/avatar_phuonglinh.png'
-        elif u.username == 'ngocanh':
-            avatar = '/static/img/avatar_ngocanh.png'
-        else:
-            avatar = '/static/img/profile_avatar_144.png'
+        avatar = get_profile_details(u).get('avatar', '/static/img/profile_avatar_144.png')
         user_list.append({
             'id': u.id,
             'name': name,
@@ -307,6 +310,7 @@ def prepare_post_comments(post, current_user_id=None):
     - comment.child_replies: Danh sách bình luận trả lời nằm ngay dưới bình luận gốc
     - comment.is_liked_by_user, comment.reaction_count, comment.formatted_content
     """
+    from .colleagues import get_profile_details
     raw_comments = list(post.comments.select_related('emp').all())
     comment_map = {}
     for c in raw_comments:
@@ -314,6 +318,7 @@ def prepare_post_comments(post, current_user_id=None):
         c.reaction_count = get_comment_like_count(c.id)
         c.child_replies = []
         c.formatted_content = format_comment_content(c.content)
+        c.emp_avatar = get_profile_details(c.emp).get('avatar', '/static/img/profile_avatar_144.png')
         comment_map[c.id] = c
 
     root_comments = []
@@ -383,16 +388,8 @@ def add_comment_api(request, post_id):
         formatted_content = format_comment_content(comment.content)
 
         author_name = user.get_full_name() or user.username
-        if user.username == 'thuha':
-            avatar_url = '/static/img/avatar_thuha.png'
-        elif user.username == 'phuonglinh':
-            avatar_url = '/static/img/avatar_phuonglinh.png'
-        elif user.username == 'ngocanh':
-            avatar_url = '/static/img/avatar_ngocanh.png'
-        elif user.username == 'minhanh':
-            avatar_url = '/static/img/avatar_minhanh.png'
-        else:
-            avatar_url = '/static/img/profile_avatar_144.png'
+        from .colleagues import get_profile_details
+        avatar_url = get_profile_details(user).get('avatar', '/static/img/profile_avatar_144.png')
 
         return JsonResponse({
             'success': True,
@@ -477,13 +474,19 @@ def edit_post_api(request, post_id):
             'success': True,
             'title': post.title,
             'content': post.content,
+            'visibility': post.visibility or Post.VISIBILITY_COMPANY,
             'attachments': attachments
         })
 
     if request.method == 'POST':
         form = PostForm(request.POST, instance=post)
         if form.is_valid():
-            post = form.save()
+            post = form.save(commit=False)
+
+            vis = request.POST.get('visibility') or form.cleaned_data.get('visibility')
+            if vis in [Post.VISIBILITY_COMPANY, Post.VISIBILITY_DEPARTMENT, Post.VISIBILITY_PRIVATE]:
+                post.visibility = vis
+            post.save()
 
             # 1. Xóa các tệp/ảnh cũ nếu người dùng bấm bỏ bớt ảnh
             remove_ids = request.POST.getlist('remove_attachments') or request.POST.getlist('remove_attachment_ids')
@@ -529,6 +532,7 @@ def edit_post_api(request, post_id):
                 'message': 'Cập nhật bài viết thành công.',
                 'title': post.title,
                 'content': post.content,
+                'visibility': post.visibility,
                 'updated_at': post.updated_at.strftime('%H:%M %d/%m/%Y'),
                 'attachments': updated_attachments
             })
@@ -634,3 +638,144 @@ def toggle_comment_like_api(request, comment_id):
             'count': len(COMMENT_REACTIONS[comment_id])
         })
     return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
+
+
+def update_profile_avatar_api(request):
+    """
+    API AJAX cập nhật ảnh đại diện của người dùng.
+    Lưu tệp vào MEDIA_ROOT/avatars và ghi nhận đường dẫn vào user_profiles.json.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập.'}, status=401)
+    if request.method != 'POST' or 'avatar' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'Không tìm thấy tệp ảnh tải lên.'}, status=400)
+
+    avatar_file = request.FILES['avatar']
+    ext = os.path.splitext(avatar_file.name)[1].lower()
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
+        return JsonResponse({'success': False, 'error': 'Định dạng ảnh không hợp lệ (JPG, PNG, WEBP, GIF, SVG).'}, status=400)
+
+    import time
+    save_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
+    os.makedirs(save_dir, exist_ok=True)
+    safe_filename = f"{request.user.username}_{int(time.time())}{ext}"
+    save_path = os.path.join(save_dir, safe_filename)
+
+    with open(save_path, 'wb+') as destination:
+        for chunk in avatar_file.chunks():
+            destination.write(chunk)
+
+    avatar_url = f"/media/avatars/{safe_filename}"
+
+    from .colleagues import load_user_custom_profiles, save_user_custom_profiles
+    custom_profiles = load_user_custom_profiles()
+    uname = request.user.username
+    if uname not in custom_profiles:
+        custom_profiles[uname] = {}
+    custom_profiles[uname]['avatar'] = avatar_url
+    save_user_custom_profiles(custom_profiles)
+
+    return JsonResponse({
+        'success': True,
+        'avatar_url': avatar_url,
+        'message': 'Cập nhật ảnh đại diện thành công.'
+    })
+
+
+def update_profile_cover_api(request):
+    """
+    API AJAX cập nhật ảnh bìa trang cá nhân của người dùng.
+    Lưu tệp vào MEDIA_ROOT/covers và ghi nhận đường dẫn vào user_profiles.json.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập.'}, status=401)
+    if request.method != 'POST' or 'cover' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'Không tìm thấy tệp ảnh bìa tải lên.'}, status=400)
+
+    cover_file = request.FILES['cover']
+    ext = os.path.splitext(cover_file.name)[1].lower()
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
+        return JsonResponse({'success': False, 'error': 'Định dạng ảnh không hợp lệ (JPG, PNG, WEBP, GIF, SVG).'}, status=400)
+
+    import time
+    save_dir = os.path.join(settings.MEDIA_ROOT, 'covers')
+    os.makedirs(save_dir, exist_ok=True)
+    safe_filename = f"{request.user.username}_{int(time.time())}{ext}"
+    save_path = os.path.join(save_dir, safe_filename)
+
+    with open(save_path, 'wb+') as destination:
+        for chunk in cover_file.chunks():
+            destination.write(chunk)
+
+    cover_url = f"/media/covers/{safe_filename}"
+
+    from .colleagues import load_user_custom_profiles, save_user_custom_profiles
+    custom_profiles = load_user_custom_profiles()
+    uname = request.user.username
+    if uname not in custom_profiles:
+        custom_profiles[uname] = {}
+    custom_profiles[uname]['cover'] = cover_url
+    save_user_custom_profiles(custom_profiles)
+
+    return JsonResponse({
+        'success': True,
+        'cover_url': cover_url,
+        'message': 'Cập nhật ảnh bìa thành công.'
+    })
+
+
+def update_profile_bio_api(request):
+    """
+    API AJAX cập nhật phần giới thiệu (bio) và các thông tin hồ sơ (chức vụ, chi nhánh, ngày tham gia, email, sđt).
+    Ghi nhận vào user_profiles.json.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập.'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Phương thức không hợp lệ.'}, status=405)
+
+    from .colleagues import load_user_custom_profiles, save_user_custom_profiles
+    custom_profiles = load_user_custom_profiles()
+    uname = request.user.username
+    if uname not in custom_profiles:
+        custom_profiles[uname] = {}
+
+    bio = request.POST.get('bio')
+    job_title = request.POST.get('job_title')
+    branch = request.POST.get('branch')
+    join_date = request.POST.get('join_date')
+    email = request.POST.get('email')
+    phone = request.POST.get('phone')
+
+    if bio is not None:
+        custom_profiles[uname]['bio'] = bio.strip()
+    if job_title is not None:
+        custom_profiles[uname]['job_title'] = job_title.strip()
+    if branch is not None:
+        custom_profiles[uname]['branch'] = branch.strip()
+    if join_date is not None:
+        custom_profiles[uname]['join_date'] = join_date.strip()
+    if email is not None:
+        email_clean = email.strip()
+        custom_profiles[uname]['email'] = email_clean
+        if request.user.is_authenticated:
+            request.user.email = email_clean
+            try:
+                request.user.save(update_fields=['email'])
+            except Exception:
+                pass
+    if phone is not None:
+        custom_profiles[uname]['phone'] = phone.strip()
+
+    save_user_custom_profiles(custom_profiles)
+
+    return JsonResponse({
+        'success': True,
+        'bio': custom_profiles[uname].get('bio', ''),
+        'job_title': custom_profiles[uname].get('job_title', ''),
+        'branch': custom_profiles[uname].get('branch', ''),
+        'join_date': custom_profiles[uname].get('join_date', ''),
+        'email': custom_profiles[uname].get('email', ''),
+        'phone': custom_profiles[uname].get('phone', ''),
+        'message': 'Cập nhật thông tin thành công.'
+    })

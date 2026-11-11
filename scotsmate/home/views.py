@@ -8,11 +8,11 @@ def index_view(request):
     """
     Điều hướng khi truy cập trang web (đường dẫn gốc /):
     - Luôn vào trang đăng nhập trước nếu chưa đăng nhập.
-    - Sau khi đăng nhập mới vào được trang newfeeds.
+    - Sau khi đăng nhập mới vào được trang home (Bảng tin).
     """
     if not request.user.is_authenticated:
         return redirect('login')
-    return redirect('newfeeds')
+    return redirect('home')
 
 
 def HomeView(request):
@@ -35,6 +35,30 @@ def HomeView(request):
         'comments__emp',
         'author'
     )
+
+    # Lọc bài viết theo phạm vi hiển thị thực tế:
+    # - 'Toàn công ty': tất cả nhân viên đều thấy
+    # - 'Chỉ mình tôi': chỉ chính tác giả mới thấy
+    # - 'Phòng ban': chỉ đồng nghiệp cùng phòng ban (hoặc superuser) mới thấy
+    from posts.colleagues import get_user_department
+    user_dept = get_user_department(current_user)
+    same_dept_user_ids = [
+        u.id for u in User.objects.all()
+        if get_user_department(u) == user_dept
+    ]
+
+    vis_filter = (
+        Q(visibility=Post.VISIBILITY_COMPANY) |
+        Q(visibility='') |
+        Q(visibility__isnull=True) |
+        Q(author=current_user)
+    )
+    if current_user.is_superuser:
+        vis_filter |= Q(visibility=Post.VISIBILITY_DEPARTMENT)
+    else:
+        vis_filter |= Q(visibility=Post.VISIBILITY_DEPARTMENT, author_id__in=same_dept_user_ids)
+
+    posts_qs = posts_qs.filter(vis_filter)
 
     if query:
         posts_qs = posts_qs.filter(

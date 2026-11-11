@@ -156,15 +156,13 @@
       <!-- Profile Menu with Dropdown -->
       <div class="profile-menu" onclick="toggleUserDropdown(event)" style="cursor: pointer; position: relative;" title="Tài khoản cá nhân">
         <div class="avatar avatar-profile" style="border-radius: 50%; overflow: hidden; width: 36px; height: 36px;">
-          {% if request.user.username == 'thuha' %}
-            <img src="{% static 'img/avatar_thuha.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-          {% elif request.user.username == 'phuonglinh' %}
-            <img src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-          {% elif request.user.username == 'ngocanh' %}
-            <img src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-          {% else %}
-            <img src="{% static 'img/profile_avatar_144.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/avatar_minhanh.png' %}';" />
-          {% endif %}
+          <img
+            id="topbar-user-avatar"
+            class="current-user-avatar-sync user-avatar-sync-{{ request.user.username }}"
+            src="{{ current_user_avatar|default:'/static/img/profile_avatar_144.png' }}"
+            alt="{{ request.user.get_full_name|default:request.user.username }}"
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;"
+            onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
         </div>
         <div class="profile-details">
           <span class="profile-name">{{ request.user.first_name|default:request.user.username|default:'Người dùng' }}</span>
@@ -178,7 +176,7 @@
         <div id="user-header-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); width: 220px; z-index: 1000; overflow: hidden; padding: 6px 0;">
           <div style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
             <div style="font-weight: 600; font-size: 14px; color: #0f172a;">{{ request.user.get_full_name|default:request.user.username }}</div>
-            <div style="font-size: 12px; color: #64748b;">{{ request.user.email|default:'user@scotsenglish.edu.vn' }}</div>
+            <div id="topbar-user-email" style="font-size: 12px; color: #64748b;">{{ current_user_profile.email|default:request.user.email|default:'user@scotsenglish.edu.vn' }}</div>
           </div>
           <a href="{% url 'profile' %}" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #334155; text-decoration: none;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
