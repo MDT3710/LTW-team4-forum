@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="page-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <a href="/courses/trainer/courses/" class="hover:underline text-[#134c81]">Quản lý đào tạo</a>
+          <span>/</span>
+          <span class="text-slate-800 font-semibold">{{ course.title }}</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">{{ course.title }}</h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Người phụ trách: <strong>{{ course.creator.get_full_name|default:course.creator.username|default:"Ban Đào tạo Scots English" }}</strong>
+          • Thời gian: {{ course.date_start|date:"d/m/Y" }} - {{ course.date_end|date:"d/m/Y" }}
+          • Trạng thái: 
+          {% if course.status == 'ongoing' %}
+            <span class="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Đang triển khai
+            </span>
+          {% elif course.status == 'draft' %}
+            <span class="inline-flex items-center gap-1 text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span> Bản nháp
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1 text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+              Đã kết thúc
+            </span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        {% if course.status == 'draft' %}
+          <form method="POST" action="/courses/trainer/courses/{{ course.id }}/publish/" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="inline-flex items-center gap-2 h-10 px-5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-md cursor-pointer">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Xuất bản khóa học ngay
+            </button>
+          </form>
+        {% endif %}
+        <button type="button" onclick="toggleEditModal()" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm cursor-pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Sửa thông tin
+        </button>
+        {% if course.status != 'draft' %}
+          <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm" style="text-decoration:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            Báo cáo học viên
+          </a>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="px-4 py-3 rounded-lg {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-800{% else %}bg-rose-50 border border-rose-200 text-rose-800{% endif %} text-xs font-medium flex items-center gap-2 shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+
+
+    <!-- Sub-tabs đồng nhất 5 phân hệ khóa học -->
+    <nav class="section-tabs flex border-b border-slate-200 gap-6">
+      <a href="/courses/trainer/courses/{{ course.id }}/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
+        Tổng quan khóa học
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tài liệu & Bài giảng ({{ materials_count|default:materials|length }})
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/exam/setup/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Thiết lập bài thi {% if exam %}<span class="text-emerald-600 font-bold">✓</span>{% endif %}
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Ghi danh học viên ({{ total_enrolled }})
+      </a>
+      {% if course.status != 'draft' %}
+        <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+          Tiến độ học viên ({{ total_enrolled }})
+        </a>
+      {% endif %}
+    </nav>
+
+    <!-- Grid thông số KPI khóa học -->
+    {% if course.status == 'draft' %}
+      <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Trạng thái khóa học</span>
+          <p class="text-2xl font-bold text-amber-600 mt-2">Bản nháp</p>
+          <span class="text-xs text-slate-500 mt-1 block">Chưa mở ghi danh học viên</span>
+        </div>
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Bài giảng & Tài liệu</span>
+          <p class="text-2xl font-bold text-[#134c81] mt-2">{{ materials|length }} bài giảng</p>
+          <span class="text-xs text-slate-500 mt-1 block">Sẵn sàng tài liệu đào tạo</span>
+        </div>
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Đề thi đánh giá</span>
+          {% if exam %}
+            <p class="text-2xl font-bold text-emerald-600 mt-2">Đã cấu hình</p>
+            <span class="text-xs text-slate-500 mt-1 block">{{ exam.duration }} phút • Điểm đạt: {{ exam.passing_score|floatformat:0 }}/100</span>
+          {% else %}
+            <p class="text-2xl font-bold text-amber-600 mt-2">Chưa cấu hình</p>
+            <span class="text-xs text-amber-600 mt-1 block">Cần cấu hình trước khi xuất bản</span>
+          {% endif %}
+        </div>
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Kế hoạch triển khai</span>
+          <p class="text-sm font-bold text-slate-800 mt-2.5 truncate">{{ course.date_start|date:"d/m/Y" }} → {{ course.date_end|date:"d/m/Y" }}</p>
+          <span class="text-xs text-slate-500 mt-1 block">Thời hạn khóa học</span>
+        </div>
+      </section>
+    {% else %}
+      <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Tổng học viên được giao</span>
+          <p class="text-2xl font-bold text-slate-900 mt-2">{{ total_enrolled }} nhân sự</p>
+          <span class="text-xs text-slate-500 mt-1 block">Toàn hệ thống chi nhánh</span>
+        </div>
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Đã hoàn thành khóa</span>
+          <p class="text-2xl font-bold text-emerald-600 mt-2">{{ total_completed }} / {{ total_enrolled }}</p>
+          <span class="text-xs text-emerald-600 mt-1 block">
+            {% if total_enrolled > 0 %}
+              Tỷ lệ hoàn thành: {% widthratio total_completed total_enrolled 100 %}%
+            {% else %}
+              0%
+            {% endif %}
+          </span>
+        </div>
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Tài liệu học tập</span>
+          <p class="text-2xl font-bold text-[#134c81] mt-2">{{ materials|length }} bài giảng</p>
+          <span class="text-xs text-slate-500 mt-1 block">PDF, Video trực quan</span>
+        </div>
+        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Trạng thái bài thi</span>
+          {% if exam %}
+            <p class="text-2xl font-bold text-emerald-600 mt-2">Đã cấu hình</p>
+            <span class="text-xs text-slate-500 mt-1 block">{{ exam.duration }} phút • Điểm đạt: {{ exam.passing_score|floatformat:0 }}/100</span>
+          {% else %}
+            <p class="text-2xl font-bold text-amber-600 mt-2">Chưa cấu hình</p>
+            <span class="text-xs text-amber-600 mt-1 block">Cần cấu hình đề thi</span>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- Khối chỉnh sửa thông tin nhanh (ẩn theo mặc định, bật khi nhấn "Sửa thông tin") -->
+    <div id="editCourseSection" class="hidden workspace-card bg-white border-2 border-blue-200 rounded-xl p-6 shadow-md">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#134c81]"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Chỉnh sửa thông tin khóa học
+        </h2>
+        <button type="button" onclick="toggleEditModal()" class="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer">
+          Đóng lại ✕
+        </button>
+      </div>
+
+      <form method="POST" action="/courses/trainer/courses/{{ course.id }}/" class="space-y-4 text-xs">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_info">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block font-semibold text-slate-700 mb-1">Tên khóa học <span class="text-rose-500">*</span></label>
+            <input type="text" name="title" required value="{{ course.title }}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Ngày bắt đầu</label>
+            <input type="date" name="date_start" value="{{ course.date_start|date:'Y-m-d' }}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Ngày kết thúc</label>
+            <input type="date" name="date_end" value="{{ course.date_end|date:'Y-m-d' }}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81]">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Trạng thái khóa học</label>
+            <select name="status" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] bg-white">
+              <option value="ongoing" {% if course.status == 'ongoing' %}selected{% endif %}>Đang triển khai (Kích hoạt)</option>
+              <option value="draft" {% if course.status == 'draft' %}selected{% endif %}>Bản nháp (Lưu trữ nội bộ)</option>
+              <option value="completed" {% if course.status == 'completed' %}selected{% endif %}>Đã kết thúc</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mô tả khóa học</label>
+          <textarea name="description" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] resize-y">{{ course.description }}</textarea>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <button type="button" onclick="toggleEditModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+            Hủy
+          </button>
+          <button type="submit" class="px-6 py-2 rounded-lg bg-[#134c81] text-white font-semibold hover:bg-[#0e3b65] transition shadow-sm cursor-pointer">
+            Lưu thay đổi ✓
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 2 Cột thông tin chi tiết -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Cột trái: Thông tin cấu hình -->
+      <div class="lg:col-span-2 workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-5">
+        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Thông tin chi tiết khóa học</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div>
+            <span class="text-slate-400">Thời gian triển khai:</span>
+            <p class="font-semibold text-slate-800 text-sm mt-0.5">{{ course.date_start|date:"d/m/Y" }} → {{ course.date_end|date:"d/m/Y" }}</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Số lượng học viên tham gia:</span>
+            {% if course.status == 'draft' %}
+              <p class="font-semibold text-slate-500 text-sm mt-0.5">Sẽ phân công ở bước sau (Bản nháp)</p>
+            {% else %}
+              <p class="font-semibold text-[#134c81] text-sm mt-0.5">{{ total_enrolled }} học viên đã ghi danh</p>
+            {% endif %}
+          </div>
+          <div class="md:col-span-2">
+            <span class="text-slate-400">Cấu hình bài thi:</span>
+            {% if exam %}
+              <p class="font-semibold text-emerald-700 text-sm mt-0.5">
+                {{ exam.duration }} phút • Điểm chuẩn: {{ exam.passing_score|floatformat:0 }}/100 • Passcode: <span>{{ exam.passcode }}</span>
+              </p>
+            {% else %}
+              <p class="font-semibold text-amber-600 text-sm mt-0.5">Chưa cấu hình bài thi</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mt-2">
+          <span class="text-xs text-slate-400">Mô tả khóa học:</span>
+          <p class="text-xs text-slate-700 mt-1 leading-relaxed bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+            {{ course.description|default:"Chưa có mô tả chi tiết cho khóa học này." }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Cột phải: Các lối tắt thao tác nhanh -->
+      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Thao tác quản trị</h2>
+
+        {% if course.status == 'draft' %}
+          <form method="POST" action="/courses/trainer/courses/{{ course.id }}/publish/">
+            {% csrf_token %}
+            <button type="submit" class="w-full p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-left flex items-center justify-between transition cursor-pointer">
+              <div>
+                <span class="text-xs font-bold text-emerald-800 block">🚀 Xuất bản khóa học ngay</span>
+                <span class="text-[11px] text-emerald-600">Kích hoạt để học viên có thể vào học</span>
+              </div>
+              <span class="text-sm font-bold text-emerald-700">✓</span>
+            </button>
+          </form>
+        {% endif %}
+
+        <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="p-3.5 rounded-lg border border-slate-200 hover:border-[#134c81] hover:bg-[#edf4fb] flex items-center justify-between transition" style="text-decoration:none;">
+          <div>
+            <span class="text-xs font-bold text-slate-800 block">Quản lý bài giảng & tài liệu</span>
+            <span class="text-[11px] text-slate-500">Xem danh sách, sửa và thêm tài liệu ({{ materials|length }})</span>
+          </div>
+          <span class="text-sm font-bold text-[#134c81]">→</span>
+        </a>
+
+        <a href="/courses/trainer/courses/{{ course.id }}/exam/setup/" class="p-3.5 rounded-lg border border-slate-200 hover:border-[#134c81] hover:bg-[#edf4fb] flex items-center justify-between transition" style="text-decoration:none;">
+          <div>
+            <span class="text-xs font-bold text-slate-800 block">Cấu hình đề thi & Passcode</span>
+            <span class="text-[11px] text-slate-500">
+              {% if exam %}Cập nhật câu hỏi, thời gian thi, điểm đạt{% else %}Thiết lập đề thi trắc nghiệm mới{% endif %}
+            </span>
+          </div>
+          <span class="text-sm font-bold text-[#134c81]">→</span>
+        </a>
+
+        {% if course.status != 'draft' %}
+          <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="p-3.5 rounded-lg border border-slate-200 hover:border-[#134c81] hover:bg-[#edf4fb] flex items-center justify-between transition" style="text-decoration:none;">
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">Xem báo cáo học viên</span>
+              <span class="text-[11px] text-slate-500">Tiến độ và điểm số ({{ total_enrolled }} học viên)</span>
+            </div>
+            <span class="text-sm font-bold text-[#134c81]">→</span>
+          </a>
+        {% endif %}
+      </div>
+
+    </section>
+
+    <!-- BẢNG DANH SÁCH HỌC VIÊN THAM GIA KHÓA HỌC -->
+    <section class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Danh sách học viên tham gia khóa học ({{ total_enrolled }} học viên)</h2>
+        </div>
+        <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#134c81] hover:bg-[#0e3b65] text-white text-xs font-bold transition shadow-sm cursor-pointer" style="text-decoration:none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Phân công học viên
+        </a>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[11px] bg-slate-50/70">
+              <th class="py-3 px-4 font-semibold">STT</th>
+              <th class="py-3 px-4 font-semibold">Học viên</th>
+              <th class="py-3 px-4 font-semibold">Phòng ban & Cơ sở</th>
+              <th class="py-3 px-4 font-semibold">Hình thức</th>
+              <th class="py-3 px-4 font-semibold">Tiến độ bài học</th>
+              <th class="py-3 px-4 font-semibold">Kết quả thi</th>
+              <th class="py-3 px-4 font-semibold text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for en in enrollments %}
+              <tr class="hover:bg-slate-50/80 transition">
+                <td class="py-3 px-4 text-slate-400 font-mono">{{ forloop.counter }}</td>
+                <td class="py-3 px-4">
+                  <span class="font-bold text-slate-900 block text-xs">{{ en.emp.get_full_name|default:en.emp.username }}</span>
+                  <span class="text-slate-400 text-[11px]">@{{ en.emp.username }} • {{ en.emp.email|default:"scots.edu.vn" }}</span>
+                </td>
+                <td class="py-3 px-4 text-slate-600">
+                  <span class="font-semibold text-slate-800 block">{{ en.emp.employee_info.dep.name|default:"Phòng Đào tạo" }}</span>
+                  <span class="text-slate-400 text-[11px]">{{ en.emp.employee_info.branch.name|default:"Hà Nội" }}</span>
+                </td>
+                <td class="py-3 px-4">
+                  {% if en.is_assigned %}
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      Bắt buộc
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                      Tự chọn
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div class="h-full bg-emerald-500 rounded-full" style="width: {{ en.study_process }}%;"></div>
+                    </div>
+                    <span class="font-bold text-slate-700 text-[11px]">{{ en.study_process }}%</span>
+                  </div>
+                </td>
+                <td class="py-3 px-4">
+                  {% if en.is_pass %}
+                    <span class="text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Đạt</span>
+                  {% elif en.is_completed %}
+                    <span class="text-blue-700 font-bold text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Đã học xong</span>
+                  {% else %}
+                    <span class="text-slate-400 text-[11px]">Chưa thi</span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-4 text-right">
+                  <form method="POST" action="/courses/trainer/courses/{{ course.id }}/" onsubmit="return confirm('Bạn có chắc chắn muốn xóa học viên này khỏi khóa học không?');" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="remove_trainee">
+                    <input type="hidden" name="emp_id" value="{{ en.emp.id }}">
+                    <button type="submit" class="text-rose-600 hover:text-rose-800 text-xs font-semibold hover:underline cursor-pointer">
+                      Xóa ✕
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                  Chưa có học viên nào được phân công vào khóa học này. 
+                  <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="text-[#134c81] font-bold hover:underline ml-1">Nhấn vào đây để phân công học viên ngay →</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function toggleEditModal() {
+      const sec = document.getElementById('editCourseSection');
+      if (sec) {
+        sec.classList.toggle('hidden');
+        if (!sec.classList.contains('hidden')) {
+          sec.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+  </script>
+
+{% endblock %}

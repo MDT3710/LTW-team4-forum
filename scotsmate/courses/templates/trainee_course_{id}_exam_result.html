@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <!-- 
+    MÀN HÌNH XEM KẾT QUẢ BÀI THI & ĐỐI SOÁT ĐÁP ÁN (DÀNH CHO HỌC VIÊN)
+    - Thiết kế dạng Tab phân tách rõ ràng:
+      + Tab 1: Tổng quan kết quả (Điểm số, Đạt/Chưa đạt, Thống kê)
+      + Tab 2: Chi tiết bài làm & Đối soát đáp án đúng/sai từng câu
+    - Đã bỏ thông báo hệ thống thừa thãi theo yêu cầu người dùng
+    - Phòng thi khóa tuyệt đối sau khi nộp, không cho thi lại
+  -->
+  <div class="staff-workspace flex flex-col items-center px-6 md:px-12 py-8 min-h-[844px] w-full max-w-[1000px] mx-auto gap-6">
+    
+    {% if is_preview %}
+      <!-- Banner thông báo chế độ Giảng viên (Trainer) thi thử nghiệm -->
+      <div class="w-full bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 shadow-xs">
+        <div class="flex items-center gap-2.5 text-xs">
+          <span class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 text-sm">
+            👨‍🏫
+          </span>
+          <div>
+            <strong class="font-bold text-amber-950 block text-sm">Chế độ xem trước của Giảng viên (Trainer)</strong>
+            <span>Bạn đang xem kết quả bài kiểm tra thử nghiệm. Điểm số của bạn: <strong class="text-[#134c81] font-bold">{{ score|floatformat:1 }}/100</strong>.</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <a href="/courses/trainee/course/{{ course.id }}/exam/?preview=1" class="px-3.5 py-1.5 rounded-lg bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 transition" style="text-decoration:none;">
+            ↺ Thi thử nghiệm lại
+          </a>
+          <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="px-3.5 py-1.5 rounded-lg border border-amber-300 bg-white text-amber-900 font-bold text-xs hover:bg-amber-100 transition" style="text-decoration:none;">
+            ← Về Báo cáo khóa học
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+    <header class="text-center max-w-xl">
+      <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Kết quả bài thi đánh giá năng lực</h1>
+      <p class="text-xs md:text-sm text-slate-500 mt-1">{{ course.title }}</p>
+    </header>
+
+    <!-- THANH ĐIỀU HƯỚNG TAB PHÂN TÁCH KẾT QUẢ VÀ CHI TIẾT BÀI LÀM -->
+    <nav class="flex border-b border-slate-200 w-full gap-8 justify-center" aria-label="Result Tabs">
+      <button type="button" 
+              id="tabBtnSummary" 
+              onclick="switchResultTab('summary')" 
+              class="py-3 px-3 border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm flex items-center gap-2 cursor-pointer transition select-none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        <span>Tổng quan kết quả</span>
+      </button>
+
+      <button type="button" 
+              id="tabBtnReview" 
+              onclick="switchResultTab('review')" 
+              class="py-3 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-sm flex items-center gap-2 cursor-pointer transition select-none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Chi tiết bài làm & Đáp án</span>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">{{ questions_review|length }} câu</span>
+      </button>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: THẺ TỔNG KẾT ĐIỂM SỐ CHÍNH (HIỂN THỊ MẶC ĐỊNH)           -->
+    <!-- ============================================================ -->
+    <div id="tabSummaryContent" class="w-full flex flex-col gap-6">
+      <div class="workspace-card bg-white border border-slate-200 rounded-2xl p-8 md:p-10 shadow-sm w-full flex flex-col items-center gap-6">
+        
+        <!-- Biểu tượng Trạng thái Đạt / Chưa đạt -->
+        {% if is_passed %}
+          <div class="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+        {% else %}
+          <div class="w-20 h-20 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+        {% endif %}
+
+        <div class="text-center">
+          {% if is_passed %}
+            <span class="px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white tracking-wide uppercase">
+              ĐẠT TIÊU CHUẨN
+            </span>
+            <div class="text-5xl font-extrabold text-[#134c81] mt-4 mb-2">
+              {{ score|floatformat:1 }} <span class="text-2xl text-slate-400 font-semibold">/ 100</span>
+            </div>
+            <p class="text-sm text-slate-600 font-medium">Chúc mừng bạn đã xuất sắc vượt qua kỳ kiểm tra năng lực!</p>
+          {% else %}
+            <span class="px-4 py-1.5 rounded-full text-xs font-bold bg-rose-600 text-white tracking-wide uppercase">
+              CHƯA ĐẠT CHUẨN
+            </span>
+            <div class="text-5xl font-extrabold text-rose-600 mt-4 mb-2">
+              {{ score|floatformat:1 }} <span class="text-2xl text-slate-400 font-semibold">/ 100</span>
+            </div>
+            <p class="text-sm text-slate-600 font-medium">
+              Điểm số chưa đạt yêu cầu tối thiểu ({{ exam.passing_score|floatformat:0 }} điểm).
+            </p>
+          {% endif %}
+        </div>
+
+        <!-- Bảng thống kê chi tiết điểm thi -->
+        <div class="w-full bg-slate-50 rounded-xl p-5 border border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div>
+            <span class="text-slate-400">Điểm số đạt được:</span>
+            <p class="font-bold text-slate-800 text-sm mt-0.5">{{ score|floatformat:1 }} / 100</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Điểm tối thiểu yêu cầu:</span>
+            <p class="font-bold text-slate-800 text-sm mt-0.5">{{ exam.passing_score|floatformat:0 }} / 100 điểm</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Số câu đúng:</span>
+            <p class="font-bold text-[#134c81] text-sm mt-0.5">{{ correct_count }} / {{ total_questions }} câu</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Trạng thái ghi nhận:</span>
+            <p class="font-bold text-emerald-600 text-sm mt-0.5">Đã lưu vào hồ sơ nhân sự</p>
+          </div>
+        </div>
+
+        <!-- Nút chuyển nhanh sang xem chi tiết bài làm -->
+        <div class="w-full flex justify-center pt-2">
+          <button type="button" 
+                  onclick="switchResultTab('review')" 
+                  class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-[#134c81] font-bold text-xs hover:bg-blue-100 transition cursor-pointer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>Xem lại chi tiết bài làm & đối soát đáp án →</span>
+          </button>
+        </div>
+
+        <!-- Hành động điều hướng -->
+        <div class="flex flex-wrap items-center justify-between gap-4 w-full pt-4 border-t border-slate-100">
+          {% if is_preview %}
+            <a href="/courses/trainee/course/{{ course.id }}/exam/?preview=1" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition shadow-xs" style="text-decoration:none;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>↺ Thi thử nghiệm lại (Trainer)</span>
+            </a>
+
+            <div class="flex items-center gap-3">
+              <a href="/courses/trainer/courses/{{ course.id }}/" class="inline-flex items-center justify-center h-10 px-5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition" style="text-decoration:none;">
+                Chi tiết khóa học
+              </a>
+              <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="inline-flex items-center justify-center h-10 px-5 rounded-lg bg-[#134c81] text-white text-sm font-semibold hover:bg-[#0e3b65] transition shadow-sm" style="text-decoration:none;">
+                ← Về Báo cáo khóa học
+              </a>
+            </div>
+          {% else %}
+            <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold select-none">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>🔒 Đã kết thúc đợt thi • Phòng thi đã khóa</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <a href="/courses/trainee/courses/" class="inline-flex items-center justify-center h-10 px-5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition" style="text-decoration:none;">
+                Danh mục khóa học
+              </a>
+              <a href="/courses/trainee/courses/{{ course.id }}/" class="inline-flex items-center justify-center h-10 px-5 rounded-lg bg-[#134c81] text-white text-sm font-semibold hover:bg-[#0e3b65] transition shadow-sm" style="text-decoration:none;">
+                ← Quay về khóa học
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: KHU VỰC CHI TIẾT BÀI LÀM & ĐỐI SOÁT ĐÁP ÁN ĐÚNG / SAI    -->
+    <!-- ============================================================ -->
+    <div id="tabReviewContent" class="w-full hidden flex-col gap-6">
+      
+      <div class="workspace-card bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm w-full flex flex-col gap-6">
+        
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Chi tiết câu hỏi & Đáp án đối chiếu</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Phương án bạn đã chọn và đáp án chính xác của từng câu hỏi.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+              ✓ {{ correct_count }} câu đúng
+            </span>
+            <span class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
+              ✕ {{ wrong_count }} câu sai
+            </span>
+            <button type="button" 
+                    onclick="switchResultTab('summary')" 
+                    class="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition cursor-pointer">
+              ← Về tổng quan
+            </button>
+          </div>
+        </div>
+
+        <!-- Danh sách từng câu hỏi và phương án trả lời -->
+        <div class="flex flex-col gap-6">
+          {% for item in questions_review %}
+            <div class="border rounded-xl p-5 {% if item.is_correct %}border-emerald-200 bg-emerald-50/20{% else %}border-rose-200 bg-rose-50/20{% endif %} flex flex-col gap-4">
+              
+              <!-- Tiêu đề câu hỏi & Trạng thái đúng/sai -->
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start gap-2.5">
+                  <span class="shrink-0 w-7 h-7 rounded-lg {% if item.is_correct %}bg-emerald-600 text-white{% else %}bg-rose-600 text-white{% endif %} text-xs font-bold flex items-center justify-center">
+                    {{ item.number }}
+                  </span>
+                  <h3 class="text-sm font-semibold text-slate-900 pt-0.5 leading-relaxed">
+                    {{ item.caption }}
+                  </h3>
+                </div>
+
+                <!-- Huy hiệu Đúng / Sai -->
+                {% if item.is_correct %}
+                  <span class="shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    ĐÚNG
+                  </span>
+                {% else %}
+                  <span class="shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    SAI
+                  </span>
+                {% endif %}
+              </div>
+
+              <!-- Danh sách phương án A, B, C, D -->
+              <div class="grid grid-cols-1 gap-2.5 pt-1">
+                {% for choice in item.choices %}
+                  <div class="px-4 py-3 rounded-lg border text-xs md:text-sm flex items-center justify-between gap-3 transition
+                    {% if choice.is_user_choice_correct %}
+                      bg-emerald-50 border-emerald-400 text-emerald-900 font-semibold shadow-xs
+                    {% elif choice.is_user_choice_wrong %}
+                      bg-rose-50 border-rose-400 text-rose-900 font-semibold shadow-xs
+                    {% elif choice.is_correct_choice %}
+                      bg-emerald-50/70 border-emerald-300 text-emerald-900 font-semibold
+                    {% else %}
+                      bg-white border-slate-200 text-slate-700
+                    {% endif %}
+                  ">
+                    <div class="flex items-center gap-2.5">
+                      <span class="w-6 h-6 rounded flex items-center justify-center font-bold text-xs shrink-0
+                        {% if choice.is_user_choice_correct %}
+                          bg-emerald-600 text-white
+                        {% elif choice.is_user_choice_wrong %}
+                          bg-rose-600 text-white
+                        {% elif choice.is_correct_choice %}
+                          bg-emerald-600 text-white
+                        {% else %}
+                          bg-slate-100 text-slate-600
+                        {% endif %}
+                      ">
+                        {{ choice.letter }}
+                      </span>
+                      <span>{{ choice.content }}</span>
+                    </div>
+
+                    <!-- Nhãn giải thích lựa chọn -->
+                    <div class="shrink-0">
+                      {% if choice.is_user_choice_correct %}
+                        <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-600 text-white flex items-center gap-1">
+                          ✓ Bạn đã chọn • Chính xác
+                        </span>
+                      {% elif choice.is_user_choice_wrong %}
+                        <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-600 text-white flex items-center gap-1">
+                          ✕ Bạn đã chọn • Sai
+                        </span>
+                      {% elif choice.is_correct_choice %}
+                        <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                          ✓ Đáp án đúng
+                        </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+
+              <!-- Ghi chú kết luận cho từng câu hỏi -->
+              <div class="pt-2 border-t {% if item.is_correct %}border-emerald-100 text-emerald-800{% else %}border-rose-100 text-rose-800{% endif %} text-xs flex items-center justify-between">
+                {% if item.is_correct %}
+                  <span>✓ Bạn đã chọn đúng phương án <strong>({{ item.correct_letter }})</strong>.</span>
+                {% else %}
+                  <span>
+                    ✕ Bạn đã chọn <strong>({{ item.user_letter }})</strong>. Đáp án chính xác là: <strong class="text-emerald-700 font-bold">({{ item.correct_letter }})</strong>.
+                  </span>
+                {% endif %}
+              </div>
+
+            </div>
+          {% empty %}
+            <div class="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-sm">
+              Không có dữ liệu câu hỏi bài thi.
+            </div>
+          {% endfor %}
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    /**
+     * Chuyển đổi giữa 2 tab: 'summary' (Tổng quan kết quả) và 'review' (Chi tiết bài làm & đáp án)
+     */
+    function switchResultTab(tabName) {
+      const summaryContent = document.getElementById('tabSummaryContent');
+      const reviewContent = document.getElementById('tabReviewContent');
+      const tabBtnSummary = document.getElementById('tabBtnSummary');
+      const tabBtnReview = document.getElementById('tabBtnReview');
+
+      if (tabName === 'summary') {
+        if (summaryContent) summaryContent.classList.remove('hidden');
+        if (reviewContent) reviewContent.classList.add('hidden');
+
+        if (tabBtnSummary) {
+          tabBtnSummary.className = 'py-3 px-3 border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm flex items-center gap-2 cursor-pointer transition select-none';
+        }
+        if (tabBtnReview) {
+          tabBtnReview.className = 'py-3 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-sm flex items-center gap-2 cursor-pointer transition select-none';
+        }
+      } else {
+        if (summaryContent) summaryContent.classList.add('hidden');
+        if (reviewContent) {
+          reviewContent.classList.remove('hidden');
+          reviewContent.classList.add('flex');
+        }
+
+        if (tabBtnReview) {
+          tabBtnReview.className = 'py-3 px-3 border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm flex items-center gap-2 cursor-pointer transition select-none';
+        }
+        if (tabBtnSummary) {
+          tabBtnSummary.className = 'py-3 px-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-sm flex items-center gap-2 cursor-pointer transition select-none';
+        }
+      }
+    }
+  </script>
+
+{% endblock %}

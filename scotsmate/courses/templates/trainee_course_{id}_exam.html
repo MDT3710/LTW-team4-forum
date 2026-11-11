@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-6 md:px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    {% if not is_unlocked %}
+      <!-- ============================================================ -->
+      <!-- MÀN HÌNH BẢO MẬT: NHẬP PASSCODE ĐỂ MỞ ĐỀ THI                   -->
+      <!-- ============================================================ -->
+      <div class="max-w-xl mx-auto my-12 w-full">
+        <div class="workspace-card bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col items-center gap-5 text-center">
+          
+          <div class="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 text-[#134c81] flex items-center justify-center text-3xl shadow-xs">
+            🔐
+          </div>
+
+          <div>
+            <span class="text-xs font-semibold text-[#134c81] uppercase tracking-wider">{{ course.title }}</span>
+            <h1 class="text-2xl font-bold text-slate-900 mt-1">{{ exam.title|default:"Bài kiểm tra năng lực cuối khóa" }}</h1>
+            <p class="text-xs text-slate-500 mt-1.5">Phòng thi bảo mật: Vui lòng nhập mã Passcode để mở đề thi</p>
+          </div>
+
+          {% if passcode_error %}
+            <div class="w-full p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold text-center flex items-center justify-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span>{{ passcode_error }}</span>
+            </div>
+          {% endif %}
+
+          <!-- Thông số đề thi -->
+          <div class="w-full bg-slate-50 rounded-xl p-4 border border-slate-100 text-xs text-slate-600 flex flex-col gap-2.5 text-left">
+            <div class="flex justify-between items-center py-1 border-b border-slate-200/60">
+              <span class="text-slate-500">Thời gian làm bài:</span>
+              <strong class="text-slate-800 font-mono">{{ exam.duration|default:30 }} phút</strong>
+            </div>
+            <div class="flex justify-between items-center py-1 border-b border-slate-200/60">
+              <span class="text-slate-500">Điểm chuẩn yêu cầu:</span>
+              <strong class="text-emerald-700 font-mono">{{ exam.passing_score|floatformat:0 }} / 100 điểm</strong>
+            </div>
+            <div class="flex justify-between items-center py-1">
+              <span class="text-slate-500">Quy mô đề thi:</span>
+              <strong class="text-slate-800 font-mono">{{ questions|length }} câu trắc nghiệm</strong>
+            </div>
+          </div>
+
+          <!-- Form mở khóa Passcode -->
+          <form method="POST" action="" class="w-full flex flex-col gap-3.5 mt-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="unlock_exam">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 text-left mb-1.5">
+                Mã dự thi (Passcode):
+              </label>
+              <input type="text" 
+                     name="entered_passcode" 
+                     required 
+                     autofocus
+                     placeholder="Nhập mã bảo mật phòng thi..." 
+                     class="w-full px-4 py-3 rounded-xl border border-slate-300 text-center font-mono text-base uppercase font-bold text-slate-900 tracking-wider focus:outline-none focus:border-[#134c81] focus:ring-2 focus:ring-[#134c81]/20 transition">
+            </div>
+            
+            <p class="text-[11px] text-slate-400 leading-relaxed text-left">
+              ℹ Mã Passcode do Giảng viên / Ban Đào tạo phổ biến trước giờ thi (Mã mặc định: SCOTS2026).
+            </p>
+
+            <button type="submit" class="w-full py-3.5 rounded-xl bg-[#134c81] hover:bg-[#0c375f] text-white font-bold text-sm transition shadow-md cursor-pointer flex items-center justify-center gap-2">
+              <span>Xác nhận & Bắt đầu làm bài thi</span>
+              <span>→</span>
+            </button>
+          </form>
+
+          <a href="/courses/trainee/courses/{{ course.id }}/" class="text-xs text-slate-500 hover:text-slate-800 hover:underline pt-2" style="text-decoration:none;">
+            ← Quay lại trang chi tiết khóa học
+          </a>
+
+        </div>
+      </div>
+
+    {% else %}
+      <!-- ============================================================ -->
+      <!-- PHÒNG THI ĐÃ MỞ KHÓA: HIỂN THỊ ĐỀ THI & TÍNH GIỜ              -->
+      <!-- ============================================================ -->
+      <header class="page-heading flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-200 gap-4">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <a href="/courses/trainee/courses/{{ course.id }}/" class="hover:underline text-[#134c81]">← Thoát bài thi</a>
+            <span>/</span>
+            <span class="font-semibold text-slate-800">{{ course.title }}</span>
+          </div>
+          <h1 class="text-xl sm:text-2xl font-bold text-slate-900">{{ exam.title|default:"Bài kiểm tra năng lực cuối khóa" }}</h1>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ course.title }} • Thời gian làm bài: <strong>{{ exam.duration|default:30 }} phút</strong> • Điểm đạt: <strong>{{ exam.passing_score|floatformat:0 }}/100</strong>
+          </p>
+        </div>
+
+        <div class="timer-box flex items-center gap-3 bg-red-50 border border-red-200 px-4 py-2.5 rounded-xl text-red-700 shadow-sm shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span class="text-xs font-semibold uppercase tracking-wider">Thời gian còn lại:</span>
+          <span class="text-xl font-bold font-mono" id="examCountdown">{{ exam.duration|default:30 }}:00</span>
+        </div>
+      </header>
+
+      <!-- Form làm bài trắc nghiệm -->
+      <form id="traineeExamForm" method="POST" action="/courses/trainee/course/{{ course.id }}/exam/" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {% csrf_token %}
+        <input type="hidden" name="passcode" value="{{ exam.passcode }}">
+
+        <!-- Cột câu hỏi chính (2/3) -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+          
+          {% if questions %}
+            {% for q in questions %}
+              <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4" id="question_box_{{ forloop.counter }}">
+                
+                <!-- Header câu hỏi: Số thứ tự + Nút ĐẶT CỜ PHÂN VÂN -->
+                <div class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-3 gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#edf4fb] text-[#134c81]">
+                      Câu hỏi {{ forloop.counter }} / {{ questions|length }}
+                    </span>
+                    <span class="text-xs text-slate-400">Chọn 01 đáp án đúng</span>
+                  </div>
+
+                  <!-- Nút Đặt cờ phân vân -->
+                  <button type="button" 
+                          id="flag_btn_{{ forloop.counter }}" 
+                          onclick="toggleFlag({{ forloop.counter }}, '{{ q.id }}')" 
+                          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-amber-50 text-slate-600 hover:text-amber-800 text-xs font-semibold transition cursor-pointer select-none">
+                    <span id="flag_icon_{{ forloop.counter }}">🏳</span>
+                    <span id="flag_text_{{ forloop.counter }}">Đặt cờ phân vân</span>
+                  </button>
+                </div>
+
+                <!-- Nội dung câu hỏi -->
+                <h2 class="text-base font-bold text-slate-900 leading-snug">
+                  {{ q.caption }}
+                </h2>
+
+                <!-- Các phương án lựa chọn (Hoàn toàn trống lúc ban đầu) -->
+                <div class="answer-options flex flex-col gap-2.5 pt-1">
+                  {% for choice in q.choices.all|dictsort:"choice_number" %}
+                    <label class="option-label flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                      <input type="radio" name="question_{{ q.id }}" value="{{ choice.choice_number }}" class="mt-1 text-[#134c81]" onchange="markAnswered({{ forloop.parentloop.counter }}, '{{ q.id }}', '{{ choice.choice_number }}')">
+                      <span class="text-xs md:text-sm text-slate-700 leading-relaxed">
+                        <strong>
+                          {% if forloop.counter == 1 %}A.
+                          {% elif forloop.counter == 2 %}B.
+                          {% elif forloop.counter == 3 %}C.
+                          {% elif forloop.counter == 4 %}D.
+                          {% elif forloop.counter == 5 %}E.
+                          {% else %}{{ forloop.counter }}.{% endif %}
+                        </strong> 
+                        {{ choice.content }}
+                      </span>
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+
+            <!-- Nút nộp bài cuối cùng -->
+            <div class="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p class="text-xs text-slate-500">
+                Hãy kiểm tra kỹ các câu trả lời (đặc biệt các câu đã đặt cờ phân vân). Hệ thống sẽ tự động chấm điểm ngay sau khi nộp bài.
+              </p>
+              <button type="submit" class="px-8 py-3 rounded-lg bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition shadow-md cursor-pointer shrink-0">
+                Nộp bài thi ngay ✓
+              </button>
+            </div>
+
+          {% else %}
+            <!-- Thông báo khi chưa có câu hỏi trong ngân hàng đề thi -->
+            <div class="workspace-card bg-white border border-slate-200 rounded-xl p-8 shadow-sm flex flex-col items-center gap-4 text-center">
+              <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <h2 class="text-lg font-bold text-slate-800">Đề thi chưa được cấu hình câu hỏi</h2>
+              <p class="text-xs text-slate-500 max-w-md leading-relaxed">
+                Hiện tại Giảng viên / Ban Đào tạo chưa kích hoạt ngân hàng câu hỏi cho bài kiểm tra này. Vui lòng ôn lại các bài giảng và quay lại sau.
+              </p>
+              <a href="/courses/trainee/courses/{{ course.id }}/" class="px-6 py-2.5 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm" style="text-decoration:none;">
+                ← Quay về khóa học
+              </a>
+            </div>
+          {% endif %}
+
+        </div>
+
+        <!-- Cột phụ: Bảng theo dõi tiến độ (1/3) -->
+        <aside class="flex flex-col gap-6">
+          <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4 sticky top-8">
+            <h3 class="font-bold text-slate-900 text-sm">Danh sách câu hỏi</h3>
+            
+            <p class="text-xs text-slate-500">
+              Tổng cộng: <strong>{{ questions|length|default:0 }} câu hỏi</strong>. Bấm số để đến câu tương ứng.
+            </p>
+
+            <div class="grid grid-cols-5 gap-2.5 pt-2 border-t border-slate-100">
+              {% if questions %}
+                {% for q in questions %}
+                  <a href="#question_box_{{ forloop.counter }}" 
+                     id="q_btn_{{ forloop.counter }}" 
+                     class="relative aspect-square rounded-lg border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center hover:bg-slate-50 transition" 
+                     style="text-decoration:none;">
+                    <span>{{ forloop.counter }}</span>
+                    <!-- Chấm cờ phân vân góc trên -->
+                    <span id="q_flag_dot_{{ forloop.counter }}" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center shadow-xs">🚩</span>
+                  </a>
+                {% endfor %}
+              {% else %}
+                <span class="text-xs text-slate-400 col-span-5 text-center">Chưa có câu hỏi</span>
+              {% endif %}
+            </div>
+
+            <!-- Chú thích trạng thái câu hỏi -->
+            <div class="flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex-wrap gap-2">
+              <span class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-[#134c81]"></span>
+                <span>Đã làm</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-amber-400 text-white text-[9px] flex items-center justify-center font-bold">🚩</span>
+                <span>Phân vân</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded border border-slate-300 bg-white"></span>
+                <span>Chưa làm</span>
+              </span>
+            </div>
+
+            {% if questions %}
+              <div class="border-t border-slate-100 pt-4">
+                <button type="submit" class="w-full py-3 rounded-lg bg-[#134c81] text-white font-bold text-xs hover:bg-[#0e3b65] transition shadow-sm cursor-pointer">
+                  Xác nhận & Nộp bài thi
+                </button>
+              </div>
+            {% endif %}
+          </div>
+        </aside>
+
+      </form>
+
+      <script>
+        const courseExamKey = 'scots_exam_{{ course.id }}_';
+        const courseFlagKey = 'scots_flag_{{ course.id }}_';
+        const flaggedSet = new Set();
+
+        // 1. Đánh dấu câu hỏi đã trả lời
+        function markAnswered(qNum, qId, val) {
+          const btn = document.getElementById('q_btn_' + qNum);
+          if (btn) {
+            btn.classList.remove('border-slate-200', 'text-slate-700');
+            btn.classList.add('bg-[#134c81]', 'text-white', 'border-[#134c81]');
+          }
+          if (qId && val) {
+            try {
+              sessionStorage.setItem(courseExamKey + qId, val);
+            } catch (e) {}
+          }
+        }
+
+        // 2. Bật / Tắt đặt cờ câu hỏi phân vân
+        function toggleFlag(qNum, qId) {
+          const flagBtn = document.getElementById('flag_btn_' + qNum);
+          const flagIcon = document.getElementById('flag_icon_' + qNum);
+          const flagText = document.getElementById('flag_text_' + qNum);
+          const dot = document.getElementById('q_flag_dot_' + qNum);
+          const sideBtn = document.getElementById('q_btn_' + qNum);
+
+          if (flaggedSet.has(qNum)) {
+            // Hủy cờ
+            flaggedSet.delete(qNum);
+            try { sessionStorage.removeItem(courseFlagKey + qNum); } catch(e){}
+            if (flagBtn) {
+              flagBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-amber-50 text-slate-600 hover:text-amber-800 text-xs font-semibold transition cursor-pointer select-none';
+            }
+            if (flagIcon) flagIcon.textContent = '🏳';
+            if (flagText) flagText.textContent = 'Đặt cờ phân vân';
+            if (dot) dot.classList.add('hidden');
+            if (sideBtn) sideBtn.classList.remove('ring-2', 'ring-amber-400');
+          } else {
+            // Đặt cờ
+            flaggedSet.add(qNum);
+            try { sessionStorage.setItem(courseFlagKey + qNum, '1'); } catch(e){}
+            if (flagBtn) {
+              flagBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-100 text-amber-900 text-xs font-bold transition cursor-pointer select-none shadow-xs';
+            }
+            if (flagIcon) flagIcon.textContent = '🚩';
+            if (flagText) flagText.textContent = 'Đã đặt cờ';
+            if (dot) dot.classList.remove('hidden');
+            if (sideBtn) sideBtn.classList.add('ring-2', 'ring-amber-400');
+          }
+        }
+
+        // 3. Khôi phục câu trả lời và trạng thái đặt cờ khi tải lại trang
+        document.addEventListener('DOMContentLoaded', function() {
+          // Khôi phục câu trả lời
+          const radios = document.querySelectorAll('input[type="radio"][name^="question_"]');
+          radios.forEach(radio => {
+            const qIdMatch = radio.name.match(/^question_(\d+)$/);
+            if (qIdMatch) {
+              const qId = qIdMatch[1];
+              const savedVal = sessionStorage.getItem(courseExamKey + qId);
+              if (savedVal && radio.value === savedVal) {
+                radio.checked = true;
+                const card = radio.closest('.workspace-card');
+                if (card) {
+                  const qNumMatch = card.id.match(/^question_box_(\d+)$/);
+                  if (qNumMatch) {
+                    markAnswered(qNumMatch[1]);
+                  }
+                }
+              }
+            }
+          });
+
+          // Khôi phục cờ phân vân
+          const totalQuestions = parseInt("{{ questions|length|default:0 }}");
+          for (let i = 1; i <= totalQuestions; i++) {
+            if (sessionStorage.getItem(courseFlagKey + i) === '1') {
+              toggleFlag(i);
+            }
+          }
+        });
+
+        // 4. Xóa session storage khi nộp bài
+        function clearExamStorage() {
+          try {
+            const keysToRemove = [];
+            for (let i = 0; i < sessionStorage.length; i++) {
+              const k = sessionStorage.key(i);
+              if (k && (k.startsWith(courseExamKey) || k.startsWith(courseFlagKey))) {
+                keysToRemove.push(k);
+              }
+            }
+            keysToRemove.forEach(k => sessionStorage.removeItem(k));
+          } catch (e) {}
+        }
+
+        const examForm = document.getElementById('traineeExamForm');
+        if (examForm) {
+          examForm.addEventListener('submit', function() {
+            clearExamStorage();
+          });
+        }
+
+        // 5. Đếm ngược thời gian làm bài
+        let minutes = parseInt("{{ exam.duration|default:30 }}") || 30;
+        let seconds = 0;
+        const timerElem = document.getElementById('examCountdown');
+
+        const countdownInterval = setInterval(function() {
+          if (seconds === 0) {
+            if (minutes === 0) {
+              clearInterval(countdownInterval);
+              clearExamStorage();
+              const form = document.getElementById('traineeExamForm');
+              if (form) form.submit();
+              return;
+            }
+            minutes--;
+            seconds = 59;
+          } else {
+            seconds--;
+          }
+          const mStr = minutes < 10 ? '0' + minutes : minutes;
+          const sStr = seconds < 10 ? '0' + seconds : seconds;
+          if (timerElem) timerElem.textContent = mStr + ':' + sStr;
+        }, 1000);
+      </script>
+    {% endif %}
+
+  </div>
+
+{% endblock %}

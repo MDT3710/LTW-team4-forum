@@ -1,0 +1,1049 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+<style>
+
+  /* ============================================================
+
+     FIGMA 479:1593 - Quản lý đào tạo (scotsmate/trainer/courses)
+
+     Pixel-perfect layout and exact elements
+
+     ============================================================ */
+
+  .trainer-workspace-figma {
+
+    background-color: #f8fafc;
+
+    min-height: 844px;
+
+    padding: 32px 48px;
+
+    width: 100%;
+
+    max-width: 1440px;
+
+    margin: 0 auto;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 24px;
+
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  }
+
+
+
+  /* Page Heading */
+
+  .tf-heading {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    width: 100%;
+
+    min-height: 44px;
+
+  }
+
+  .tf-title {
+
+    font-size: 28px;
+
+    font-weight: 700;
+
+    color: #19334b;
+
+    margin: 0;
+
+    line-height: 35px;
+
+  }
+
+  .tf-actions {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+
+  }
+
+  .tf-btn-dashboard {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    height: 44px;
+
+    padding: 0 24px;
+
+    background-color: #134c81;
+
+    color: #ffffff !important;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    border: none;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+
+  }
+
+  .tf-btn-dashboard:hover {
+
+    background-color: #0e3b65;
+
+  }
+
+  .tf-btn-create {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    height: 44px;
+
+    padding: 0 24px;
+
+    background-color: #134c81;
+
+    color: #ffffff !important;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    border: none;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+
+  }
+
+  .tf-btn-create:hover {
+
+    background-color: #0e3b65;
+
+  }
+
+
+
+  /* Section Tabs */
+
+  .tf-tabs {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 24px;
+
+    border-bottom: 1px solid #e2e8f0;
+
+    width: 100%;
+
+  }
+
+  .tf-tab {
+
+    display: inline-flex;
+
+    background: none;
+
+    border: none;
+
+    align-items: center;
+
+    height: 44px;
+
+    color: #64748b;
+
+    font-size: 14px;
+
+    font-weight: 500;
+
+    text-decoration: none;
+
+    position: relative;
+
+    cursor: pointer;
+
+    transition: color 0.15s ease;
+
+    white-space: nowrap;
+
+  }
+
+  .tf-tab:hover {
+
+    color: #134c81;
+
+  }
+
+  .tf-tab.active {
+
+    color: #134c81;
+
+    font-weight: 700;
+
+  }
+
+  .tf-tab.active::after {
+
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+
+    right: 0;
+
+    bottom: -1px;
+
+    height: 3px;
+
+    background-color: #134c81;
+
+  }
+
+
+
+  /* Search & Filter Bar */
+
+  .tf-toolbar {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+
+    width: 100%;
+
+  }
+
+  .tf-search-box {
+
+    flex: 1;
+
+    position: relative;
+
+  }
+
+  .tf-search-input {
+
+    width: 100%;
+
+    height: 44px;
+
+    padding-left: 44px;
+
+    padding-right: 16px;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 8px;
+
+    font-size: 14px;
+
+    background-color: #ffffff;
+
+    color: #19334b;
+
+    box-sizing: border-box;
+
+    outline: none;
+
+    transition: border-color 0.15s ease;
+
+  }
+
+  .tf-search-input:focus {
+
+    border-color: #134c81;
+
+  }
+
+  .tf-search-icon {
+
+    position: absolute;
+
+    left: 14px;
+
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #94a3b8;
+
+    pointer-events: none;
+
+  }
+
+  .tf-filter-btn {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    height: 44px;
+
+    padding: 0 20px;
+
+    background-color: #edf4fb;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 8px;
+
+    color: #134c81;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+
+    white-space: nowrap;
+
+  }
+
+  .tf-filter-btn:hover {
+
+    background-color: #e2edf7;
+
+  }
+
+
+
+  /* Data Table Card */
+
+  .tf-table-card {
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    width: 100%;
+
+  }
+
+  .tf-table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    text-align: left;
+
+  }
+
+  .tf-table th {
+
+    background-color: #edf4fb;
+
+    padding: 16px 24px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    color: #134c81;
+
+    border-bottom: 1px solid #e2e8f0;
+
+  }
+
+  .tf-table td {
+
+    padding: 20px 24px;
+
+    font-size: 13px;
+
+    color: #19334b;
+
+    border-bottom: 1px solid #e2e8f0;
+
+    vertical-align: middle;
+
+  }
+
+  .tf-table tr:last-child td {
+
+    border-bottom: none;
+
+  }
+
+  .tf-table tr:hover td {
+
+    background-color: #fbfcfe;
+
+  }
+
+
+
+  .tf-course-title {
+
+    font-weight: 600;
+
+    color: #19334b;
+
+    text-decoration: none;
+
+  }
+
+  .tf-course-title:hover {
+
+    color: #134c81;
+
+    text-decoration: underline;
+
+  }
+
+  .tf-actions-cell {
+
+    white-space: nowrap;
+
+  }
+
+  .tf-action-link {
+
+    font-weight: 600;
+
+    color: #134c81;
+
+    text-decoration: none;
+
+  }
+
+  .tf-action-link:hover {
+
+    text-decoration: underline;
+
+  }
+
+  .tf-action-edit {
+
+    color: #64748b;
+
+    text-decoration: none;
+
+  }
+
+  .tf-action-edit:hover {
+
+    color: #134c81;
+
+    text-decoration: underline;
+
+  }
+
+  .tf-action-delete {
+
+    color: #e53e3e;
+
+    text-decoration: none;
+
+  }
+
+  .tf-action-delete:hover {
+
+    text-decoration: underline;
+
+  }
+
+  .tf-divider {
+
+    color: #cbd5e1;
+
+    margin: 0 8px;
+
+  }
+
+
+
+  /* Pagination Bar */
+
+  .tf-pagination {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 16px 24px;
+
+    background-color: #ffffff;
+
+    border-top: 1px solid #e2e8f0;
+
+  }
+
+  .tf-result-count {
+
+    font-size: 12px;
+
+    color: #64748b;
+
+  }
+
+  .tf-page-controls {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+  }
+
+  .tf-page-btn {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    height: 36px;
+
+    min-width: 36px;
+
+    padding: 0 10px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 6px;
+
+    color: #64748b;
+
+    font-size: 13px;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition: all 0.15s ease;
+
+  }
+
+  .tf-page-btn:hover {
+
+    background-color: #f8fafc;
+
+    color: #19334b;
+
+  }
+
+  .tf-page-btn.active {
+
+    background-color: #134c81;
+
+    border-color: #134c81;
+
+    color: #ffffff;
+
+    font-weight: 700;
+
+  }
+
+
+
+  /* Switch view banner */
+
+</style>
+
+
+
+<div class="trainer-workspace-figma">
+
+
+
+  <!-- Tiêu đề trang & Nút Thao tác chuẩn Figma -->
+
+  <header class="tf-heading">
+
+    <h1 class="tf-title">Quản lý đào tạo</h1>
+
+    <div class="tf-actions">
+
+
+      <a href="/courses/trainer/courses/dashboard/" class="tf-btn-dashboard">
+
+        Dashboard
+
+      </a>
+
+      <a href="/courses/trainer/courses/create/info/" class="tf-btn-create">
+
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+
+        Tạo khóa học mới
+
+      </a>
+
+    </div>
+
+  </header>
+
+
+
+  <!-- 4 Tabs chuẩn Figma: Tất cả khóa học | Đang triển khai | Bản nháp | Đã kết thúc -->
+
+  <nav class="tf-tabs" id="courseStatusTabs">
+
+    <button type="button" class="tf-tab active" data-tab="all">Tất cả khóa học</button>
+
+    <button type="button" class="tf-tab" data-tab="ongoing">Đang triển khai</button>
+
+    <button type="button" class="tf-tab" data-tab="draft">Bản nháp</button>
+
+    <button type="button" class="tf-tab" data-tab="completed">Đã kết thúc</button>
+
+  </nav>
+
+
+
+  <!-- Thanh tìm kiếm & Bộ lọc chuẩn Figma -->
+
+  <section class="tf-toolbar">
+
+    <div class="tf-search-box">
+
+      <svg class="tf-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+        <circle cx="11" cy="11" r="8"></circle>
+
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+
+      </svg>
+
+      <input type="text" placeholder="Tìm theo mã hoặc tên khóa học..." class="tf-search-input">
+
+    </div>
+
+    <button type="button" class="tf-filter-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
+
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+        <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path>
+
+      </svg>
+
+      Bộ lọc
+
+    </button>
+
+  </section>
+
+  <!-- Khung Bộ lọc đa tiêu chí mở rộng (Trạng thái, Giảng viên, Thời gian) -->
+  <div id="filterPanel" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hidden transition-all animate-fadeIn mb-2">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+      <div class="flex items-center gap-2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        <h3 class="font-bold text-slate-900 text-sm">Bộ lọc nâng cao khóa học</h3>
+      </div>
+      <button type="button" onclick="toggleFilterPanel(false)" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">✕ Đóng</button>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+      <div>
+        <label class="block font-semibold text-slate-700 mb-1.5">Trạng thái khóa học</label>
+        <select id="filterStatusSelect" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="ongoing">Đang triển khai</option>
+          <option value="draft">Bản nháp</option>
+          <option value="completed">Đã kết thúc</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-slate-700 mb-1.5">Giảng viên phụ trách (Trainer)</label>
+        <select id="filterTrainerSelect" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800">
+          <option value="all">Tất cả Giảng viên</option>
+          {% for tr in trainers %}
+            <option value="{{ tr.id }}">{{ tr.get_full_name|default:tr.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-semibold text-slate-700 mb-1.5">Khoảng thời gian (Ngày bắt đầu)</label>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="date" id="filterDateFrom" title="Từ ngày" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800">
+          <input type="date" id="filterDateTo" title="Đến ngày" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800">
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
+      <button type="button" onclick="resetAdvancedFilters()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold cursor-pointer">
+        Đặt lại (Reset)
+      </button>
+      <button type="button" onclick="applyAdvancedFilters()" class="px-5 py-2 rounded-lg bg-[#134c81] hover:bg-[#0c375f] text-white text-xs font-bold transition shadow-sm cursor-pointer">
+        Áp dụng bộ lọc ✓
+      </button>
+    </div>
+  </div>
+
+
+
+  <!-- Bảng danh sách khóa học chuẩn 100% Figma Frame 479:1593 -->
+
+  <div class="tf-table-card">
+
+    <table class="tf-table">
+
+      <thead>
+
+        <tr>
+
+          <th style="width: 28%;">Khóa học</th>
+
+          <th style="width: 22%;">Trainer</th>
+
+          <th style="width: 18%;">Thời gian</th>
+
+          <th style="width: 14%;">Hoàn thành</th>
+
+          <th style="width: 18%;">Thao tác</th>
+
+        </tr>
+
+      </thead>
+
+                  <tbody id="courseTableBody">
+
+        {% for course in courses %}
+
+        <tr data-status="{{ course.status }}" 
+            data-trainer="{{ course.creator.id }}"
+            data-start="{{ course.date_start|date:'Y-m-d' }}"
+            data-end="{{ course.date_end|date:'Y-m-d' }}"
+            data-search="{{ course.code|lower }} {{ course.title|lower }} {{ course.creator.first_name|lower }} {{ course.creator.last_name|lower }} {{ course.creator.get_full_name|lower }}">
+
+          <td>
+
+            <a href="/courses/trainer/courses/{{ course.id }}/" class="tf-course-title">{{ course.title }}</a>
+
+            {% if course.status == 'draft' %}
+              <span class="inline-flex items-center px-2 py-0.5 ml-2 text-[11px] font-bold rounded bg-amber-100 text-amber-800 border border-amber-200">Bản nháp</span>
+            {% elif course.status == 'ongoing' %}
+              <span class="inline-flex items-center px-2 py-0.5 ml-2 text-[11px] font-bold rounded bg-blue-50 text-[#134c81] border border-blue-200">Đang triển khai</span>
+            {% elif course.status == 'completed' %}
+              <span class="inline-flex items-center px-2 py-0.5 ml-2 text-[11px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Đã kết thúc</span>
+            {% endif %}
+
+          </td>
+
+          <td>{{ course.creator.first_name }} {{ course.creator.last_name }}</td>
+
+          <td>{{ course.date_start|date:"d" }}–{{ course.date_end|date:"d/m/Y" }}</td>
+
+          <td style="font-weight: 500;">
+
+            {% if course.status == 'draft' %}
+
+              <span style="color: #94a3b8;">— / —</span>
+
+            {% else %}
+
+              <span class="text-slate-900 font-semibold">{{ course.total_completed }}</span> / <span class="text-slate-600">{{ course.total_enrolled }}</span>
+
+            {% endif %}
+
+          </td>
+
+          <td class="tf-actions-cell">
+
+            {% if course.status == 'completed' %}
+
+              <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tf-action-link">Xem báo cáo</a>
+
+              <span class="tf-divider">|</span>
+
+              <form method="POST" action="/courses/trainer/courses/{{ course.id }}/delete/" style="display:inline;" onsubmit="return confirm('Xác nhận kết thúc khóa học này?')">{% csrf_token %}<button type="submit" class="tf-action-delete" style="background:none;border:none;padding:0;cursor:pointer;font-size:13px;font-family:inherit;color:#e53e3e;">Xóa</button></form>
+
+            {% elif course.status == 'draft' %}
+
+              <form method="POST" action="/courses/trainer/courses/{{ course.id }}/publish/" style="display:inline;">{% csrf_token %}<button type="submit" style="background:none;border:none;padding:0;cursor:pointer;font-size:13px;font-family:inherit;color:#16a34a;font-weight:700;">Xuất bản</button></form>
+
+              <span class="tf-divider">|</span>
+
+              <a href="/courses/trainer/courses/{{ course.id }}/" class="tf-action-edit">Soạn thảo</a>
+
+              <span class="tf-divider">|</span>
+
+              <form method="POST" action="/courses/trainer/courses/{{ course.id }}/delete/" style="display:inline;" onsubmit="return confirm('Xác nhận kết thúc khóa học này?')">{% csrf_token %}<button type="submit" class="tf-action-delete" style="background:none;border:none;padding:0;cursor:pointer;font-size:13px;font-family:inherit;color:#e53e3e;">Xóa</button></form>
+
+            {% else %}
+
+              <a href="/courses/trainer/courses/{{ course.id }}/" class="tf-action-link">Xem chi tiết</a>
+
+              <span class="tf-divider">|</span>
+
+              <a href="/courses/trainer/courses/{{ course.id }}/" class="tf-action-edit">Chỉnh sửa</a>
+
+              <span class="tf-divider">|</span>
+
+              <form method="POST" action="/courses/trainer/courses/{{ course.id }}/delete/" style="display:inline;" onsubmit="return confirm('Xác nhận kết thúc khóa học này?')">{% csrf_token %}<button type="submit" class="tf-action-delete" style="background:none;border:none;padding:0;cursor:pointer;font-size:13px;font-family:inherit;color:#e53e3e;">Xóa</button></form>
+
+            {% endif %}
+
+          </td>
+
+        </tr>
+
+        {% empty %}
+
+        <!-- Hàng thông báo trống khi không có dữ liệu -->
+
+        <tr id="noCourseRow">
+
+          <td colspan="5" style="text-align: center; padding: 48px 16px; color: #64748b;">
+
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin: 0 auto 12px auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+
+            <p style="font-size: 15px; font-weight: 600; color: #19334b; margin: 0 0 4px 0;">Không tìm thấy khóa học phù hợp</p>
+
+            <p style="font-size: 13px; margin: 0;">Vui lòng thử chọn trạng thái khác hoặc thay đổi từ khóa tìm kiếm.</p>
+
+          </td>
+
+        </tr>
+
+        {% endfor %}
+
+      </tbody>
+
+    </table>
+
+
+
+    <!-- Phân trang chuẩn Figma -->
+
+    <div class="tf-pagination">
+
+      <span class="tf-result-count">Hiển thị {{ courses|length }} trong {{ total_count }} khóa học</span>
+
+      <div class="tf-page-controls">
+
+        <button type="button" class="tf-page-btn" aria-label="Trang trước">←</button>
+
+        <button type="button" class="tf-page-btn active">1</button>
+
+        <button type="button" class="tf-page-btn">2</button>
+
+        <button type="button" class="tf-page-btn">3</button>
+
+        <button type="button" class="tf-page-btn" aria-label="Trang sau">→</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+
+
+  <!-- Logic Lọc Tab Động & Tìm kiếm Trực tiếp chuẩn UI/UX -->
+
+  <script>
+    /**
+     * Bật / Tắt khung bộ lọc nâng cao
+     */
+    function toggleFilterPanel(forceState) {
+      const panel = document.getElementById('filterPanel');
+      if (!panel) return;
+      if (typeof forceState === 'boolean') {
+        if (forceState) panel.classList.remove('hidden');
+        else panel.classList.add('hidden');
+      } else {
+        panel.classList.toggle('hidden');
+      }
+    }
+
+    /**
+     * Đặt lại tất cả các trường lọc về mặc định
+     */
+    function resetAdvancedFilters() {
+      const statusSelect = document.getElementById('filterStatusSelect');
+      const trainerSelect = document.getElementById('filterTrainerSelect');
+      const dateFrom = document.getElementById('filterDateFrom');
+      const dateTo = document.getElementById('filterDateTo');
+      if (statusSelect) statusSelect.value = 'all';
+      if (trainerSelect) trainerSelect.value = 'all';
+      if (dateFrom) dateFrom.value = '';
+      if (dateTo) dateTo.value = '';
+      if (window.runFilterTable) window.runFilterTable();
+    }
+
+    /**
+     * Áp dụng bộ lọc đa tiêu chí
+     */
+    function applyAdvancedFilters() {
+      if (window.runFilterTable) window.runFilterTable();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabs = document.querySelectorAll('#courseStatusTabs .tf-tab');
+      const rows = document.querySelectorAll('#courseTableBody tr[data-status]');
+      const noRow = document.getElementById('noCourseRow');
+      const searchInput = document.querySelector('.tf-search-input');
+      const countLabel = document.querySelector('.tf-result-count');
+      const statusSelect = document.getElementById('filterStatusSelect');
+      const trainerSelect = document.getElementById('filterTrainerSelect');
+      const dateFrom = document.getElementById('filterDateFrom');
+      const dateTo = document.getElementById('filterDateTo');
+
+      let currentTab = 'all';
+
+      const tabCounts = {
+        all: 'Hiển thị {{ courses|length }} trong {{ total_count }} khóa học',
+        ongoing: 'Hiển thị {{ ongoing_count }} khóa học đang triển khai',
+        draft: 'Hiển thị {{ draft_count }} khóa học bản nháp',
+        completed: 'Hiển thị {{ completed_count }} khóa học đã kết thúc'
+      };
+
+      function filterTable() {
+        const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        const selectedStatus = (statusSelect && statusSelect.value !== 'all') ? statusSelect.value : currentTab;
+        const selectedTrainer = trainerSelect ? trainerSelect.value : 'all';
+        const fromVal = dateFrom ? dateFrom.value : '';
+        const toVal = dateTo ? dateTo.value : '';
+
+        let visibleCount = 0;
+
+        rows.forEach(function(row) {
+          const status = row.getAttribute('data-status');
+          const trainerId = row.getAttribute('data-trainer');
+          const startDate = row.getAttribute('data-start') || '';
+          const searchData = row.getAttribute('data-search') || '';
+
+          const matchStatus = (selectedStatus === 'all' || status === selectedStatus);
+          const matchTrainer = (selectedTrainer === 'all' || trainerId === selectedTrainer);
+          let matchDate = true;
+          if (fromVal && startDate && startDate < fromVal) matchDate = false;
+          if (toVal && startDate && startDate > toVal) matchDate = false;
+
+          const matchQuery = (query === '' || searchData.includes(query) || row.innerText.toLowerCase().includes(query));
+
+          if (matchStatus && matchTrainer && matchDate && matchQuery) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (noRow) {
+          noRow.style.display = (visibleCount === 0) ? '' : 'none';
+        }
+
+        if (countLabel) {
+          if (query !== '' || selectedTrainer !== 'all' || fromVal || toVal) {
+            countLabel.textContent = 'Tìm thấy ' + visibleCount + ' khóa học phù hợp';
+          } else if (tabCounts[currentTab]) {
+            countLabel.textContent = tabCounts[currentTab];
+          }
+        }
+      }
+
+      window.runFilterTable = filterTable;
+
+      if (statusSelect) statusSelect.addEventListener('change', function() {
+        if (this.value !== 'all') {
+          tabs.forEach(t => t.classList.remove('active'));
+          const matchingTab = document.querySelector('#courseStatusTabs [data-tab="' + this.value + '"]');
+          if (matchingTab) matchingTab.classList.add('active');
+          currentTab = this.value;
+        }
+        filterTable();
+      });
+      if (trainerSelect) trainerSelect.addEventListener('change', filterTable);
+      if (dateFrom) dateFrom.addEventListener('change', filterTable);
+      if (dateTo) dateTo.addEventListener('change', filterTable);
+
+      tabs.forEach(function(tab) {
+        tab.addEventListener('click', function(e) {
+          e.preventDefault();
+          tabs.forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          currentTab = this.getAttribute('data-tab');
+          if (statusSelect) statusSelect.value = currentTab;
+          filterTable();
+        });
+      });
+
+      if (searchInput) {
+        searchInput.addEventListener('input', filterTable);
+      }
+
+      // Hỗ trợ đọc query param ?tab=ongoing hoặc ?tab=draft hoặc ?tab=completed từ URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const requestedTab = urlParams.get('tab');
+      if (requestedTab) {
+        const targetTab = document.querySelector('#courseStatusTabs [data-tab="' + requestedTab + '"]');
+        if (targetTab) {
+          targetTab.click();
+        }
+      }
+    });
+  </script>
+
+</div>
+
+{% endblock %}
+

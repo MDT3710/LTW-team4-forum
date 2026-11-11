@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <!-- Breadcrumb & Tiêu đề trang -->
+    <header class="page-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <a href="/courses/trainer/courses/" class="hover:underline text-[#134c81]">Quản lý đào tạo</a>
+          <span>/</span>
+          <a href="/courses/trainer/courses/{{ course.id }}/" class="hover:underline text-[#134c81] font-semibold">{{ course.title }}</a>
+          <span>/</span>
+          <span class="text-slate-800 font-semibold">Phân công học viên</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Phân công & Ghi danh học viên</h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Khóa học: <strong class="text-slate-800">{{ course.title }}</strong>
+          • Trạng thái: 
+          {% if course.status == 'ongoing' %}
+            <span class="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Đang triển khai
+            </span>
+          {% elif course.status == 'draft' %}
+            <span class="inline-flex items-center gap-1 text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-xs">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span> Bản nháp
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1 text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-xs">
+              Đã kết thúc
+            </span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="/courses/trainer/courses/{{ course.id }}/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm cursor-pointer" style="text-decoration:none;">
+          ← Quay lại chi tiết khóa học
+        </a>
+      </div>
+    </header>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="px-4 py-3 rounded-lg {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-800{% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %} text-xs font-medium flex items-center gap-2 shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Sub-tabs đồng nhất 5 phân hệ khóa học -->
+    <nav class="section-tabs flex border-b border-slate-200 gap-6">
+      <a href="/courses/trainer/courses/{{ course.id }}/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tổng quan khóa học
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tài liệu & Bài giảng ({{ materials_count }})
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/exam/setup/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Thiết lập bài thi {% if exam %}<span class="text-emerald-600 font-bold">✓</span>{% endif %}
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
+        Ghi danh học viên ({{ total_enrolled }})
+      </a>
+      {% if course.status != 'draft' %}
+        <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+          Tiến độ học viên ({{ total_enrolled }})
+        </a>
+      {% endif %}
+    </nav>
+
+    <!-- FORM PHÂN CÔNG HỌC VIÊN -->
+    <form method="POST" action="/courses/trainer/courses/{{ course.id }}/assign/" class="workspace-card bg-white border border-slate-200 rounded-xl p-7 shadow-sm flex flex-col gap-6">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_assign">
+
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Chọn nhân viên phân công bắt buộc</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Tích chọn các nhân viên cần hoàn thành khóa học này. Hệ thống sẽ gán quyền học tập và thông báo tới học viên.</p>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+          <label class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition cursor-pointer select-none text-slate-700 font-semibold text-xs shadow-2xs">
+            <input type="checkbox" id="selectAllVisibleCheckbox" onchange="toggleSelectFilter(this.checked)" class="rounded text-[#134c81] w-4 h-4 cursor-pointer">
+            <span id="selectAllFilterLabel">Chọn tất cả theo bộ lọc</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Bộ lọc theo phòng ban (Department Filter Pills) -->
+      <div class="flex flex-wrap items-center gap-2 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+        <span class="text-slate-600 font-semibold shrink-0">Lọc theo phòng ban:</span>
+        <button type="button" onclick="filterDepartment('all', this)" class="dept-filter-btn px-3.5 py-1.5 rounded-full bg-[#134c81] text-white font-semibold cursor-pointer transition text-xs shadow-xs">
+          Tất cả ({{ trainees|length }})
+        </button>
+        {% for d in departments %}
+          <button type="button" onclick="filterDepartment('{{ d.id }}', this)" class="dept-filter-btn px-3.5 py-1.5 rounded-full bg-white hover:bg-blue-50 text-slate-700 border border-slate-200 hover:border-blue-300 font-medium cursor-pointer transition text-xs shadow-xs">
+            {{ d.name }}
+          </button>
+        {% endfor %}
+      </div>
+
+      <!-- Ô tìm kiếm nhân viên theo từ khóa -->
+      <div class="relative">
+        <input type="text" id="traineeFilterInput" placeholder="Tìm kiếm theo tên nhân viên, phòng ban, username hoặc email..." class="w-full px-4 py-2.5 pl-10 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81]">
+        <svg class="absolute left-3.5 top-3 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </div>
+
+      <!-- Danh sách nhân viên Trainee (Grid 2 cột) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[460px] overflow-y-auto p-1 pr-2" id="traineesListContainer">
+        {% for t in trainees %}
+          <label class="trainee-item flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-[#134c81] hover:bg-slate-50/80 cursor-pointer transition {% if t.is_enrolled %}bg-blue-50/30 border-blue-200{% endif %}" 
+                 data-dept="{{ t.employee_info.dep.id|default:'none' }}"
+                 data-name="{{ t.get_full_name|lower }} {{ t.username|lower }} {{ t.email|lower }} {{ t.employee_info.dep.name|lower }}">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" name="trainee_ids" value="{{ t.id }}" {% if t.is_enrolled %}checked{% endif %} class="trainee-checkbox rounded text-[#134c81] w-4 h-4 cursor-pointer">
+              <div>
+                <span class="font-bold text-slate-900 text-xs block">
+                  {{ t.get_full_name|default:t.username }}
+                </span>
+                <span class="text-[11px] text-slate-500 block">
+                  @{{ t.username }} • <strong class="text-slate-700">{{ t.employee_info.dep.name|default:"Phòng Đào tạo" }}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              {% if t.is_enrolled %}
+                {% if t.enrollment.is_assigned %}
+                  <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                    Bắt buộc
+                  </span>
+                {% else %}
+                  <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                    Tự chọn
+                  </span>
+                {% endif %}
+              {% else %}
+                <span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                  Chưa ghi danh
+                </span>
+              {% endif %}
+              <span class="text-[10px] text-slate-400 font-medium">
+                {{ t.employee_info.branch.name|default:"Trụ sở chính"|slice:":12" }}
+              </span>
+            </div>
+          </label>
+        {% empty %}
+          <div class="col-span-2 p-8 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-xs">
+            Chưa có tài khoản nhân viên (Trainee) nào trong cơ sở dữ liệu.
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="flex flex-col sm:flex-row justify-between items-center pt-5 border-t border-slate-100 gap-4">
+        <a href="/courses/trainer/courses/{{ course.id }}/" class="text-xs text-slate-500 hover:text-slate-800 font-semibold">
+          ← Quay lại chi tiết khóa học mà không lưu
+        </a>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-500 font-medium" id="selectedCountDisplay">Đang chọn ... học viên</span>
+          <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#134c81] hover:bg-[#0e3b65] text-white text-xs font-bold transition shadow-sm cursor-pointer">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Lưu danh sách phân công học viên
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- BẢNG DANH SÁCH HỌC VIÊN ĐÃ GHI DANH HIỆN TẠI -->
+    <section class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Danh sách học viên đang ghi danh ({{ enrollments|length }} học viên)</h2>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[11px] bg-slate-50/70">
+              <th class="py-3 px-4 font-semibold">STT</th>
+              <th class="py-3 px-4 font-semibold">Học viên</th>
+              <th class="py-3 px-4 font-semibold">Phòng ban & Chi nhánh</th>
+              <th class="py-3 px-4 font-semibold">Hình thức học</th>
+              <th class="py-3 px-4 font-semibold">Tiến độ bài học</th>
+              <th class="py-3 px-4 font-semibold">Kết quả thi</th>
+              <th class="py-3 px-4 font-semibold text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for en in enrollments %}
+              <tr class="hover:bg-slate-50/80 transition">
+                <td class="py-3 px-4 text-slate-400 font-mono">{{ forloop.counter }}</td>
+                <td class="py-3 px-4">
+                  <span class="font-bold text-slate-900 block text-xs">{{ en.emp.get_full_name|default:en.emp.username }}</span>
+                  <span class="text-slate-400 text-[11px]">@{{ en.emp.username }} • {{ en.emp.email|default:"scots.edu.vn" }}</span>
+                </td>
+                <td class="py-3 px-4 text-slate-600">
+                  <span class="font-semibold text-slate-800 block">{{ en.emp.employee_info.dep.name|default:"Phòng Đào tạo" }}</span>
+                  <span class="text-slate-400 text-[11px]">{{ en.emp.employee_info.branch.name|default:"Hà Nội" }}</span>
+                </td>
+                <td class="py-3 px-4">
+                  {% if en.is_assigned %}
+                    <span class="inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      Bắt buộc
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                      Tự chọn
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div class="h-full bg-emerald-500 rounded-full" style="width: {{ en.study_process }}%;"></div>
+                    </div>
+                    <span class="font-bold text-slate-700 text-[11px]">{{ en.study_process }}%</span>
+                  </div>
+                </td>
+                <td class="py-3 px-4">
+                  {% if en.is_pass %}
+                    <span class="text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Đạt</span>
+                  {% elif en.is_completed %}
+                    <span class="text-blue-700 font-bold text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Đã học xong</span>
+                  {% else %}
+                    <span class="text-slate-400 text-[11px]">Chưa thi</span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-4 text-right">
+                  <form method="POST" action="/courses/trainer/courses/{{ course.id }}/assign/" onsubmit="return confirm('Bạn có chắc chắn muốn hủy ghi danh học viên này khỏi khóa học không?');" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="remove_trainee">
+                    <input type="hidden" name="emp_id" value="{{ en.emp.id }}">
+                    <button type="submit" class="text-rose-600 hover:text-rose-800 text-xs font-semibold hover:underline cursor-pointer">
+                      Hủy ghi danh ✕
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                  Chưa có học viên nào được ghi danh vào khóa học này. Hãy tích chọn danh sách phía trên và nhấn "Lưu danh sách phân công".
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    let activeDeptFilter = 'all';
+
+    function updateSelectedCount() {
+      const allChecked = document.querySelectorAll('.trainee-checkbox:checked').length;
+      const countEl = document.getElementById('selectedCountDisplay');
+      if (countEl) {
+        countEl.textContent = `Đã chọn ${allChecked} học viên`;
+      }
+    }
+
+    function toggleSelectFilter(select) {
+      const items = document.querySelectorAll('#traineesListContainer .trainee-item');
+      items.forEach(item => {
+        if (item.style.display !== 'none') {
+          const cb = item.querySelector('.trainee-checkbox');
+          if (cb) {
+            cb.checked = select;
+            if (select) {
+              item.classList.add('bg-blue-50/30', 'border-blue-200');
+            } else {
+              item.classList.remove('bg-blue-50/30', 'border-blue-200');
+            }
+          }
+        }
+      });
+      updateSelectedCount();
+      syncSelectAllCheckboxState();
+    }
+
+    function syncSelectAllCheckboxState() {
+      const masterCb = document.getElementById('selectAllVisibleCheckbox');
+      if (!masterCb) return;
+
+      const visibleItems = Array.from(document.querySelectorAll('#traineesListContainer .trainee-item'))
+                                .filter(item => item.style.display !== 'none');
+      if (visibleItems.length === 0) {
+        masterCb.checked = false;
+        masterCb.indeterminate = false;
+        return;
+      }
+
+      const visibleCheckboxes = visibleItems.map(item => item.querySelector('.trainee-checkbox')).filter(Boolean);
+      const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
+
+      if (checkedCount === visibleCheckboxes.length) {
+        masterCb.checked = true;
+        masterCb.indeterminate = false;
+      } else if (checkedCount > 0) {
+        masterCb.checked = false;
+        masterCb.indeterminate = true;
+      } else {
+        masterCb.checked = false;
+        masterCb.indeterminate = false;
+      }
+    }
+
+    function filterDepartment(deptId, btnElement) {
+      activeDeptFilter = deptId;
+
+      document.querySelectorAll('.dept-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-[#134c81]', 'text-white');
+        btn.classList.add('bg-white', 'text-slate-700', 'border', 'border-slate-200');
+      });
+
+      if (btnElement) {
+        btnElement.classList.remove('bg-white', 'text-slate-700', 'border', 'border-slate-200');
+        btnElement.classList.add('bg-[#134c81]', 'text-white');
+      }
+
+      applyCombinedFilters();
+    }
+
+    function applyCombinedFilters() {
+      const searchTerm = (document.getElementById('traineeFilterInput')?.value || '').toLowerCase().trim();
+      const items = document.querySelectorAll('#traineesListContainer .trainee-item');
+      let visibleCount = 0;
+
+      items.forEach(item => {
+        const itemDept = item.getAttribute('data-dept');
+        const itemName = item.getAttribute('data-name') || '';
+
+        const matchDept = (activeDeptFilter === 'all') || (itemDept === activeDeptFilter);
+        const matchSearch = (!searchTerm) || itemName.includes(searchTerm);
+
+        if (matchDept && matchSearch) {
+          item.style.display = 'flex';
+          visibleCount++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+
+      const label = document.getElementById('selectAllFilterLabel');
+      if (label) {
+        if (activeDeptFilter === 'all' && !searchTerm) {
+          label.textContent = `Chọn tất cả (${visibleCount})`;
+        } else {
+          label.textContent = `Chọn tất cả theo bộ lọc (${visibleCount})`;
+        }
+      }
+
+      syncSelectAllCheckboxState();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const filterInput = document.getElementById('traineeFilterInput');
+      if (filterInput) {
+        filterInput.addEventListener('input', applyCombinedFilters);
+      }
+
+      document.querySelectorAll('.trainee-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const parent = e.target.closest('.trainee-item');
+          if (e.target.checked) {
+            parent.classList.add('bg-blue-50/30', 'border-blue-200');
+          } else {
+            parent.classList.remove('bg-blue-50/30', 'border-blue-200');
+          }
+          updateSelectedCount();
+          syncSelectAllCheckboxState();
+        });
+      });
+
+      updateSelectedCount();
+      applyCombinedFilters();
+    });
+  </script>
+
+{% endblock %}

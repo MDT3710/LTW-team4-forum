@@ -1,0 +1,1064 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+<style>
+
+  /* ============================================================
+
+     FIGMA 249:171 - Khóa học của tôi (scotsmate/trainee/courses)
+
+     Pixel-perfect layout with 208px fixed sidebar and 3-col grids
+
+     ============================================================ */
+
+  .trainee-workspace-figma {
+
+    background-color: #f8fafc;
+
+    min-height: 844px;
+
+    padding: 32px 48px;
+
+    width: 100%;
+
+    max-width: 1440px;
+
+    margin: 0 auto;
+
+    box-sizing: border-box;
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    gap: 24px !important;
+
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  }
+
+
+
+  /* Left Sidebar: 208px */
+
+  .tr-sidebar {
+
+    width: 208px !important;
+
+    min-width: 208px !important;
+
+    max-width: 208px !important;
+
+    flex: 0 0 208px !important;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 12px;
+
+    padding: 16px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 20px;
+
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    align-self: flex-start;
+
+    box-sizing: border-box;
+
+  }
+
+  .tr-identity h2 {
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+    color: #19334b;
+
+    margin: 0;
+
+  }
+
+  .tr-identity p {
+
+    font-size: 12px;
+
+    color: #134c81;
+
+    margin: 4px 0 0 0;
+
+    font-weight: 500;
+
+  }
+
+  .tr-sidebar-hr {
+
+    border: 0;
+
+    border-top: 1px solid #e2e8f0;
+
+    margin: 0;
+
+    width: 100%;
+
+  }
+
+  .tr-nav-links {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+  }
+
+  .tr-nav-link {
+
+    display: flex;
+
+    align-items: center;
+
+    min-height: 44px;
+
+    padding: 10px 12px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+
+    font-weight: 500;
+
+    text-decoration: none;
+
+    color: #64748b;
+
+    transition: all 0.15s ease;
+
+    box-sizing: border-box;
+
+  }
+
+  .tr-nav-link:hover {
+
+    background-color: #f8fafc;
+
+    color: #19334b;
+
+  }
+
+  .tr-nav-link.active {
+
+    background-color: #edf4fb;
+
+    color: #134c81;
+
+    font-weight: 600;
+
+  }
+
+
+
+  /* Right Main Content */
+
+  .tr-content {
+
+    flex: 1 1 0% !important;
+
+    min-width: 0 !important;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 24px;
+
+    box-sizing: border-box;
+
+  }
+
+
+
+  /* Heading */
+
+  .tr-heading {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+  }
+
+  .tr-heading h1 {
+
+    font-size: 28px;
+
+    font-weight: 700;
+
+    color: #19334b;
+
+    line-height: 34px;
+
+    margin: 0;
+
+  }
+
+  .tr-heading p {
+
+    font-size: 13px;
+
+    color: #64748b;
+
+    margin: 6px 0 0 0;
+
+  }
+
+
+
+  /* 3 KPI Cards Grid */
+
+  .tr-kpi-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 16px;
+
+  }
+
+  .tr-kpi-card {
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 12px;
+
+    padding: 16px 20px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  }
+
+  .tr-kpi-label {
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    color: #64748b;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.05em;
+
+  }
+
+  .tr-kpi-val {
+
+    font-size: 32px;
+
+    font-weight: 800;
+
+    color: #19334b;
+
+    line-height: 40px;
+
+    margin: 8px 0 4px 0;
+
+  }
+
+  .tr-kpi-note {
+
+    font-size: 12px;
+
+    color: #10b981;
+
+    font-weight: 500;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 4px;
+
+  }
+
+  .tr-kpi-note.warn {
+
+    color: #f59e0b;
+
+  }
+
+
+
+  /* Status Tabs */
+
+  .tr-tabs {
+
+    display: flex;
+
+    gap: 24px;
+
+    border-bottom: 1px solid #e2e8f0;
+
+  }
+
+  .tr-tab {
+
+    padding: 12px 2px;
+
+    font-size: 14px;
+
+    font-weight: 500;
+
+    color: #64748b;
+
+    text-decoration: none;
+
+    border-bottom: 2px solid transparent;
+
+    transition: all 0.15s ease;
+
+  }
+
+  .tr-tab:hover {
+
+    color: #19334b;
+
+  }
+
+  .tr-tab.active {
+
+    color: #134c81;
+
+    font-weight: 700;
+
+    border-bottom-color: #134c81;
+
+  }
+
+
+
+  /* Search & Filter Toolbar */
+
+  .tr-toolbar {
+
+    display: flex;
+
+    gap: 12px;
+
+    align-items: center;
+
+  }
+
+  .tr-search-box {
+
+    position: relative;
+
+    flex: 1;
+
+  }
+
+  .tr-search-icon {
+
+    position: absolute;
+
+    left: 14px;
+
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #94a3b8;
+
+  }
+
+  .tr-search-input {
+
+    width: 100%;
+
+    height: 44px;
+
+    padding: 0 16px 0 42px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+
+    color: #19334b;
+
+    box-sizing: border-box;
+
+  }
+
+  .tr-search-input:focus {
+
+    outline: none;
+
+    border-color: #134c81;
+
+  }
+
+  .tr-filter-btn {
+
+    height: 44px;
+
+    padding: 0 16px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: #64748b;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    cursor: pointer;
+
+  }
+
+
+
+  /* 3 Columns Course Grid */
+
+  .tr-courses-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 20px;
+
+  }
+
+  .tr-card {
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 12px;
+
+    padding: 20px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: space-between;
+
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  }
+
+  .tr-card:hover {
+
+    transform: translateY(-2px);
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  }
+
+  .tr-card-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    margin-bottom: 12px;
+
+  }
+
+  .tr-card-ico {
+
+    width: 44px;
+
+    height: 44px;
+
+    border-radius: 10px;
+
+    background-color: #edf4fb;
+
+    color: #134c81;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+  }
+
+  .tr-card-badge {
+
+    padding: 4px 10px;
+
+    border-radius: 100px;
+
+    background-color: #fee2e2;
+
+    color: #b91c1c;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+  }
+
+  .tr-card-badge.completed {
+
+    background-color: #d1fae5;
+
+    color: #065f46;
+
+  }
+
+  .tr-card-title {
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    color: #19334b;
+
+    line-height: 22px;
+
+    margin: 0 0 8px 0;
+
+  }
+
+  .tr-card-meta {
+
+    font-size: 12px;
+
+    color: #64748b;
+
+    margin-bottom: 16px;
+
+    line-height: 1.4;
+
+  }
+
+  .tr-progress-bar-wrap {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+    margin-bottom: 14px;
+
+  }
+
+  .tr-progress-labels {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    font-size: 12px;
+
+  }
+
+  .tr-progress-track {
+
+    width: 100%;
+
+    height: 6px;
+
+    background-color: #f1f5f9;
+
+    border-radius: 100px;
+
+    overflow: hidden;
+
+  }
+
+  .tr-progress-fill {
+
+    height: 100%;
+
+    background-color: #1bc1a0;
+
+    border-radius: 100px;
+
+  }
+
+  .tr-exam-notice {
+
+    padding: 8px 12px;
+
+    border-radius: 8px;
+
+    background-color: #edf4fb;
+
+    color: #134c81;
+
+    font-size: 11px;
+
+    line-height: 15px;
+
+    margin-bottom: 16px;
+
+  }
+
+  .tr-card-btn {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    height: 40px;
+
+    padding: 0 16px;
+
+    background-color: #134c81;
+
+    color: #ffffff !important;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    transition: background 0.15s ease;
+
+  }
+
+  .tr-card-btn:hover {
+
+    background-color: #0e3b65;
+
+  }
+
+</style>
+
+
+
+<div class="trainee-workspace-figma">
+
+
+
+  <!-- Sidebar điều hướng phân hệ học viên (208px fixed) -->
+
+  <aside class="tr-sidebar">
+
+    <div class="tr-identity">
+      <h2>Đào tạo</h2>
+    </div>
+
+    <hr class="tr-sidebar-hr">
+
+    <nav class="tr-nav-links">
+
+      <a href="/courses/trainee/courses/" class="tr-nav-link active">
+
+        Khóa học của tôi
+
+      </a>
+
+      
+
+    </nav>
+
+  </aside>
+
+
+
+  <!-- Khu vực nội dung chính -->
+
+  <main class="tr-content">
+
+    
+
+    <!-- Tiêu đề trang -->
+
+    <header class="tr-heading">
+
+      <div>
+
+        <h1>Khóa học của tôi</h1>
+
+        <p>
+
+          Các khóa học do Phòng Đào tạo phân công; hoàn thành đầy đủ bài giảng để mở khóa bài thi đánh giá.
+
+        </p>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- 3 Thẻ thống kê KPI học viên (3 Cột) -->
+
+    <section class="tr-kpi-grid">
+
+      <div class="tr-kpi-card">
+
+        <span class="tr-kpi-label">Đang học</span>
+
+        <span class="tr-kpi-val">{{ studying_count }}</span>
+
+        <span class="tr-kpi-note">
+
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>
+
+          Tiếp tục theo tiến độ của bạn
+
+        </span>
+
+      </div>
+
+      <div class="tr-kpi-card">
+
+        <span class="tr-kpi-label">Đã hoàn thành</span>
+
+        <span class="tr-kpi-val">{{ completed_count }}</span>
+
+        <span class="tr-kpi-note">
+
+          Đạt tiêu chuẩn nghiệp vụ
+
+        </span>
+
+      </div>
+
+      <div class="tr-kpi-card">
+
+        <span class="tr-kpi-label">Bài thi sắp tới</span>
+
+        <span class="tr-kpi-val">{{ upcoming_exam_count }}</span>
+
+        <span class="tr-kpi-note warn">
+
+          Yêu cầu đọc đủ tài liệu
+
+        </span>
+
+      </div>
+
+    </section>
+
+
+
+    {% if recent_courses %}
+    <!-- Widget: Khóa học truy cập gần đây (Lưu từ Session - Chuẩn Chương 07 Lab VI) -->
+    <section class="tr-recent-box p-4 rounded-xl bg-gradient-to-r from-blue-50/90 to-slate-50 border border-blue-100/80 flex flex-col gap-3 shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-[#134c81] uppercase tracking-wider flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Khóa học vừa học gần đây
+        </span>
+        <span class="text-[11px] text-slate-500 font-medium">Lưu tự động từ phiên làm việc</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {% for rc in recent_courses %}
+          <a href="/courses/trainee/courses/{{ rc.id }}/" class="p-3 rounded-lg bg-white border border-slate-200/80 hover:border-[#134c81] hover:shadow-xs transition flex items-center justify-between group" style="text-decoration:none;">
+            <div class="truncate pr-2">
+              <span class="text-[10px] font-mono text-slate-400 block">{{ rc.code }}</span>
+              <span class="text-xs font-bold text-slate-800 group-hover:text-[#134c81] truncate block">{{ rc.title }}</span>
+            </div>
+            {% if rc.user_is_completed %}
+              <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">✓ Đã hoàn thành</span>
+            {% else %}
+              <svg class="text-slate-400 group-hover:text-[#134c81] shrink-0 transition" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Toolbar: Tìm kiếm -->
+
+    <section class="tr-toolbar">
+
+      <div class="tr-search-box">
+
+        <svg class="tr-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+          <circle cx="11" cy="11" r="8"></circle>
+
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+
+        </svg>
+
+        <input type="text" id="traineeSearchInput" class="tr-search-input">
+
+      </div>
+
+    </section>
+
+
+
+    <!-- Danh sách thẻ khóa học (3 Cột chuẩn Figma) -->
+
+    <section class="tr-courses-grid" id="traineeCoursesGrid">
+
+      {% for en in enrollments %}
+
+        <article class="tr-card course-item" data-title="{{ en.course.title|lower }} {{ en.course.code|lower }}">
+
+          <div>
+
+            <div class="tr-card-header">
+
+              <div class="tr-card-ico">
+
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+
+                  <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+
+                </svg>
+
+              </div>
+
+              {% if en.is_completed %}
+                <span class="tr-card-badge completed">Đã hoàn thành</span>
+              {% elif en.is_assigned %}
+                <span class="tr-card-badge">Bắt buộc</span>
+              {% else %}
+                <span class="tr-card-badge elective" style="background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">Tự chọn</span>
+              {% endif %}
+
+            </div>
+
+            <h3 class="tr-card-title">{{ en.course.title }}</h3>
+
+            <p class="tr-card-meta">
+
+              {{ en.course.materials.all|length }} bài giảng<br>
+
+              Hạn chót: {{ en.course.date_end|date:"d/m/Y" }}
+
+            </p>
+
+            
+
+            <div class="tr-progress-bar-wrap">
+
+              <div class="tr-progress-labels">
+
+                <span style="color: #64748b;">Tiến độ</span>
+
+                <span style="font-weight: 700; color: #134c81;">{{ en.study_process }}%</span>
+
+              </div>
+
+              <div class="tr-progress-track">
+
+                <div class="tr-progress-fill" style="width: {{ en.study_process }}%;"></div>
+
+              </div>
+
+            </div>
+
+
+
+            {% if en.is_pass %}
+
+              <div class="tr-exam-notice" style="background-color: #ecfdf5; color: #065f46;">
+
+                ✓ Đã hoàn thành & Đỗ bài thi
+
+              </div>
+
+            {% elif en.course.exam %}
+
+              <div class="tr-exam-notice">
+
+                🔒 Bài thi: Mở sau khi đọc đủ tài liệu
+
+              </div>
+
+            {% else %}
+
+              <div class="tr-exam-notice" style="background-color: #f8fafc; color: #64748b;">
+
+                Tài liệu học tập nghiệp vụ
+
+              </div>
+
+            {% endif %}
+
+          </div>
+
+
+
+          <a href="/courses/trainee/courses/{{ en.course.id }}/" class="tr-card-btn">
+
+            {% if en.is_completed %}Xem lại khóa học →{% else %}Tiếp tục học →{% endif %}
+
+          </a>
+
+        </article>
+
+      {% empty %}
+
+        <div class="col-span-3 text-center py-12 bg-white rounded-xl border border-slate-200 text-slate-500">
+
+          Hiện tại bạn chưa được phân công khóa học nào.
+
+        </div>
+
+      {% endfor %}
+
+    </section>
+
+    <!-- KHÓA HỌC MỞ RỘNG (ĐĂNG KÝ TỰ CHỌN) -->
+    {% if available_courses %}
+      <section class="mt-10 pt-8 border-t border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <span>Khóa học mở rộng (Đăng ký tự chọn)</span>
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#134c81] border border-blue-200">
+                {{ available_courses|length }} khóa học
+              </span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+              Các chương trình đào tạo mở do Phòng Đào tạo tổ chức. Nhân viên có thể chủ động đăng ký tham gia bồi dưỡng kỹ năng chuyên môn.
+            </p>
+          </div>
+        </div>
+
+        <div class="tr-courses-grid">
+          {% for c in available_courses %}
+            <article class="tr-card course-item" data-title="{{ c.title|lower }} {{ c.code|lower }}">
+              <div>
+                <div class="tr-card-header">
+                  <div class="tr-card-ico" style="background-color: #eff6ff; color: #1d4ed8;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                  </div>
+                  <span class="tr-card-badge" style="background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                    Tự chọn
+                  </span>
+                </div>
+
+                <h3 class="tr-card-title">{{ c.title }}</h3>
+                <p class="tr-card-meta">
+                  {{ c.code }} • {{ c.materials.all|length }} bài giảng<br>
+                  Thời gian: {{ c.date_start|date:"d/m/Y" }} → {{ c.date_end|date:"d/m/Y" }}
+                </p>
+
+                <p class="text-xs text-slate-600 mt-2 mb-4 line-clamp-2 leading-relaxed">
+                  {{ c.description|default:"Chương trình đào tạo nâng cao năng lực chuyên môn và quy chuẩn nghiệp vụ tại Scots English." }}
+                </p>
+
+                <div class="tr-exam-notice" style="background-color: #f8fafc; color: #64748b;">
+                  Giảng viên: {{ c.creator.get_full_name|default:"Phòng Đào tạo" }}
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+                <a href="/courses/trainee/courses/{{ c.id }}/" class="flex-1 text-center py-2 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition" style="text-decoration:none;">
+                  Xem chi tiết
+                </a>
+                <form method="POST" action="/courses/trainee/courses/{{ c.id }}/self-enroll/" class="flex-1">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full py-2 px-3 rounded-lg bg-[#134c81] hover:bg-[#0e3b65] text-white text-xs font-bold transition shadow-xs cursor-pointer">
+                    Đăng ký học →
+                  </button>
+                </form>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+
+
+  </main>
+
+
+
+</div>
+
+
+
+<script>
+
+  // Tìm kiếm khóa học realtime
+
+  document.getElementById('traineeSearchInput')?.addEventListener('input', function(e) {
+
+    const query = e.target.value.toLowerCase().trim();
+
+    const cards = document.querySelectorAll('#traineeCoursesGrid .course-item');
+
+    cards.forEach(card => {
+
+      const title = card.getAttribute('data-title') || '';
+
+      if (title.includes(query)) {
+
+        card.style.display = 'flex';
+
+      } else {
+
+        card.style.display = 'none';
+
+      }
+
+    });
+
+  });
+
+</script>
+
+{% endblock %}
+

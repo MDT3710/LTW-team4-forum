@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'courses',
     'message',
     'posts',
@@ -144,3 +145,27 @@ MAILERS = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# ============================================================
+# CẤU HÌNH XÁC THỰC NGƯỜI DÙNG (CHUẨN CHƯƠNG 7 - MIS3010)
+# ============================================================
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/courses/'
+LOGOUT_REDIRECT_URL = '/login/'
+
+
+# ============================================================
+# BẢO MẬT PHIÊN LÀM VIỆC DOANH NGHIỆP (ENTERPRISE LMS SECURITY)
+# Đóng trình duyệt là kết thúc phiên, bắt buộc đăng nhập lại
+# ============================================================
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 86400  # Tối đa 24h nếu vẫn giữ trình duyệt mở
+
+
+# ============================================================
+# CẤU HÌNH NHÚNG KHUNG IFRAME (PDF VIEWER & PREVIEWS)
+# SAMEORIGIN cho phép nhúng tài liệu PDF / tài liệu nội bộ trong website Scots English
+# ============================================================
+X_FRAME_OPTIONS = 'SAMEORIGIN'

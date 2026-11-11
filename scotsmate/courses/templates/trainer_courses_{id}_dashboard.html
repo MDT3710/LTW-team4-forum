@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="page-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <a href="/courses/trainer/courses/" class="hover:underline text-[#134c81]">Quản lý đào tạo</a>
+          <span>/</span>
+          <a href="/courses/trainer/courses/{{ course.id }}/" class="hover:underline font-semibold text-[#134c81]">{{ course.title }}</a>
+          <span>/</span>
+          <span class="text-slate-800 font-semibold">Báo cáo học viên & Phân tích bài thi</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Báo cáo tiến độ & Phân tích bài thi: {{ course.title }}</h1>
+        <p class="text-sm text-slate-500 mt-1">
+          Trạng thái: 
+          {% if course.status == 'ongoing' %}
+            <span class="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Đang triển khai
+            </span>
+          {% elif course.status == 'draft' %}
+            <span class="inline-flex items-center gap-1 text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-xs">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span> Bản nháp
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1 text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-xs">
+              Đã kết thúc
+            </span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm cursor-pointer" style="text-decoration:none;">
+          Phân công học viên
+        </a>
+        <a href="/courses/trainer/courses/{{ course.id }}/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm cursor-pointer" style="text-decoration:none;">
+          ← Chi tiết khóa học
+        </a>
+      </div>
+    </header>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="px-4 py-3 rounded-lg {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-800{% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %} text-xs font-medium flex items-center gap-2 shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Sub-tabs đồng nhất 5 phân hệ khóa học -->
+    <nav class="section-tabs flex border-b border-slate-200 gap-6">
+      <a href="/courses/trainer/courses/{{ course.id }}/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tổng quan khóa học
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tài liệu & Bài giảng ({{ materials_count }})
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/exam/setup/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Thiết lập bài thi {% if exam %}<span class="text-emerald-600 font-bold">✓</span>{% endif %}
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Ghi danh học viên ({{ total_enrolled }})
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
+        Tiến độ học viên ({{ total_enrolled }})
+      </a>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- PHẦN 1: 4 THẺ THỐNG KÊ KPI TOÀN KHÓA HỌC                    -->
+    <!-- ============================================================ -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+        <span class="text-xs text-slate-400 font-medium">Tổng số học viên</span>
+        <p class="text-2xl font-bold text-slate-900 mt-1.5">{{ total_enrolled }} nhân sự</p>
+        <span class="text-xs text-slate-500 mt-1 block">
+          Đã hoàn thành bài học: <strong class="text-emerald-700">{{ total_completed }}</strong> ({% if total_enrolled > 0 %}{% widthratio total_completed total_enrolled 100 %}%{% else %}0%{% endif %})
+        </span>
+      </div>
+
+      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+        <span class="text-xs text-slate-400 font-medium">Đã nộp bài kiểm tra</span>
+        <p class="text-2xl font-bold text-[#134c81] mt-1.5">{{ submitted_count }} / {{ total_enrolled }}</p>
+        <span class="text-xs text-slate-500 mt-1 block">
+          Chưa nộp bài: <strong class="text-amber-700">{{ not_submitted_count }}</strong> nhân sự
+        </span>
+      </div>
+
+      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+        <span class="text-xs text-slate-400 font-medium">Điểm trung bình học viên</span>
+        <p class="text-2xl font-bold text-slate-900 mt-1.5">{{ avg_score|floatformat:1 }} <span class="text-sm font-normal text-slate-400">/ 100</span></p>
+        <span class="text-xs text-slate-500 mt-1 block">
+          Phổ điểm: Thấp nhất <strong>{{ min_score|floatformat:1 }}</strong> - Cao nhất <strong>{{ max_score|floatformat:1 }}</strong>
+        </span>
+      </div>
+
+      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+        <span class="text-xs text-slate-400 font-medium">Tỷ lệ đạt chuẩn nghiệp vụ</span>
+        <p class="text-2xl font-bold text-emerald-600 mt-1.5">{{ pass_rate|floatformat:1 }}%</p>
+        <span class="text-xs text-emerald-700 mt-1 block">
+          <strong>{{ total_passed }} / {{ submitted_count }}</strong> học viên đạt điểm chuẩn (≥ {{ exam.passing_score|floatformat:0 }} điểm)
+        </span>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- PHẦN 2: BẢNG DANH SÁCH HỌC VIÊN & XEM CHI TIẾT BÀI LÀM       -->
+    <!-- (HIỂN THỊ ĐẦY ĐỦ TIẾN ĐỘ VÀ KẾT QUẢ CỦA TỪNG HỌC VIÊN TRƯỚC) -->
+    <!-- ============================================================ -->
+    <div class="table-container bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="font-bold text-slate-900 text-sm">Danh sách học viên theo dõi ({{ enrollments|length }} nhân sự)</h2>
+          <p class="text-xs text-slate-500 font-normal mt-0.5">Bấm "Xem bài làm" để đối soát từng câu trả lời đúng/sai của từng học viên.</p>
+        </div>
+
+        <!-- Ô tìm kiếm học viên trực tiếp -->
+        <div class="relative w-full sm:w-64">
+          <input type="text" 
+                 id="traineeSearchInput" 
+                 onkeyup="filterTraineeTable()" 
+                 placeholder="Tìm theo tên học viên, email..." 
+                 class="w-full h-9 pl-9 pr-3 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-[#134c81]">
+          <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+      </div>
+
+      <table class="w-full text-left border-collapse text-sm" id="traineeTable">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <th class="py-3.5 px-6">Học viên</th>
+            <th class="py-3.5 px-4">Phòng ban</th>
+            <th class="py-3.5 px-4">Tiến độ bài học</th>
+            <th class="py-3.5 px-4 text-center">Điểm bài thi</th>
+            <th class="py-3.5 px-4 text-center">Số câu đúng</th>
+            <th class="py-3.5 px-4 text-center">Kết quả</th>
+            <th class="py-3.5 px-6 text-right">Chi tiết bài làm</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-xs">
+          {% for en in enrollments %}
+            <tr class="hover:bg-slate-50/70 transition trainee-row">
+              <td class="py-3.5 px-6 font-semibold text-slate-800">
+                <div class="flex flex-col">
+                  <span class="font-bold text-slate-900 trainee-name">{{ en.emp.get_full_name|default:en.emp.username }}</span>
+                  <span class="text-[11px] text-slate-500 font-normal trainee-email">{{ en.emp.email|default:en.emp.username }}</span>
+                </div>
+              </td>
+              <td class="py-3.5 px-4 text-slate-600">
+                {{ en.emp.employee_info.dep.name|default:"Học vụ & Chăm sóc học viên" }}
+              </td>
+              <td class="py-3.5 px-4">
+                <div class="flex items-center gap-2">
+                  <div class="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-emerald-500 rounded-full" style="width: {{ en.study_process }}%;"></div>
+                  </div>
+                  <span class="font-bold text-slate-700">{{ en.study_process }}%</span>
+                </div>
+              </td>
+              <td class="py-3.5 px-4 text-center">
+                {% if en.exam_response %}
+                  <span class="font-bold text-sm text-[#134c81]">{{ en.exam_response.score|floatformat:1 }}</span>
+                  <span class="text-[10px] text-slate-400">/100</span>
+                {% else %}
+                  <span class="text-slate-400 font-medium">—</span>
+                {% endif %}
+              </td>
+              <td class="py-3.5 px-4 text-center">
+                {% if en.exam_response %}
+                  <span class="font-bold text-xs text-[#134c81]">{{ en.correct_count }} / {{ total_questions }}</span>
+                {% else %}
+                  <span class="text-slate-400 font-medium">—</span>
+                {% endif %}
+              </td>
+              <td class="py-3.5 px-4 text-center">
+                {% if en.is_pass %}
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">ĐẠT</span>
+                {% elif en.exam_response %}
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">CHƯA ĐẠT</span>
+                {% else %}
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500">CHƯA NỘP</span>
+                {% endif %}
+              </td>
+              <td class="py-3.5 px-6 text-right">
+                {% if en.exam_response %}
+                  <button type="button" 
+                          onclick="openSubmissionModal('modal_{{ en.emp.id }}')" 
+                          class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-[#134c81] border border-blue-200 hover:bg-blue-100 font-bold text-xs transition cursor-pointer shadow-xs">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span>Xem bài làm</span>
+                  </button>
+                {% else %}
+                  <span class="text-slate-400 italic text-[11px]">Chưa có bài nộp</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="py-8 text-center text-slate-400">
+                Khóa học này hiện chưa có học viên nào được phân công.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL POPUPS: XEM CHI TIẾT BÀI LÀM CỦA TỪNG HỌC VIÊN           -->
+  <!-- ============================================================ -->
+
+  <!-- MODAL BÀI LÀM CỦA TỪNG HỌC VIÊN -->
+  {% for en in enrollments %}
+    {% if en.exam_response %}
+      <div id="modal_{{ en.emp.id }}" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
+          <!-- Header modal -->
+          <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div>
+              <span class="text-[11px] font-bold text-[#134c81] uppercase tracking-wider block">BÀI LÀM CỦA HỌC VIÊN</span>
+              <h3 class="text-base font-bold text-slate-900">{{ en.emp.get_full_name|default:en.emp.username }} ({{ en.emp.username }})</h3>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Điểm bài thi: <strong class="text-[#134c81] font-bold">{{ en.exam_response.score|floatformat:1 }}/100</strong>
+                • Trả lời đúng: <strong class="text-emerald-700 font-bold">{{ en.correct_count }}/{{ total_questions }} câu</strong>
+                • Kết quả: {% if en.exam_response.is_passed %}<span class="text-emerald-700 font-bold">ĐẠT CHUẨN</span>{% else %}<span class="text-rose-700 font-bold">CHƯA ĐẠT</span>{% endif %}
+                • Nộp lúc: {{ en.exam_response.submission_date|date:"H:i - d/m/Y" }}
+              </p>
+            </div>
+            <button type="button" onclick="closeSubmissionModal('modal_{{ en.emp.id }}')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition cursor-pointer">
+              ✕
+            </button>
+          </div>
+
+          <!-- Body modal -->
+          <div class="p-5 overflow-y-auto flex flex-col gap-4 text-xs">
+            {% for d in en.details_list %}
+              <div class="p-4 rounded-xl border {% if d.is_correct %}border-emerald-300 bg-emerald-50/20{% else %}border-rose-300 bg-rose-50/20{% endif %} flex flex-col gap-2.5">
+                <div class="flex items-start justify-between gap-3">
+                  <span class="font-bold text-slate-900 leading-snug">Câu {{ d.question.question_number }}: {{ d.question.caption }}</span>
+                  {% if d.is_correct %}
+                    <span class="shrink-0 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 text-white">✓ Đúng</span>
+                  {% else %}
+                    <span class="shrink-0 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-600 text-white">✕ Sai</span>
+                  {% endif %}
+                </div>
+
+                <!-- Lựa chọn của học viên -->
+                <div class="p-2.5 rounded-lg {% if d.is_correct %}bg-emerald-50 border border-emerald-200 text-emerald-950{% else %}bg-rose-50 border border-rose-200 text-rose-950{% endif %}">
+                  <span>Học viên đã chọn: <strong>({{ d.choice_letter }}) {{ d.user_choice_content }}</strong></span>
+                </div>
+
+                <!-- Đáp án đúng nếu làm sai -->
+                {% if not d.is_correct %}
+                  <div class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-950">
+                    <span>Đáp án chính xác: <strong>({{ d.correct_letter }}) {{ d.correct_choice_content }}</strong></span>
+                  </div>
+                {% endif %}
+              </div>
+            {% empty %}
+              <div class="py-8 text-center text-slate-400">
+                Không tìm thấy dữ liệu câu trả lời chi tiết.
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Footer modal -->
+          <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+            <button type="button" onclick="closeSubmissionModal('modal_{{ en.emp.id }}')" class="px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 font-semibold text-xs hover:bg-slate-50 transition cursor-pointer">
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <!-- JavaScript xử lý Modal và Lọc bảng học viên -->
+  <script>
+    function openSubmissionModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.classList.add('overflow-hidden');
+      }
+    }
+
+    function closeSubmissionModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.classList.remove('overflow-hidden');
+      }
+    }
+
+    // Đóng modal khi bấm phím Escape
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        const openModals = document.querySelectorAll('.fixed.z-50.flex');
+        openModals.forEach(m => {
+          m.classList.add('hidden');
+          m.classList.remove('flex');
+        });
+        document.body.classList.remove('overflow-hidden');
+      }
+    });
+
+    // Lọc học viên theo tên / email trong bảng
+    function filterTraineeTable() {
+      const input = document.getElementById('traineeSearchInput');
+      const filter = input.value.toLowerCase().trim();
+      const rows = document.querySelectorAll('#traineeTable tbody tr.trainee-row');
+
+      rows.forEach(row => {
+        const name = row.querySelector('.trainee-name')?.textContent.toLowerCase() || '';
+        const email = row.querySelector('.trainee-email')?.textContent.toLowerCase() || '';
+        if (name.includes(filter) || email.includes(filter)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+  </script>
+
+{% endblock %}

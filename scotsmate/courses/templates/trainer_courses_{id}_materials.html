@@ -1,0 +1,520 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <!-- Header thanh điều hướng đồng bộ người dùng -->
+  {% include 'includes/header_profile_sync.html' %}
+
+  <div class="staff-workspace flex flex-col px-6 md:px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
+    
+    <!-- 1. Tiêu đề trang & Thanh điều hướng (Breadcrumb) -->
+    <header class="page-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <a href="/courses/trainer/courses/" class="hover:underline text-[#134c81]">Quản lý đào tạo</a>
+          <span>/</span>
+          <a href="/courses/trainer/courses/{{ course.id }}/" class="hover:underline text-[#134c81] font-semibold">{{ course.title }}</a>
+          <span>/</span>
+          <span class="text-slate-800 font-medium">Tài liệu & Bài giảng</span>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 leading-tight">Quản lý bài giảng & Giáo trình: {{ course.title }}</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Khóa học hiện có <strong>{{ materials|length }} bài giảng</strong>. Bạn có thể thêm bài giảng mới hoặc chỉnh sửa nội dung bài học.</p>
+      </div>
+
+      <!-- Chỉ giữ DUY NHẤT 1 nút Thêm bài giảng mới ở góc trên cùng, với đúng 1 dấu + -->
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="openAddMaterialModal()" class="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm cursor-pointer">
+          + Thêm bài giảng mới
+        </button>
+        <a href="/courses/trainer/courses/{{ course.id }}/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm" style="text-decoration:none;">
+          ← Quay lại chi tiết
+        </a>
+      </div>
+    </header>
+
+    <!-- Sub-tabs đồng nhất 5 phân hệ khóa học -->
+    <nav class="section-tabs flex border-b border-slate-200 gap-6">
+      <a href="/courses/trainer/courses/{{ course.id }}/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tổng quan khóa học
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
+        Tài liệu & Bài giảng ({{ materials_count|default:materials|length }})
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/exam/setup/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Thiết lập bài thi {% if exam %}<span class="text-emerald-600 font-bold">✓</span>{% endif %}
+      </a>
+      <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Ghi danh học viên ({{ total_enrolled }})
+      </a>
+      {% if course.status != 'draft' %}
+        <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+          Tiến độ học viên ({{ total_enrolled }})
+        </a>
+      {% endif %}
+    </nav>
+
+    <!-- Hiển thị thông báo thành công hoặc lỗi từ Django messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="px-4 py-3 rounded-lg {% if message.tags == 'success' %}bg-emerald-50 border border-emerald-200 text-emerald-800{% else %}bg-rose-50 border border-rose-200 text-rose-800{% endif %} text-xs font-medium flex items-center gap-2 shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- 2. KHU VỰC CHỈNH SỬA BÀI GIẢNG (HIỂN THỊ KHI BẤM 'Chỉnh sửa' ?edit=<id>) -->
+    {% if editing_material %}
+      <div id="inlineEditSection" class="bg-white border-2 border-[#134c81] rounded-xl shadow-md p-6 md:p-8 flex flex-col gap-6 animate-fadeIn">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-blue-100 text-[#134c81] flex items-center justify-center font-bold text-sm">
+              ✎
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-[#134c81] text-white text-[11px] font-bold uppercase">Chế độ chỉnh sửa</span>
+                <h2 class="text-lg font-bold text-slate-900">Bài {{ editing_material.order }}: {{ editing_material.name }}</h2>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Cập nhật nội dung giáo trình, định dạng bài học hoặc thay đổi tệp đính kèm bên dưới.</p>
+            </div>
+          </div>
+          <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold transition" style="text-decoration:none;">
+            ✕ Đóng / Hủy chỉnh sửa
+          </a>
+        </div>
+
+        <!-- Form gửi POST cập nhật dữ liệu bài giảng lên views.trainer_course_materials -->
+        <form method="POST" action="/courses/trainer/courses/{{ course.id }}/materials/" enctype="multipart/form-data" class="flex flex-col gap-5">
+          {% csrf_token %}
+          <input type="hidden" name="material_id" value="{{ editing_material.id }}">
+
+          <!-- Hàng 1: Tên bài giảng và Định dạng tài liệu (không có placeholder) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="md:col-span-2">
+              <label class="block font-semibold text-slate-700 mb-1">Tên bài giảng / Tài liệu <span class="text-rose-500">*</span></label>
+              <input type="text" name="name" required value="{{ editing_material.name }}"
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] text-slate-800 font-medium">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Định dạng bài học <span class="text-rose-500">*</span></label>
+              <select name="file_type" id="editFileTypeSelect" onchange="handleFileTypeChange(this, 'editFileInput', 'editFileNotice')" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] bg-white text-slate-800 font-medium">
+                <option value="pdf" {% if editing_material.file_type == 'pdf' %}selected{% endif %}>Tài liệu PDF (PDF)</option>
+                <option value="doc" {% if editing_material.file_type == 'doc' %}selected{% endif %}>Văn bản Word (DOC/DOCX)</option>
+                <option value="video" {% if editing_material.file_type == 'video' %}selected{% endif %}>Video bài giảng (MP4)</option>
+                <option value="slide" {% if editing_material.file_type == 'slide' %}selected{% endif %}>Slide thuyết trình (PPT/PPTX)</option>
+                <option value="interactive" {% if editing_material.file_type == 'interactive' %}selected{% endif %}>Tài liệu tương tác / Khác</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Hàng 2: Thời lượng, Điều kiện bắt buộc và Tệp tải lên -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Thời lượng học dự kiến (Phút)</label>
+              <input type="number" name="duration_minutes" value="{{ editing_material.duration_minutes }}" min="1" max="300"
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] text-slate-800">
+            </div>
+            <div class="flex items-end pb-2">
+              <label class="flex items-center gap-2.5 cursor-pointer text-slate-700 font-semibold select-none">
+                <input type="checkbox" name="is_required" {% if editing_material.is_required %}checked{% endif %} class="rounded text-[#134c81] w-4 h-4">
+                <span>Bắt buộc hoàn thành</span>
+              </label>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Thay đổi tệp đính kèm (Tự động nhận diện)</label>
+              <input type="file" name="file" id="editFileInput"
+                     onchange="handleFileInputChange(this, 'editFileTypeSelect', 'editFileNotice')"
+                     class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 focus:outline-none focus:border-[#134c81] file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[#edf4fb] file:text-[#134c81] hover:file:bg-blue-100">
+              <div id="editFileNotice"></div>
+              {% if editing_material.file %}
+                <div class="mt-2 flex items-center gap-2 text-xs">
+                  <span class="text-slate-500 font-medium">Tệp hiện có:</span>
+                  <a href="{{ editing_material.file.url }}" target="_blank" class="font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded border border-blue-200 inline-flex items-center gap-1">
+                    <span>Mở tệp đính kèm ↗</span>
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Hàng 3: Nội dung chi tiết bài học (Chỉ nhập văn bản thuần túy, bỏ thanh định dạng theo yêu cầu) -->
+          <div class="text-xs flex flex-col gap-1.5">
+            <label class="font-semibold text-slate-700">Nội dung chi tiết & Hướng dẫn học tập</label>
+            <textarea name="content" rows="6"
+                      class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] text-slate-800 leading-relaxed resize-y">{{ editing_material.content|default:'' }}</textarea>
+          </div>
+
+          <!-- Hàng 4: Tình huống nghiệp vụ thực tế tại cơ sở (Tùy chọn, không placeholder) -->
+          <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                💡 Tình huống thực hành mẫu & Nghiệp vụ thực tế (Tùy chọn)
+              </span>
+              <span class="text-[11px] text-amber-800 italic">Đáp án chuẩn sẽ được giấu, học viên bấm nút mới hiển thị</span>
+            </div>
+            
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Tiêu đề tình huống thực tế</label>
+              <input type="text" name="scenario_title" value="{{ editing_material.scenario_title|default:'' }}"
+                     class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Mô tả tình huống gặp phải (Đề bài cho học viên)</label>
+                <textarea name="scenario_problem" rows="3"
+                          class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800 resize-y">{{ editing_material.scenario_problem|default:'' }}</textarea>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Cách xử lý chuẩn Scots English (Đáp án giấu đi)</label>
+                <textarea name="scenario_solution" rows="3"
+                          class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800 resize-y">{{ editing_material.scenario_solution|default:'' }}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nút lưu hoặc hủy chỉnh sửa -->
+          <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+            <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition" style="text-decoration:none;">
+              ← Hủy bỏ
+            </a>
+            <button type="submit" class="inline-flex items-center gap-2 px-7 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-sm cursor-pointer">
+              Lưu thay đổi bài giảng ✓
+            </button>
+          </div>
+
+        </form>
+      </div>
+    {% endif %}
+
+    <!-- 3. BẢNG DANH MỤC BÀI HỌC TRONG KHÓA -->
+    <div class="table-container bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <div class="px-6 py-4 border-b border-slate-200 font-bold text-slate-900 text-sm flex justify-between items-center bg-slate-50/50">
+        <div class="flex items-center gap-2">
+          <span>Danh mục bài học trong khóa ({{ materials|length }} bài giảng)</span>
+        </div>
+        <!-- Đã gỡ bỏ nút bị trùng lặp ở đây, chỉ giữ dòng chú thích thứ tự học tập -->
+        <span class="text-xs text-slate-500 font-normal">Học viên học lần lượt theo thứ tự</span>
+      </div>
+
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <th class="py-3.5 px-6">STT</th>
+            <th class="py-3.5 px-6">Tên bài giảng</th>
+            <th class="py-3.5 px-4">Định dạng</th>
+            <th class="py-3.5 px-4">Thời lượng</th>
+            <th class="py-3.5 px-4">Điều kiện</th>
+            <th class="py-3.5 px-6 text-right">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-xs">
+          {% for mat in materials %}
+            <tr class="{% if editing_material.id == mat.id %}bg-blue-50/70 border-l-4 border-l-[#134c81]{% else %}hover:bg-slate-50/60{% endif %} transition">
+              <td class="py-4 px-6 font-bold text-slate-500">{{ forloop.counter }}</td>
+              <td class="py-4 px-6">
+                <span class="font-bold text-slate-900 text-sm block">Bài {{ forloop.counter }}: {{ mat.name }}</span>
+                {% if mat.file %}
+                  <div class="mt-1">
+                    <a href="{{ mat.file.url }}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition border border-blue-200" title="Mở trực tiếp tệp tin trong tab mới">
+                      <span>Mở tệp đính kèm ↗</span>
+                    </a>
+                  </div>
+                {% endif %}
+              </td>
+              <!-- Cột định dạng hiển thị chuẩn theo kiểu dữ liệu, không dùng emoji hay nhãn lai PDF DOC -->
+              <td class="py-4 px-4">
+                {% if mat.file_type == 'video' or mat.file_type == 'mp4' %}
+                  <span class="px-2.5 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold">Video MP4</span>
+                {% elif mat.file_type == 'slide' or mat.file_type == 'pptx' %}
+                  <span class="px-2.5 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">Slide PPTX</span>
+                {% elif mat.file_type == 'doc' or mat.file_type == 'docx' %}
+                  <span class="px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-semibold">Word DOCX</span>
+                {% elif mat.file_type == 'interactive' %}
+                  <span class="px-2.5 py-1 rounded bg-teal-50 text-teal-700 border border-teal-200 text-xs font-semibold">Tương tác</span>
+                {% else %}
+                  <span class="px-2.5 py-1 rounded bg-blue-50 text-[#134c81] border border-blue-200 text-xs font-semibold">Tài liệu PDF</span>
+                {% endif %}
+              </td>
+              <td class="py-4 px-4 text-slate-700 font-medium">{{ mat.duration_minutes }} phút</td>
+              <td class="py-4 px-4">
+                {% if mat.is_required %}
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Bắt buộc</span>
+                {% else %}
+                  <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-500">Tùy chọn</span>
+                {% endif %}
+              </td>
+              <td class="py-4 px-6 text-right space-x-2">
+                <!-- Nút Chỉnh sửa trực tiếp (hiển thị ô sửa ngay phía trên danh mục) -->
+                <a href="/courses/trainer/courses/{{ course.id }}/materials/?edit={{ mat.id }}#inlineEditSection"
+                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-[#edf4fb] hover:bg-blue-100 text-[#134c81] font-bold text-xs transition" style="text-decoration:none;">
+                  Chỉnh sửa
+                </a>
+
+                <!-- Nút Xóa bài giảng -->
+                <form method="POST" action="/courses/trainer/courses/{{ course.id }}/materials/" style="display:inline;"
+                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài giảng: &quot;{{ mat.name }}&quot;?')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="material_id" value="{{ mat.id }}">
+                  <button type="submit" class="px-2 py-1.5 text-rose-500 hover:text-rose-700 hover:underline font-semibold text-xs cursor-pointer"
+                          style="background:none;border:none;">Xóa</button>
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="py-12 text-center text-slate-400">
+                <p class="font-semibold text-slate-700">Khóa học hiện chưa có bài giảng nào</p>
+                <p class="text-xs mt-1">Bấm nút "+ Thêm bài giảng mới" ở góc trên để thêm bài học đầu tiên.</p>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- 4. MODAL POPUP THÊM BÀI GIẢNG / HỌC LIỆU MỚI (TINH GỌN, CHUẨN ĐƠN GIẢN) -->
+  <div id="addMaterialModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-scaleUp">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#134c81] flex items-center justify-center font-bold text-white text-sm">
+            +
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Thêm bài giảng / Học liệu mới</h3>
+            <p class="text-xs text-slate-300">Tải lên tài liệu PDF, video MP4, Word DOC hoặc soạn nội dung bài học</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAddMaterialModal()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition cursor-pointer text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body (Cuộn nội dung) -->
+      <div class="p-6 overflow-y-auto flex-1">
+        <form id="addMaterialForm" method="POST" action="/courses/trainer/courses/{{ course.id }}/materials/" enctype="multipart/form-data" class="flex flex-col gap-5">
+          {% csrf_token %}
+
+          <!-- Hàng 1: Tên bài giảng + Định dạng tài liệu (không có placeholder) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="md:col-span-2">
+              <label class="block font-semibold text-slate-700 mb-1">Tên bài giảng / Tài liệu <span class="text-rose-500">*</span></label>
+              <input type="text" name="name" required
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] text-slate-800 font-medium">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Định dạng bài học <span class="text-rose-500">*</span></label>
+              <select name="file_type" id="addFileTypeSelect" onchange="handleFileTypeChange(this, 'addFileInput', 'addFileNotice')" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] bg-white text-slate-800 font-medium">
+                <option value="pdf" selected>Tài liệu PDF (PDF)</option>
+                <option value="doc">Văn bản Word (DOC/DOCX)</option>
+                <option value="video">Video bài giảng (MP4)</option>
+                <option value="slide">Slide thuyết trình (PPT/PPTX)</option>
+                <option value="interactive">Tài liệu tương tác / Khác</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Hàng 2: Thời lượng + Bắt buộc + Tệp đính kèm -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Thời lượng học dự kiến (Phút)</label>
+              <input type="number" name="duration_minutes" value="30" min="1" max="300"
+                     class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] text-slate-800">
+            </div>
+            <div class="flex items-end pb-2">
+              <label class="flex items-center gap-2.5 cursor-pointer text-slate-700 font-semibold select-none">
+                <input type="checkbox" name="is_required" checked class="rounded text-[#134c81] w-4 h-4">
+                <span>Bắt buộc hoàn thành</span>
+              </label>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Tệp đính kèm (Tự động nhận diện)</label>
+              <input type="file" name="file" id="addFileInput" accept=".pdf,application/pdf"
+                     onchange="handleFileInputChange(this, 'addFileTypeSelect', 'addFileNotice')"
+                     class="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 focus:outline-none focus:border-[#134c81] file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[#edf4fb] file:text-[#134c81] hover:file:bg-blue-100">
+              <div id="addFileNotice"></div>
+            </div>
+          </div>
+
+          <!-- Hàng 3: Soạn thảo bài giảng dạng văn bản thông thường (bỏ thanh công cụ phức tạp) -->
+          <div class="text-xs flex flex-col gap-1.5">
+            <label class="font-semibold text-slate-700">Nội dung chi tiết & Hướng dẫn học tập</label>
+            <textarea name="content" rows="6"
+                      class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] text-slate-800 leading-relaxed resize-y"></textarea>
+          </div>
+
+          <!-- Hàng 4: Tình huống nghiệp vụ thực tế tại cơ sở (Tùy chọn, không placeholder) -->
+          <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                💡 Tình huống thực hành mẫu & Nghiệp vụ thực tế (Tùy chọn)
+              </span>
+              <span class="text-[11px] text-amber-800 italic">Đáp án chuẩn sẽ được giấu, học viên bấm nút mới hiển thị</span>
+            </div>
+            
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Tiêu đề tình huống thực tế</label>
+              <input type="text" name="scenario_title"
+                     class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Mô tả tình huống gặp phải (Đề bài cho học viên)</label>
+                <textarea name="scenario_problem" rows="3"
+                          class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800 resize-y"></textarea>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Cách xử lý chuẩn Scots English (Đáp án giấu đi)</label>
+                <textarea name="scenario_solution" rows="3"
+                          class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#134c81] bg-white text-slate-800 resize-y"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nút hành động Modal -->
+          <div class="flex justify-between items-center pt-3 border-t border-slate-200">
+            <button type="button" onclick="closeAddMaterialModal()" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer">
+              Hủy bỏ
+            </button>
+            <button type="submit" class="inline-flex items-center gap-2 px-7 py-2.5 rounded-lg bg-[#134c81] text-white text-xs font-bold hover:bg-[#0e3b65] transition shadow-sm cursor-pointer">
+              Lưu bài giảng vào khóa học ✓
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPT XỬ LÝ NHẬN DIỆN ĐỊNH DẠNG TỆP VÀ BẬT/TẮT MODAL (ĐÃ ĐƠN GIẢN HÓA VÀ CÓ CHÚ THÍCH ĐẦY ĐỦ) -->
+  <script>
+    /**
+     * Hàm mở Modal Thêm mới bài giảng
+     * Hiển thị hộp thoại và khóa cuộn nền trang
+     */
+    function openAddMaterialModal() {
+      const modal = document.getElementById('addMaterialModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    /**
+     * Hàm đóng Modal Thêm mới bài giảng
+     * Ẩn hộp thoại và khôi phục cuộn trang
+     */
+    function closeAddMaterialModal() {
+      const modal = document.getElementById('addMaterialModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+      }
+    }
+
+    /**
+     * Đóng Modal khi người dùng nhấn phím ESC
+     */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeAddMaterialModal();
+      }
+    });
+
+    /**
+     * Đóng Modal khi bấm vào vùng nền mờ bên ngoài hộp thoại
+     */
+    document.getElementById('addMaterialModal')?.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeAddMaterialModal();
+      }
+    });
+
+    /**
+     * Tự động cập nhật thuộc tính accept của thẻ input file khi người dùng đổi loại tài liệu
+     */
+    function handleFileTypeChange(selectElem, fileInputId, noticeId) {
+      const fileInput = document.getElementById(fileInputId);
+      const notice = document.getElementById(noticeId);
+      if (!fileInput) return;
+
+      const val = selectElem.value;
+      let acceptVal = '';
+      if (val === 'pdf') {
+        acceptVal = '.pdf,application/pdf';
+      } else if (val === 'doc') {
+        acceptVal = '.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      } else if (val === 'video') {
+        acceptVal = '.mp4,video/mp4,video/*';
+      } else if (val === 'slide') {
+        acceptVal = '.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      } else {
+        acceptVal = '.pdf,.doc,.docx,.ppt,.pptx,.mp4,.zip,.png,.jpg';
+      }
+      fileInput.setAttribute('accept', acceptVal);
+      if (notice) notice.innerHTML = '';
+    }
+
+    /**
+     * Tự động phát hiện loại tệp khi người dùng chọn file từ máy tính
+     * Giúp tự động gán loại định dạng phù hợp vào ô select
+     */
+    function handleFileInputChange(fileInput, selectId, noticeId) {
+      if (!fileInput.files || fileInput.files.length === 0) return;
+      const file = fileInput.files[0];
+      const fileName = file.name.toLowerCase();
+      const select = document.getElementById(selectId);
+      const notice = document.getElementById(noticeId);
+
+      let detectedType = '';
+      let typeName = '';
+      if (fileName.endsWith('.pdf')) {
+        detectedType = 'pdf';
+        typeName = 'Tài liệu PDF (PDF)';
+      } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+        detectedType = 'doc';
+        typeName = 'Văn bản Word (DOC/DOCX)';
+      } else if (fileName.endsWith('.mp4') || fileName.endsWith('.m4v') || fileName.endsWith('.webm') || fileName.endsWith('.mov')) {
+        detectedType = 'video';
+        typeName = 'Video bài giảng (MP4)';
+      } else if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
+        detectedType = 'slide';
+        typeName = 'Slide thuyết trình (PPT/PPTX)';
+      }
+
+      if (detectedType && select) {
+        select.value = detectedType;
+        handleFileTypeChange(select, fileInput.id, noticeId);
+        if (notice) {
+          notice.innerHTML = `<span class="inline-flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 mt-1.5">✓ Đã nhận diện tệp <strong>${typeName}</strong> (${file.name})</span>`;
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.25s ease-out;
+    }
+    @keyframes scaleUp {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .animate-scaleUp {
+      animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+
+{% endblock %}

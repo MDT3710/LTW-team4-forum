@@ -10,11 +10,25 @@
           ScotsMate
       {% endblock %}
   </title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=20261108_v1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: {
+        preflight: false,
+      }
+    }
+  </script>
+  <style>
+    /* Thống nhất duy nhất 1 font chữ tiêu chuẩn (Inter) cho toàn bộ trang và toàn bộ ô nhập liệu, tránh tình trạng mỗi ô một kiểu chữ */
+    html, body, input, textarea, select, button, optgroup {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
 </head>
 
 <body>
@@ -22,13 +36,13 @@
   <!-- ======================= TOP NAVIGATION ======================= -->
   <header class="topbar">
       <!-- Logo -->
-      <span class="logo">
-        <img class="logo-mark" src='{% static 'img/logo_no_text.png' %}' alt="" />
+      <a href="/" class="logo" style="text-decoration: none; cursor: pointer;">
+        <img class="logo-mark" src='{% static 'img/logo_no_text.png' %}' alt="Scots English" />
           <span class="brand-name">
               <span class="brand-primary">SCOTS</span>
               <span class="brand-secondary">ENGLISH</span>
           </span>
-      </span>
+      </a>
       <!-- Searchbar -->
       <div class="search">
         <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -40,7 +54,7 @@
 
     <!-- Primary navigation -->
     <nav class="primary-nav">
-      <a class="nav-tab active" href="#">
+      <a class="nav-tab {% if not 'courses' in request.path and not 'documents' in request.path and not 'surveys' in request.path and not 'message' in request.path and not 'login' in request.path and not 'register' in request.path %}active{% endif %}" href="/">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -68,21 +82,21 @@
         </svg>
         <span class="nav-label">Sự kiện</span>
       </a>
-      <a class="nav-tab" href="#">
+      <a class="nav-tab {% if 'documents' in request.path %}active{% endif %}" href="/documents/">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
         </svg>
         <span class="nav-label">Tài liệu</span>
       </a>
-      <a class="nav-tab" href="#">
+      <a class="nav-tab {% if 'courses' in request.path %}active{% endif %}" href="/courses/" title="Cổng đào tạo Scots English">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 10L12 5 2 10l10 5 10-5z"></path>
           <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path>
         </svg>
         <span class="nav-label">Đào tạo</span>
       </a>
-      <a class="nav-tab" href="#">
+      <a class="nav-tab {% if 'surveys' in request.path %}active{% endif %}" href="/surveys/">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 20H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7"></path>
           <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L11 15l-4 1 1-4 10.4-9.4z"></path>
@@ -111,18 +125,89 @@
         </svg>
         <span class="notif-badge">3</span>
       </button>
-      <div  class="profile-menu">
+
+      {% if request.user.is_authenticated %}
+      <!-- Profile menu (Clickable dropdown) -->
+      <div class="profile-menu relative" id="headerProfileTrigger" style="cursor: pointer; position: relative;">
         <div class="avatar avatar-profile">
-          <span>MA</span>
+          <span>
+            {% if request.user.first_name and request.user.last_name %}
+              {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
+            {% else %}
+              {{ request.user.username|slice:":2"|upper }}
+            {% endif %}
+          </span>
         </div>
         <div class="profile-details">
-          <span class="profile-name">Minh Anh</span>
-          <span class="profile-role">Giáo viên</span>
+          <span class="profile-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+          <span class="profile-role">
+            {% if request.user.is_staff or request.user.is_superuser %}
+              Giảng viên (Trainer)
+            {% else %}
+              Học viên (Trainee)
+            {% endif %}
+          </span>
         </div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
+
+        <!-- Dropdown Menu -->
+        <div id="headerProfileDropdown" class="hidden absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 text-left" style="color: #1e293b;">
+          <div class="px-4 py-3 border-b border-slate-100">
+            <p class="text-[11px] text-slate-400 font-medium">Đang đăng nhập với tư cách</p>
+            <p class="text-sm font-bold text-slate-900 truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+            <div class="flex items-center gap-1.5 mt-1">
+              <span class="text-[11px] font-mono text-slate-500">@{{ request.user.username }}</span>
+              {% if request.user.is_staff or request.user.is_superuser %}
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-100 text-blue-800">Trainer</span>
+              {% else %}
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800">Học viên</span>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="py-1 text-xs">
+            {% if request.user.is_staff or request.user.is_superuser %}
+              <a href="/courses/trainer/courses/" class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium" style="text-decoration: none;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                Quản lý đào tạo
+              </a>
+              <a href="/courses/trainer/courses/create/info/" class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50" style="text-decoration: none;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Tạo khóa học mới
+              </a>
+              <a href="/courses/trainer/courses/dashboard/" class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50" style="text-decoration: none;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Thống kê đào tạo (Dashboard)
+              </a>
+            {% else %}
+              <a href="/courses/trainee/courses/" class="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 font-medium" style="text-decoration: none;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                Khóa học của tôi
+              </a>
+            {% endif %}
+          </div>
+
+          <div class="border-t border-slate-100 pt-1 mt-1">
+            <a href="/logout/" class="flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50" style="text-decoration: none;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Đăng xuất khỏi hệ thống
+            </a>
+          </div>
+        </div>
       </div>
+      {% else %}
+      <!-- Chưa đăng nhập: Nút Đăng nhập & Đăng ký -->
+      <div class="flex items-center gap-2 ml-3">
+        <a href="/login/" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-white/10 hover:bg-white/20 transition" style="text-decoration: none;">
+          Đăng nhập
+        </a>
+        <a href="/register/" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-[#134c81] bg-white hover:bg-slate-100 transition shadow-sm" style="text-decoration: none;">
+          Đăng ký
+        </a>
+      </div>
+      {% endif %}
     </div>
   </header>
 {% block content %}
@@ -152,5 +237,24 @@
   </footer>
 
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var trigger = document.getElementById('headerProfileTrigger');
+    var dropdown = document.getElementById('headerProfileDropdown');
+    if (trigger && dropdown) {
+      trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+      document.addEventListener('click', function(e) {
+        if (!trigger.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    }
+  });
+</script>
+
 </body>
 </html>

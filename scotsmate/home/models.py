@@ -30,6 +30,7 @@ class Department(models.Model):
         TECHNOLOGY = 'TECHNOLOGY', 'Khối Công Nghệ Thông Tin'
         MKT_SALE = 'MARKETING AND SALE', 'Khối Marketing và Kinh Doanh'
         CENTRAL = 'CENTRAL', 'Khối Trung Tâm'
+        DIRECTOR = 'DIRECTOR', 'Khối Ban Giám Đốc'
 
     name = models.CharField(
         max_length=100,
