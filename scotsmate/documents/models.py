@@ -7,13 +7,22 @@ class DocumentCategory(models.Model):
     Bảng 1: Danh mục tài liệu (Hiển thị các thẻ ở trang /documents/)
     """
     name = models.CharField("Tên danh mục", max_length=150)
+    code = models.CharField("Mã danh mục", max_length=150, unique=True, blank=True)
+    icon_name = models.CharField("Tên biểu tượng (Icon)", max_length=100, default='folder', blank=True)
     description = models.TextField("Mô tả ngắn", max_length=500, blank=True)
     display_order = models.PositiveIntegerField("Thứ tự hiển thị", default=0)
+    created_time = models.DateTimeField("Thời gian tạo", auto_now_add=True)
 
     class Meta:
         verbose_name = "Danh mục tài liệu"
         verbose_name_plural = "Danh mục tài liệu"
         ordering = ['display_order', 'name']
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            import uuid
+            self.code = f"DM-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
