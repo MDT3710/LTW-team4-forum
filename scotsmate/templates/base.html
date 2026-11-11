@@ -303,12 +303,9 @@
       {% if request.user.is_authenticated %}
         <div class="profile-menu relative" id="headerProfileTrigger" style="cursor: pointer; position: relative;" title="Tài khoản cá nhân">
           <div class="avatar avatar-profile" style="border-radius: 50%; overflow: hidden; width: 36px; height: 36px; background-color: #134c81; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">
-            {% if request.user.username == 'thuha' %}
-              <img id="topbar-user-avatar" src="{% static 'img/avatar_thuha.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% elif request.user.username == 'phuonglinh' %}
-              <img id="topbar-user-avatar" src="{% static 'img/avatar_phuonglinh.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
-            {% elif request.user.username == 'ngocanh' %}
-              <img id="topbar-user-avatar" src="{% static 'img/avatar_ngocanh.png' %}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+            {% if current_user_avatar %}
+              <img id="topbar-user-avatar" src="{{ current_user_avatar }}" alt="{{ request.user.get_full_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+              <span style="display: none;">{{ request.user.first_name|slice:":1"|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|slice:":1"|upper }}</span>
             {% else %}
               <span id="topbar-user-avatar">{{ request.user.first_name|slice:":1"|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|slice:":1"|upper }}</span>
             {% endif %}
