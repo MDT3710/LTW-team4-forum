@@ -8,7 +8,7 @@
         <h1 class="doc-header-title">Khảo sát của tôi</h1>
         <p class="doc-header-subtitle">Danh sách các biểu mẫu khảo sát bạn cần hoàn thành theo phân công</p>
       </div>
-      <a href="create.html" class="doc-btn doc-btn-primary">
+      <a href="{% url 'SurveyCreate' %}" class="doc-btn doc-btn-primary">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -18,28 +18,35 @@
 
     <!-- Điều hướng phân hệ Tabs -->
     <nav class="doc-tabs">
-      <a href="list.html" class="doc-tab active">Khảo sát cần làm</a>
-      <a href="history.html" class="doc-tab">Lịch sử đã làm</a>
-      <a href="approve_list.html" class="doc-tab">Duyệt khảo sát</a>
-      <a href="published.html" class="doc-tab">Báo cáo & Phản hồi</a>
+      <a href="{% url 'MySurvey' %}" class="doc-tab active">Khảo sát cần làm</a>
+      <a href="{% url 'SurveyHistory' %}" class="doc-tab">Lịch sử đã làm</a>
+      {% if request.user.managed_departments.exists %}
+        <a href="{% url 'SurveyApproveList' %}" class="doc-tab">Duyệt khảo sát</a>
+      {% endif %}
+      <a href="{% url 'SurveyPublished' %}" class="doc-tab">Báo cáo & Phản hồi</a>
     </nav>
 
     <!-- Thanh tìm kiếm & bộ lọc -->
-    <section class="doc-toolbar">
+    <form method="GET" action="{% url 'MySurvey' %}" class="doc-toolbar">
       <div class="doc-search-box" style="max-width: 100%;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" placeholder="Tìm kiếm khảo sát cần thực hiện...">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm kiếm khảo sát cần thực hiện...">
       </div>
-      <button class="doc-filter-btn" type="button">
+      {% if search_query %}
+        <a href="{% url 'MySurvey' %}" class="doc-filter-btn" style="text-decoration: none; display: flex; align-items: center; gap: 6px; color: var(--ink-soft);">
+          Bỏ lọc
+        </a>
+      {% endif %}
+      <button class="doc-filter-btn" type="submit">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
         </svg>
-        Bộ lọc
+        Tìm kiếm
       </button>
-    </section>
+    </form>
 
     <!-- Bảng danh sách khảo sát cần làm -->
     <section class="doc-table-card">
@@ -53,48 +60,61 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=1">Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026</a>
-            </td>
-            <td>15/11/2026 (Còn 11 ngày)</td>
-            <td><span class="doc-badge doc-badge-pending">Chưa thực hiện</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=1" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 16px; font-size: 13px;">Làm bài</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=2">Đánh giá hiệu quả khóa tập huấn kỹ năng sư phạm hiện đại</a>
-            </td>
-            <td>10/11/2026 (Còn 6 ngày)</td>
-            <td><span class="doc-badge doc-badge-in-progress">Đang làm dở</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=2" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 16px; font-size: 13px;">Tiếp tục</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=3">Khảo sát nhu cầu đào tạo và phát triển năng lực cá nhân năm 2027</a>
-            </td>
-            <td>20/11/2026 (Còn 16 ngày)</td>
-            <td><span class="doc-badge doc-badge-pending">Chưa thực hiện</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=3" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 16px; font-size: 13px;">Làm bài</a>
-            </td>
-          </tr>
+        {% for survey in surveys %}
+            <tr>
+                <td class="doc-table-title">
+                    <a href="{% url 'SurveyTake' survey.id %}" style="text-decoration: none; color: inherit; font-weight: 500;">
+                        {{ survey.name }}
+                    </a>
+                </td>
+                <td>
+                    {% if survey.response_deadline %}
+                        <span>{{ survey.response_deadline|date:"H:i d/m/Y" }}</span>
+                        <span style="color: var(--teal-dark); font-weight: 500;">({{ survey.time_left }})</span>
+                    {% else %}
+                        <span style="color: var(--ink-soft);">Không giới hạn</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="doc-badge {{ survey.status_badge_class }}">{{ survey.status_label }}</span>
+                </td>
+                <td style="text-align: right;">
+                    <a href="{% url 'SurveyTake' survey.id %}" class="doc-btn doc-btn-primary">
+                        {{ survey.btn_label }}
+                    </a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 48px 20px; color: var(--ink-soft);">
+                    {% if search_query %}
+                        Không tìm thấy khảo sát nào khớp với từ khóa "<strong>{{ search_query }}</strong>".
+                    {% else %}
+                        Hiện tại bạn không có khảo sát nào cần thực hiện.
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
         </tbody>
       </table>
 
       <!-- Phân trang -->
-      <footer class="doc-table-pagination">
-        <div>Hiển thị 1 - 3 trong tổng số 3 khảo sát cần làm</div>
-        <div class="doc-page-controls">
-          <a href="#" class="doc-page-btn">&lt;</a>
-          <a href="#" class="doc-page-btn active">1</a>
-          <a href="#" class="doc-page-btn">&gt;</a>
-        </div>
-      </footer>
+    <footer class="doc-table-pagination">
+        {% if surveys %}
+            Danh sách có {{ surveys|length }} khảo sát cần thực hiện
+        {% else %}
+            Chưa có khảo sát nào cần thực hiện
+        {% endif %}
+    </footer>
+{#    tạm ẩn #}
+{#      <footer class="doc-table-pagination">#}
+{#        <div>Hiển thị 1 - 3 trong tổng số 3 khảo sát cần làm</div>#}
+{#        <div class="doc-page-controls">#}
+{#          <a href="#" class="doc-page-btn">&lt;</a>#}
+{#          <a href="#" class="doc-page-btn active">1</a>#}
+{#          <a href="#" class="doc-page-btn">&gt;</a>#}
+{#        </div>#}
+{#      </footer>#}
     </section>
 
   </main>

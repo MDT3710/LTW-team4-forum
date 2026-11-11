@@ -9,7 +9,7 @@
         <h1 class="doc-header-title">Lịch sử khảo sát</h1>
         <p class="doc-header-subtitle">Xem lại các biểu mẫu khảo sát bạn đã tham gia đóng góp ý kiến</p>
       </div>
-      <a href="create.html" class="doc-btn doc-btn-primary">
+      <a href="{% url 'SurveyCreate' %}" class="doc-btn doc-btn-primary">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -19,28 +19,29 @@
 
     <!-- Điều hướng phân hệ Tabs -->
     <nav class="doc-tabs">
-      <a href="list.html" class="doc-tab">Khảo sát cần làm</a>
-      <a href="history.html" class="doc-tab active">Lịch sử đã làm</a>
-      <a href="approve_list.html" class="doc-tab">Duyệt khảo sát</a>
-      <a href="published.html" class="doc-tab">Báo cáo & Phản hồi</a>
+      <a href="{% url 'MySurvey' %}" class="doc-tab">Khảo sát cần làm</a>
+      <a href="{% url 'SurveyHistory' %}" class="doc-tab active">Lịch sử đã làm</a>
+      {% if request.user.managed_departments.exists %}
+        <a href="{% url 'SurveyApproveList' %}" class="doc-tab">Duyệt khảo sát</a>
+      {% endif %}
+      <a href="{% url 'SurveyPublished' %}" class="doc-tab">Báo cáo & Phản hồi</a>
     </nav>
 
     <!-- Thanh tìm kiếm & bộ lọc -->
-    <section class="doc-toolbar">
+    <form method="GET" action="" class="doc-toolbar">
       <div class="doc-search-box" style="max-width: 100%;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" placeholder="Tìm kiếm trong lịch sử khảo sát...">
+        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm trong lịch sử khảo sát...">
       </div>
-      <button class="doc-filter-btn" type="button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-        </svg>
-        Bộ lọc
-      </button>
-    </section>
+      {% if search_query %}
+        <a href="{% url 'SurveyHistory' %}" class="doc-btn doc-btn-secondary" style="height: 38px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+          Bỏ lọc
+        </a>
+      {% endif %}
+    </form>
 
     <!-- Bảng lịch sử khảo sát -->
     <section class="doc-table-card">
@@ -54,80 +55,58 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=10&mode=view">Khảo sát cơ sở vật chất phòng Lab & Thư viện cơ sở 1</a>
-            </td>
-            <td>14:20 28/10/2026</td>
-            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=10&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=11&mode=view">Khảo sát đánh giá mức độ hài lòng về chất lượng căn tin</a>
-            </td>
-            <td>09:15 15/10/2026</td>
-            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=11&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=12&mode=view">Đánh giá chương trình Team Building mùa thu 2026</a>
-            </td>
-            <td>16:45 05/10/2026</td>
-            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=12&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=13&mode=view">Khảo sát mức độ tiếp thu học phần Quản trị rủi ro lớp K23</a>
-            </td>
-            <td>11:10 20/09/2026</td>
-            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=13&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=14&mode=view">Khảo sát đóng góp ý kiến quy chuẩn trang phục nhân viên</a>
-            </td>
-            <td>15:30 10/09/2026</td>
-            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=14&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="detail.html?id=15&mode=view">Khảo sát trải nghiệm sử dụng phần mềm ScotsMate phiên bản 2.0</a>
-            </td>
-            <td>08:50 25/08/2026</td>
-            <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
-            <td style="text-align: right;">
-              <a href="detail.html?id=15&mode=view" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
-            </td>
-          </tr>
+          {% if page_obj %}
+            {% for item in page_obj %}
+              <tr>
+                <td class="doc-table-title">
+                  <a href="{% url 'SurveyTake' item.survey.id %}?mode=view&response_id={{ item.id }}" style="text-decoration: none; color: inherit;">
+                    {{ item.survey.name }}
+                  </a>
+                </td>
+                <td>{{ item.submission_date|date:"H:i d/m/Y" }}</td>
+                <td><span class="doc-badge doc-badge-approved">Đã hoàn thành</span></td>
+                <td style="text-align: right;">
+                  <a href="{% url 'SurveyTake' item.survey.id %}?mode=view&response_id={{ item.id }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem lại</a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 48px 20px; color: var(--ink-soft);">
+                {% if search_query %}
+                  Không tìm thấy khảo sát nào khớp với từ khóa "<strong>{{ search_query }}</strong>".
+                {% else %}
+                  Bạn chưa có bài nộp khảo sát nào trong lịch sử.
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
         </tbody>
       </table>
 
       <!-- Phân trang -->
-      <footer class="doc-table-pagination">
-        <div>Hiển thị 1 - 6 trong tổng số 18 khảo sát đã làm</div>
-        <div class="doc-page-controls">
-          <a href="#" class="doc-page-btn">&lt;</a>
-          <a href="#" class="doc-page-btn active">1</a>
-          <a href="#" class="doc-page-btn">2</a>
-          <a href="#" class="doc-page-btn">3</a>
-          <a href="#" class="doc-page-btn">&gt;</a>
-        </div>
-      </footer>
+      {% if page_obj and total_count > 0 %}
+        <footer class="doc-table-pagination">
+          <div>Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} trong tổng số {{ total_count }} khảo sát đã làm</div>
+          {% if page_obj.has_other_pages %}
+            <div class="doc-page-controls">
+              {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&lt;</a>
+              {% endif %}
+              {% for p in page_obj.paginator.page_range %}
+                {% if page_obj.number == p %}
+                  <a href="?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn active">{{ p }}</a>
+                {% else %}
+                  <a href="?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">{{ p }}</a>
+                {% endif %}
+              {% endfor %}
+              {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&gt;</a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </footer>
+      {% endif %}
     </section>
 
   </main>

@@ -68,37 +68,72 @@ class PostViewTest(TestCase):
         self.post = Post.objects.create(author=self.user, title='Bài viết test', content='Nội dung thử nghiệm')
 
     def test_home_feed_view(self):
-        # Khi đã đăng nhập, truy cập /newfeeds/ tải trang Bảng tin (home.html)
-        response = self.client.get(reverse('newfeeds'))
+        # Khi đã đăng nhập, truy cập /home/ tải trang Bảng tin (home.html)
+        response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'home.html')
 
-        # Khi đã đăng nhập, truy cập / sẽ chuyển hướng sang /newfeeds/
+        # Khi đã đăng nhập, truy cập / sẽ chuyển hướng sang /home/
         response_root = self.client.get('/')
         self.assertEqual(response_root.status_code, 302)
-        self.assertRedirects(response_root, reverse('newfeeds'))
+        self.assertRedirects(response_root, reverse('home'))
 
     def test_unauthenticated_user_redirected_to_login(self):
-        # Chưa đăng nhập: khi truy cập trang web (/) hoặc (/newfeeds/) đều vào trang đăng nhập trước
+        # Chưa đăng nhập: khi truy cập trang web (/) hoặc (/home/) đều vào trang đăng nhập trước
         anonymous_client = Client()
 
         res_root = anonymous_client.get('/')
         self.assertEqual(res_root.status_code, 302)
         self.assertRedirects(res_root, reverse('login'))
 
-        res_feed = anonymous_client.get(reverse('newfeeds'))
+        res_feed = anonymous_client.get(reverse('home'))
         self.assertEqual(res_feed.status_code, 302)
         self.assertRedirects(res_feed, reverse('login'))
 
-    def test_login_success_redirects_to_newfeeds(self):
-        # Sau khi đăng nhập thành công, người dùng mới vào được trang newfeeds
+    def test_login_success_redirects_to_home(self):
+        # Sau khi đăng nhập thành công, người dùng mới vào được trang home
         anonymous_client = Client()
         response = anonymous_client.post(reverse('login'), {
             'username': 'minhanh',
             'password': 'password123'
         })
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('newfeeds'))
+        self.assertRedirects(response, reverse('home'))
+
+    def test_login_with_next_param(self):
+        anonymous_client = Client()
+        response = anonymous_client.post(reverse('login') + '?next=' + reverse('profile'), {
+            'username': 'minhanh',
+            'password': 'password123'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('profile'))
+
+    def test_authenticated_user_visiting_login_redirected(self):
+        # Người dùng đã đăng nhập vào /login/ sẽ tự động chuyển hướng theo redirect_authenticated_user
+        response = self.client.get(reverse('login'))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('home'))
+
+    def test_login_invalid_credentials(self):
+        anonymous_client = Client()
+        response = anonymous_client.post(reverse('login'), {
+            'username': 'minhanh',
+            'password': 'wrongpassword'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Tên đăng nhập hoặc mật khẩu không chính xác')
+
+    def test_logout_redirects_to_login(self):
+        # Đăng xuất qua GET hoặc POST đều chuyển về trang login
+        res_get = self.client.get(reverse('logout'))
+        self.assertEqual(res_get.status_code, 302)
+        self.assertRedirects(res_get, reverse('login'))
+
+        self.client.login(username='minhanh', password='password123')
+        res_post = self.client.post(reverse('logout'))
+        self.assertEqual(res_post.status_code, 302)
+        self.assertRedirects(res_post, reverse('login'))
 
     def test_post_create_get(self):
         response = self.client.get(reverse('post_create'))
@@ -111,7 +146,7 @@ class PostViewTest(TestCase):
             'content': 'Nội dung bài viết mới tạo qua form'
         })
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('newfeeds'))
+        self.assertRedirects(response, reverse('home'))
         new_post = Post.objects.filter(title='Chủ đề mới').first()
         self.assertIsNotNone(new_post)
         self.assertEqual(new_post.author, self.user)
@@ -173,3 +208,133 @@ class PostViewTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.json()['success'])
         self.assertFalse(Post.objects.filter(id=self.post.id).exists())
+
+    def test_update_profile_bio_api(self):
+        res = self.client.post(reverse('update_profile_bio_api'), {
+            'bio': 'Đây là lời giới thiệu kiểm thử mới.',
+            'job_title': 'Chuyên gia khảo thí IELTS',
+            'branch': 'Scots English Cầu Giấy',
+            'join_date': '01/01/2023',
+            'email': 'testuser@scotsmate.vn',
+            'phone': '0988888888'
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['bio'], 'Đây là lời giới thiệu kiểm thử mới.')
+        self.assertEqual(data['job_title'], 'Chuyên gia khảo thí IELTS')
+        self.assertEqual(data['branch'], 'Scots English Cầu Giấy')
+        self.assertEqual(data['join_date'], '01/01/2023')
+        self.assertEqual(data['email'], 'testuser@scotsmate.vn')
+        self.assertEqual(data['phone'], '0988888888')
+
+    def test_topbar_user_avatar_in_navbar(self):
+        res = self.client.get(reverse('profile'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'id="topbar-user-avatar"')
+
+    def test_update_profile_avatar_api(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        avatar_file = SimpleUploadedFile("avatar.png", b"fake image bytes", content_type="image/png")
+        res = self.client.post(reverse('update_profile_avatar_api'), {
+            'avatar': avatar_file
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertIn('/media/avatars/', data['avatar_url'])
+
+    def test_update_profile_cover_api(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        cover_file = SimpleUploadedFile("cover.jpg", b"fake cover image bytes", content_type="image/jpeg")
+        res = self.client.post(reverse('update_profile_cover_api'), {
+            'cover': cover_file
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertIn('/media/covers/', data['cover_url'])
+
+    def test_profile_view_no_following_section(self):
+        res = self.client.get(reverse('profile'))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'id="sidebar-following-count"')
+        self.assertNotContains(res, 'id="following-modal"')
+        self.assertNotContains(res, 'Giới thiệu · Quyền riêng tư · Điều khoản')
+        self.assertNotContains(res, 'profile-sidebar-footer')
+        self.assertContains(res, 'id="btn-edit-bio"')
+
+    def test_other_profile_view_no_follow_button(self):
+        other_user = User.objects.create_user(username='otheruser_test', password='password123')
+        res = self.client.get(reverse('user_profile', args=[other_user.username]))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'btn-follow-toggle')
+        self.assertNotContains(res, 'Theo dõi')
+        self.assertContains(res, 'Nhắn tin')
+
+    def test_update_profile_bio_updates_email(self):
+        from posts.colleagues import load_user_custom_profiles, save_user_custom_profiles
+        initial_profiles = load_user_custom_profiles()
+        try:
+            res = self.client.post(reverse('update_profile_bio_api'), {
+                'bio': 'Test Bio',
+                'job_title': 'Developer',
+                'branch': 'Hanoi',
+                'join_date': '01/01/2024',
+                'email': 'new_email@scotsenglish.edu.vn',
+                'phone': '0123456789'
+            })
+            self.assertEqual(res.status_code, 200)
+            self.user.refresh_from_db()
+            self.assertEqual(self.user.email, 'new_email@scotsenglish.edu.vn')
+
+            prof_res = self.client.get(reverse('profile'))
+            self.assertEqual(prof_res.status_code, 200)
+            self.assertContains(prof_res, 'new_email@scotsenglish.edu.vn')
+        finally:
+            save_user_custom_profiles(initial_profiles)
+
+    def test_avatar_synchronized_everywhere(self):
+        """Kiểm tra ảnh đại diện sau khi cập nhật được đồng bộ ở tất cả mọi nơi"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from posts.colleagues import get_profile_details, load_user_custom_profiles, save_user_custom_profiles
+
+        initial_profiles = load_user_custom_profiles()
+        try:
+            avatar_file = SimpleUploadedFile("my_avatar.png", b"test_image_bytes", content_type="image/png")
+            upload_res = self.client.post(reverse('update_profile_avatar_api'), {'avatar': avatar_file})
+            self.assertEqual(upload_res.status_code, 200)
+            new_avatar_url = upload_res.json()['avatar_url']
+
+            # 1. get_profile_details phản ánh đúng
+            details = get_profile_details(self.user)
+            self.assertEqual(details['avatar'], new_avatar_url)
+
+            # 2. Tạo bài viết & bình luận của user
+            post = Post.objects.create(author=self.user, content="Post with updated avatar", visibility="Toàn công ty")
+            comment = PostComment.objects.create(post=post, emp=self.user, content="Comment with updated avatar")
+            reaction = PostReaction.objects.create(post=post, emp=self.user)
+
+            # 3. Kiểm tra trang newfeeds (home)
+            home_res = self.client.get(reverse('home'))
+            self.assertEqual(home_res.status_code, 200)
+            self.assertContains(home_res, new_avatar_url)
+
+            # 4. Kiểm tra trang profile
+            prof_res = self.client.get(reverse('profile'))
+            self.assertEqual(prof_res.status_code, 200)
+            self.assertContains(prof_res, new_avatar_url)
+
+            # 5. Kiểm tra API likes
+            likes_res = self.client.get(reverse('post_likes_api', args=[post.id]))
+            self.assertEqual(likes_res.status_code, 200)
+            users = likes_res.json()['users']
+            self.assertTrue(any(u['username'] == self.user.username and u['avatar'] == new_avatar_url for u in users))
+
+            # 6. Kiểm tra API add comment trả về avatar_url mới
+            comment_res = self.client.post(reverse('post_comment_api', args=[post.id]), {'content': 'Another comment'})
+            self.assertEqual(comment_res.status_code, 200)
+            self.assertEqual(comment_res.json()['comment']['avatar_url'], new_avatar_url)
+        finally:
+            # Khôi phục dữ liệu ban đầu thay vì xóa trắng
+            save_user_custom_profiles(initial_profiles)

@@ -2,6 +2,183 @@
 """
 Dữ liệu hồ sơ đồng nghiệp Scots English (36 đồng nghiệp trong danh sách Following + các tài khoản hệ thống)
 """
+import os
+import sys
+import json
+from django.conf import settings
+from django.db import connection
+
+USER_PROFILES_FILE = os.path.join(settings.BASE_DIR, 'user_profiles.json')
+TEST_USER_PROFILES_FILE = os.path.join(settings.BASE_DIR, 'test_user_profiles.json')
+
+
+def is_test_environment():
+    """Kiểm tra xem mã nguồn có đang chạy trong môi trường unit test hay không."""
+    return 'test' in sys.argv or getattr(settings, 'TESTING', False)
+
+
+def get_profiles_file():
+    """Trả về đường dẫn tệp JSON hồ sơ: độc lập tệp test khi chạy test để không ảnh hưởng dữ liệu thật."""
+    if is_test_environment():
+        return TEST_USER_PROFILES_FILE
+    return USER_PROFILES_FILE
+
+
+def _ensure_custom_profile_table():
+    """Tạo bảng user_custom_profile trong database nếu chưa có để lưu trữ vĩnh viễn dữ liệu tùy chỉnh."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_custom_profile (
+                    username VARCHAR(150) PRIMARY KEY,
+                    avatar TEXT DEFAULT '',
+                    cover TEXT DEFAULT '',
+                    bio TEXT DEFAULT '',
+                    job_title TEXT DEFAULT '',
+                    branch TEXT DEFAULT '',
+                    join_date TEXT DEFAULT '',
+                    phone TEXT DEFAULT '',
+                    email TEXT DEFAULT '',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+    except Exception:
+        pass
+
+
+def _load_from_database():
+    """Đọc dữ liệu hồ sơ tùy biến từ bảng user_custom_profile trong SQLite."""
+    profiles = {}
+    try:
+        _ensure_custom_profile_table()
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT username, avatar, cover, bio, job_title, branch, join_date, phone, email
+                FROM user_custom_profile
+            """)
+            rows = cursor.fetchall()
+            for r in rows:
+                uname = r[0]
+                profiles[uname] = {}
+                fields = ['avatar', 'cover', 'bio', 'job_title', 'branch', 'join_date', 'phone', 'email']
+                for idx, field in enumerate(fields, start=1):
+                    val = r[idx]
+                    if val:
+                        profiles[uname][field] = val
+    except Exception:
+        pass
+    return profiles
+
+
+def _save_to_database(data):
+    """Lưu dữ liệu hồ sơ tùy biến vào bảng user_custom_profile trong SQLite với cơ chế UPSERT."""
+    try:
+        _ensure_custom_profile_table()
+        with connection.cursor() as cursor:
+            for uname, fields in data.items():
+                if not uname:
+                    continue
+                cursor.execute("""
+                    INSERT INTO user_custom_profile (username, avatar, cover, bio, job_title, branch, join_date, phone, email, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT(username) DO UPDATE SET
+                        avatar = CASE WHEN excluded.avatar != '' THEN excluded.avatar ELSE user_custom_profile.avatar END,
+                        cover = CASE WHEN excluded.cover != '' THEN excluded.cover ELSE user_custom_profile.cover END,
+                        bio = CASE WHEN excluded.bio != '' THEN excluded.bio ELSE user_custom_profile.bio END,
+                        job_title = CASE WHEN excluded.job_title != '' THEN excluded.job_title ELSE user_custom_profile.job_title END,
+                        branch = CASE WHEN excluded.branch != '' THEN excluded.branch ELSE user_custom_profile.branch END,
+                        join_date = CASE WHEN excluded.join_date != '' THEN excluded.join_date ELSE user_custom_profile.join_date END,
+                        phone = CASE WHEN excluded.phone != '' THEN excluded.phone ELSE user_custom_profile.phone END,
+                        email = CASE WHEN excluded.email != '' THEN excluded.email ELSE user_custom_profile.email END,
+                        updated_at = CURRENT_TIMESTAMP
+                """, [
+                    uname,
+                    fields.get('avatar', ''),
+                    fields.get('cover', ''),
+                    fields.get('bio', ''),
+                    fields.get('job_title', ''),
+                    fields.get('branch', ''),
+                    fields.get('join_date', ''),
+                    fields.get('phone', ''),
+                    fields.get('email', ''),
+                ])
+    except Exception as e:
+        print("Error saving custom profiles to db:", e)
+
+
+def _save_to_json_file(data):
+    """Ghi dữ liệu hồ sơ tùy biến ra file JSON."""
+    try:
+        target_file = get_profiles_file()
+        with open(target_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving custom profiles to json:", e)
+
+
+def load_user_custom_profiles():
+    """
+    Nạp dữ liệu tùy chỉnh người dùng với cơ chế dự phòng kép (Dual Storage):
+    1. Đọc từ bảng `user_custom_profile` trong SQLite database.
+    2. Đọc từ tệp `user_profiles.json`.
+    3. Hợp nhất hai nguồn: nếu một bên bị xóa, bên kia tự động phục hồi.
+    """
+    # 1. Đọc từ database
+    db_profiles = _load_from_database()
+
+    # 2. Đọc từ JSON
+    json_profiles = {}
+    target_file = get_profiles_file()
+    if os.path.exists(target_file):
+        try:
+            with open(target_file, 'r', encoding='utf-8') as f:
+                json_profiles = json.load(f)
+        except Exception:
+            json_profiles = {}
+
+    # Hợp nhất: ưu tiên dữ liệu có giá trị
+    combined = {}
+    for uname, fields in db_profiles.items():
+        combined[uname] = dict(fields)
+
+    needs_save_db = False
+    for uname, fields in json_profiles.items():
+        if uname not in combined:
+            combined[uname] = {}
+        for k, v in fields.items():
+            if v and (k not in combined[uname] or not combined[uname][k]):
+                combined[uname][k] = v
+                needs_save_db = True
+
+    needs_save_json = False
+    for uname, fields in combined.items():
+        if uname not in json_profiles:
+            needs_save_json = True
+        else:
+            for k, v in fields.items():
+                if v and (k not in json_profiles[uname] or json_profiles[uname][k] != v):
+                    needs_save_json = True
+
+    if not is_test_environment():
+        if needs_save_db:
+            _save_to_database(combined)
+        if needs_save_json:
+            _save_to_json_file(combined)
+
+    return combined
+
+
+def save_user_custom_profiles(data):
+    """
+    Lưu dữ liệu tùy chỉnh người dùng đồng thời vào file JSON và bảng database.
+    Bảo vệ vĩnh viễn các tùy biến người dùng khi code được cập nhật.
+    """
+    if is_test_environment():
+        _save_to_json_file(data)
+        return
+
+    _save_to_json_file(data)
+    _save_to_database(data)
 
 COLLEAGUES_DATA = {
     "thuha": {
@@ -501,34 +678,138 @@ COLLEAGUES_DATA = {
 }
 
 
+def get_user_department(user_or_username):
+    """
+    Xác định phòng ban thực tế của nhân viên / người dùng Scots English.
+    Dùng để lọc phạm vi hiển thị bài viết theo 'Phòng ban'.
+    """
+    if not user_or_username:
+        return "Phòng Đào tạo & Giảng dạy"
+
+    uname = getattr(user_or_username, 'username', str(user_or_username)).lower()
+
+    if uname in COLLEAGUES_DATA and 'department' in COLLEAGUES_DATA[uname]:
+        return COLLEAGUES_DATA[uname]['department']
+
+    data = COLLEAGUES_DATA.get(uname, {})
+    title = (data.get('job_title') or data.get('role') or '').lower()
+
+    if any(k in title for k in ['học vụ', 'khảo thí', 'giáo trình', 'học liệu']):
+        return "Phòng Quản lý Học vụ & Khảo thí"
+    elif any(k in title for k in ['tuyển sinh', 'chăm sóc học viên']):
+        return "Phòng Tuyển sinh & CSKH"
+    elif any(k in title for k in ['truyền thông', 'sự kiện', 'thiết kế']):
+        return "Phòng Truyền thông & Sự kiện"
+    elif any(k in title for k in ['nhân sự', 'tuyển dụng', 'tài chính', 'kế toán']):
+        return "Phòng Hành chính - Nhân sự"
+    elif any(k in title for k in ['quản trị', 'kỹ sư', 'kỹ thuật', 'lab', 'mạng']):
+        return "Phòng Công nghệ & Quản trị"
+
+    return "Phòng Đào tạo & Giảng dạy"
+
+
 def get_profile_details(user):
     """
     Trả về thông tin chi tiết hồ sơ cá nhân của user dựa trên username hoặc thông tin tài khoản.
+    Hỗ trợ nạp các tùy chỉnh ảnh đại diện, ảnh bìa, giới thiệu từ cơ sở dữ liệu và file `user_profiles.json`.
+    Hỗ trợ cả instance User lẫn string username, tự động phục hồi tệp ảnh nếu có gián đoạn.
     """
     if not user:
         return {}
 
-    uname = getattr(user, 'username', '')
+    user_obj = None
+    if isinstance(user, str):
+        uname = user
+        from django.contrib.auth.models import User
+        user_obj = User.objects.filter(username=uname).first()
+    else:
+        uname = getattr(user, 'username', '')
+        user_obj = user
+
     if uname in COLLEAGUES_DATA:
         data = dict(COLLEAGUES_DATA[uname])
         # Đảm bảo tên hiển thị ưu tiên tên User model nếu có
-        full_name = user.get_full_name()
-        if full_name:
-            data['name'] = full_name
-        return data
+        if user_obj:
+            full_name = user_obj.get_full_name()
+            if full_name:
+                data['name'] = full_name
+            if user_obj.email:
+                data['email'] = user_obj.email
+        data['department'] = get_user_department(uname)
+    else:
+        # Fallback cho user ngoài danh sách
+        full_name = (user_obj.get_full_name() if user_obj else None) or uname
+        is_admin = getattr(user_obj, 'is_staff', False) or getattr(user_obj, 'is_superuser', False) if user_obj else (uname == 'admin')
+        user_email = (user_obj.email if user_obj else None) or f"{uname}@scotsenglish.edu.vn"
+        data = {
+            "name": full_name,
+            "username": uname,
+            "role": "Quản trị viên hệ thống" if is_admin else "Giáo viên · Scots English",
+            "job_title": "Quản trị viên" if is_admin else "Giáo viên tiếng Anh",
+            "department": get_user_department(uname),
+            "branch": "Hội sở Scots English",
+            "email": user_email,
+            "phone": "090 123 4567",
+            "join_date": "15/08/2022",
+            "bio": "Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.",
+            "avatar": "/static/img/profile_avatar_144.png",
+            "cover": "/static/img/profile_cover.png",
+        }
 
-    # Fallback cho user ngoài danh sách
-    full_name = user.get_full_name() or uname
-    is_admin = getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False)
-    return {
-        "name": full_name,
-        "username": uname,
-        "role": "Quản trị viên hệ thống" if is_admin else "Giáo viên · Scots English",
-        "job_title": "Quản trị viên" if is_admin else "Giáo viên tiếng Anh",
-        "branch": "Hội sở Scots English",
-        "email": getattr(user, 'email', '') or f"{uname}@scotsenglish.edu.vn",
-        "phone": "090 123 4567",
-        "join_date": "15/08/2022",
-        "bio": "Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.",
-        "avatar": "/static/img/profile_avatar_144.png",
-    }
+    # Áp dụng các thay đổi tùy chỉnh từ database / user_profiles.json
+    custom_profiles = load_user_custom_profiles()
+    if uname in custom_profiles:
+        custom_data = custom_profiles[uname]
+        if custom_data.get('avatar'):
+            avatar_url = custom_data['avatar']
+            # Tự động kiểm tra và phục hồi nếu tệp cụ thể bị thiếu
+            if avatar_url.startswith('/media/avatars/'):
+                rel_path = avatar_url[len('/media/'):]
+                full_path = os.path.join(settings.MEDIA_ROOT, rel_path)
+                if not os.path.exists(full_path):
+                    avatars_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
+                    if os.path.exists(avatars_dir):
+                        candidates = [
+                            f for f in os.listdir(avatars_dir)
+                            if f.startswith(f"{uname}_") and os.path.getsize(os.path.join(avatars_dir, f)) > 100
+                        ]
+                        if candidates:
+                            candidates.sort()
+                            avatar_url = f"/media/avatars/{candidates[-1]}"
+            data['avatar'] = avatar_url
+
+        if custom_data.get('cover'):
+            cover_url = custom_data['cover']
+            if cover_url.startswith('/media/covers/'):
+                rel_path = cover_url[len('/media/'):]
+                full_path = os.path.join(settings.MEDIA_ROOT, rel_path)
+                if not os.path.exists(full_path):
+                    covers_dir = os.path.join(settings.MEDIA_ROOT, 'covers')
+                    if os.path.exists(covers_dir):
+                        candidates = [
+                            f for f in os.listdir(covers_dir)
+                            if f.startswith(f"{uname}_") and os.path.getsize(os.path.join(covers_dir, f)) > 100
+                        ]
+                        if candidates:
+                            candidates.sort()
+                            cover_url = f"/media/covers/{candidates[-1]}"
+            data['cover'] = cover_url
+
+        if custom_data.get('bio'):
+            data['bio'] = custom_data['bio']
+        if custom_data.get('job_title'):
+            data['job_title'] = custom_data['job_title']
+            data['role'] = custom_data['job_title']
+        if custom_data.get('branch'):
+            data['branch'] = custom_data['branch']
+        if custom_data.get('join_date'):
+            data['join_date'] = custom_data['join_date']
+        if custom_data.get('email') is not None:
+            data['email'] = custom_data['email']
+        if custom_data.get('phone'):
+            data['phone'] = custom_data['phone']
+
+    if 'cover' not in data:
+        data['cover'] = '/static/img/profile_cover.png'
+
+    return data

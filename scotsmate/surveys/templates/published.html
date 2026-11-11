@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
   <main class="survey-workspace">
     
@@ -8,7 +9,7 @@
         <h1 class="doc-header-title">Báo cáo & Phản hồi khảo sát</h1>
         <p class="doc-header-subtitle">Theo dõi tiến độ thu thập ý kiến, số lượng phản hồi và phân tích thống kê</p>
       </div>
-      <a href="create.html" class="doc-btn doc-btn-primary">
+      <a href="{% url 'SurveyCreate' %}" class="doc-btn doc-btn-primary">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -18,28 +19,35 @@
 
     <!-- Điều hướng phân hệ Tabs -->
     <nav class="doc-tabs">
-      <a href="list.html" class="doc-tab">Khảo sát cần làm</a>
-      <a href="history.html" class="doc-tab">Lịch sử đã làm</a>
-      <a href="approve_list.html" class="doc-tab">Duyệt khảo sát</a>
-      <a href="published.html" class="doc-tab active">Báo cáo & Phản hồi</a>
+      <a href="{% url 'MySurvey' %}" class="doc-tab">Khảo sát cần làm</a>
+      <a href="{% url 'SurveyHistory' %}" class="doc-tab">Lịch sử đã làm</a>
+      {% if request.user.managed_departments.exists %}
+        <a href="{% url 'SurveyApproveList' %}" class="doc-tab">Duyệt khảo sát</a>
+      {% endif %}
+      <a href="{% url 'SurveyPublished' %}" class="doc-tab active">Báo cáo & Phản hồi</a>
     </nav>
 
     <!-- Thanh tìm kiếm & bộ lọc -->
-    <section class="doc-toolbar">
+    <form method="GET" action="{% url 'SurveyPublished' %}" class="doc-toolbar">
       <div class="doc-search-box" style="max-width: 100%;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" placeholder="Tìm kiếm đợt khảo sát theo tiêu đề hoặc thời gian...">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Tìm kiếm đợt khảo sát theo tiêu đề...">
       </div>
-      <button class="doc-filter-btn" type="button">
+      {% if search_query %}
+        <a href="{% url 'SurveyPublished' %}" class="doc-filter-btn" style="text-decoration: none; display: flex; align-items: center; gap: 6px; color: var(--ink-soft);">
+          Bỏ lọc
+        </a>
+      {% endif %}
+      <button class="doc-filter-btn" type="submit">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
         </svg>
-        Bộ lọc
+        Tìm kiếm
       </button>
-    </section>
+    </form>
 
     <!-- Bảng danh sách các đợt khảo sát -->
     <section class="doc-table-card">
@@ -55,97 +63,301 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td class="doc-table-title">
-              <a href="responses_overview.html?id=301">Khảo sát mức độ hài lòng về môi trường làm việc Quý 3/2026</a>
-            </td>
-            <td>Toàn bộ nhân sự</td>
-            <td>48 / 60 người</td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="survey-progress-track" style="width: 100px;">
-                  <div class="survey-progress-fill" style="width: 80%;"></div>
-                </div>
-                <strong>80%</strong>
-              </div>
-            </td>
-            <td><span class="doc-badge doc-badge-approved">Đang mở</span></td>
-            <td style="text-align: right;">
-              <a href="responses_overview.html?id=301" class="doc-btn doc-btn-primary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem báo cáo</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="responses_overview.html?id=302">Khảo sát cơ sở vật chất phòng Lab & Thư viện cơ sở 1</a>
-            </td>
-            <td>Giáo viên & Học viên</td>
-            <td>120 / 120 người</td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="survey-progress-track" style="width: 100px;">
-                  <div class="survey-progress-fill" style="width: 100%;"></div>
-                </div>
-                <strong>100%</strong>
-              </div>
-            </td>
-            <td><span class="doc-badge doc-badge-draft">Đã kết thúc</span></td>
-            <td style="text-align: right;">
-              <a href="responses_overview.html?id=302" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem báo cáo</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="responses_overview.html?id=303">Khảo sát đánh giá mức độ hài lòng về chất lượng căn tin</a>
-            </td>
-            <td>Toàn thể nhân sự</td>
-            <td>55 / 60 người</td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="survey-progress-track" style="width: 100px;">
-                  <div class="survey-progress-fill" style="width: 92%;"></div>
-                </div>
-                <strong>92%</strong>
-              </div>
-            </td>
-            <td><span class="doc-badge doc-badge-draft">Đã kết thúc</span></td>
-            <td style="text-align: right;">
-              <a href="responses_overview.html?id=303" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem báo cáo</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="doc-table-title">
-              <a href="responses_overview.html?id=304">Đánh giá chương trình Team Building mùa thu 2026</a>
-            </td>
-            <td>Khối văn phòng</td>
-            <td>38 / 40 người</td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="survey-progress-track" style="width: 100px;">
-                  <div class="survey-progress-fill" style="width: 95%;"></div>
-                </div>
-                <strong>95%</strong>
-              </div>
-            </td>
-            <td><span class="doc-badge doc-badge-draft">Đã kết thúc</span></td>
-            <td style="text-align: right;">
-              <a href="responses_overview.html?id=304" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem báo cáo</a>
-            </td>
-          </tr>
+          {% if page_obj %}
+            {% for item in page_obj %}
+              <tr>
+                <td class="doc-table-title">
+                  <a href="{% url 'ResponseOverview' item.survey.id %}" style="text-decoration: none; color: inherit; font-weight: 500;">
+                    {{ item.survey.name }}
+                  </a>
+                </td>
+                <td>
+                  <a href="javascript:void(0)"
+                     class="btn-open-target-modal"
+                     data-survey-id="{{ item.survey.id }}"
+                     data-survey-name="{{ item.survey.name }}"
+                     data-is-anonymous="{% if item.survey.anonymous %}1{% else %}0{% endif %}"
+                     style="font-size: 13px; font-weight: 600; color: var(--navy); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                    Xem danh sách
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                  </a>
+                  <script type="application/json" id="participants-data-{{ item.survey.id }}">{{ item.participants_json|safe }}</script>
+                </td>
+                <td>{{ item.response_display }}</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="survey-progress-track" style="width: 100px;">
+                      <div class="survey-progress-fill" style="width: {{ item.completion_pct }}%;"></div>
+                    </div>
+                    <strong>{{ item.completion_pct }}%</strong>
+                  </div>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                    {% if not item.survey.is_visible %}
+                      <span class="doc-badge doc-badge-draft" style="color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1;">Đã ẩn</span>
+                    {% endif %}
+                    {% if not item.survey.is_respondable %}
+                      <span class="doc-badge doc-badge-draft" style="color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca;">Ngưng nhận</span>
+                    {% elif item.is_open %}
+                      <span class="doc-badge doc-badge-approved">Đang mở</span>
+                    {% else %}
+                      <span class="doc-badge doc-badge-draft">Đã kết thúc</span>
+                    {% endif %}
+                  </div>
+                </td>
+                <td style="text-align: right;">
+                  <a href="{% url 'ResponseOverview' item.survey.id %}" class="doc-btn {% if item.survey.is_visible and item.is_open %}doc-btn-primary{% else %}doc-btn-secondary{% endif %}" style="height: 36px; padding: 0 14px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                    Xem báo cáo
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px 16px; color: var(--ink-soft);">
+                {% if search_query %}
+                  Không tìm thấy đợt khảo sát nào khớp với từ khóa "<strong>{{ search_query }}</strong>".
+                {% else %}
+                  Hiện tại chưa có đợt khảo sát nào bạn được phân quyền xem báo cáo.
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
         </tbody>
       </table>
 
       <!-- Phân trang -->
       <footer class="doc-table-pagination">
-        <div>Hiển thị 1 - 4 trong tổng số 12 đợt khảo sát</div>
-        <div class="doc-page-controls">
-          <a href="#" class="doc-page-btn">&lt;</a>
-          <a href="#" class="doc-page-btn active">1</a>
-          <a href="#" class="doc-page-btn">2</a>
-          <a href="#" class="doc-page-btn">3</a>
-          <a href="#" class="doc-page-btn">&gt;</a>
+        <div>
+          {% if total_count > 0 %}
+            Hiển thị {{ page_obj.start_index }} - {{ page_obj.end_index }} trong tổng số {{ total_count }} đợt khảo sát
+          {% else %}
+            Hiển thị 0 đợt khảo sát
+          {% endif %}
         </div>
+        {% if page_obj.has_other_pages %}
+          <div class="doc-page-controls">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&lt;</a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <a href="javascript:void(0)" class="doc-page-btn active">{{ num }}</a>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&gt;</a>
+            {% endif %}
+          </div>
+        {% endif %}
       </footer>
     </section>
 
   </main>
+
+  <!-- ================= POP-UP: DANH SÁCH ĐỐI TƯỢNG KHẢO SÁT ================= -->
+  <style>
+    .survey-modal-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: rgba(15, 23, 42, 0.5) !important;
+      backdrop-filter: blur(3px) !important;
+      display: none;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 99999 !important;
+    }
+    .survey-modal-overlay.active {
+      display: flex !important;
+    }
+    .survey-modal-card {
+      background: #ffffff !important;
+      border-radius: 14px !important;
+      width: 92% !important;
+      max-width: 540px !important;
+      max-height: 85vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+      border: 1px solid var(--line, #e2e8f0) !important;
+      overflow: hidden !important;
+      animation: modalFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(14px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .survey-modal-header {
+      padding: 18px 20px 14px 20px !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-start !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+    }
+    .survey-modal-title {
+      font-size: 17px !important;
+      font-weight: 700 !important;
+      color: var(--ink, #19334b) !important;
+      margin: 0 0 4px 0 !important;
+    }
+    .survey-modal-subtitle {
+      font-size: 13px !important;
+      color: var(--ink-soft, #64748b) !important;
+      margin: 0 !important;
+    }
+    .survey-modal-close {
+      background: none !important;
+      border: none !important;
+      font-size: 24px !important;
+      line-height: 1 !important;
+      color: var(--ink-soft, #64748b) !important;
+      cursor: pointer !important;
+      padding: 2px 8px !important;
+      border-radius: 6px !important;
+      transition: background 0.15s ease, color 0.15s ease !important;
+    }
+    .survey-modal-close:hover {
+      background: #f1f5f9 !important;
+      color: var(--ink, #19334b) !important;
+    }
+    .survey-modal-search-box {
+      padding: 12px 20px !important;
+      border-bottom: 1px solid var(--line, #e2e8f0) !important;
+      background: #fafafa !important;
+    }
+    .survey-modal-search-label {
+      display: block !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      color: var(--ink, #19334b) !important;
+      margin-bottom: 6px !important;
+    }
+    .survey-modal-search-input {
+      width: 100% !important;
+      padding: 9px 12px !important;
+      font-size: 13px !important;
+      border: 1px solid var(--line, #e2e8f0) !important;
+      border-radius: 8px !important;
+      outline: none !important;
+      background: #ffffff !important;
+      color: var(--ink, #19334b) !important;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+    }
+    .survey-modal-search-input:focus {
+      border-color: var(--navy, #134c81) !important;
+      box-shadow: 0 0 0 3px rgba(19, 76, 129, 0.12) !important;
+    }
+    .survey-modal-body {
+      padding: 8px 20px !important;
+      overflow-y: auto !important;
+      flex: 1 !important;
+      max-height: 380px !important;
+    }
+    .survey-user-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 12px 0 !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      gap: 12px !important;
+    }
+    .survey-user-row:last-child {
+      border-bottom: none !important;
+    }
+    .survey-user-avatar {
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 50% !important;
+      background: #f1f5f9 !important;
+      color: #475569 !important;
+      font-weight: 600 !important;
+      font-size: 13px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+      border: 1px solid var(--line, #e2e8f0) !important;
+    }
+    .survey-user-info {
+      flex: 1 !important;
+      min-width: 0 !important;
+    }
+    .survey-user-name {
+      font-weight: 600 !important;
+      font-size: 14px !important;
+      color: var(--ink, #19334b) !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .survey-user-dep {
+      font-size: 13px !important;
+      color: var(--ink-soft, #64748b) !important;
+      margin-top: 2px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .survey-user-email {
+      font-size: 13px !important;
+      color: var(--ink-soft, #64748b) !important;
+      flex-shrink: 0 !important;
+      text-align: right !important;
+    }
+    .survey-modal-empty {
+      text-align: center !important;
+      padding: 30px 16px !important;
+      color: var(--ink-soft, #64748b) !important;
+      font-size: 13px !important;
+    }
+    .survey-modal-footer {
+      padding: 14px 20px !important;
+      border-top: 1px solid var(--line, #e2e8f0) !important;
+      background: #fafafa !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: center !important;
+    }
+  </style>
+
+  <div class="survey-modal-overlay" id="modal-survey-targets" style="display: none;">
+    <div class="survey-modal-card">
+      <div class="survey-modal-header">
+        <div>
+          <h3 class="survey-modal-title">Danh sách đối tượng khảo sát</h3>
+          <p class="survey-modal-subtitle" id="modal-target-subtitle">Khảo sát: ...</p>
+        </div>
+        <button type="button" class="survey-modal-close" data-close-modal title="Đóng">&times;</button>
+      </div>
+
+      <div class="survey-modal-search-box">
+        <label class="survey-modal-search-label">Tìm kiếm</label>
+        <input type="text" class="survey-modal-search-input" id="modal-target-search" placeholder="Tìm theo tên hoặc email">
+      </div>
+
+      <div class="survey-modal-body" id="modal-target-body">
+        <!-- Render động bằng JS khi bấm 'Xem danh sách' -->
+      </div>
+
+      <div class="survey-modal-footer">
+        <button type="button" class="doc-btn doc-btn-primary" id="btn-remind-participants" style="height: 38px; font-size: 13px; font-weight: 600;">
+          Nhắc nhở điền khảo sát
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/survey_published.js' %}"></script>
 {% endblock %}

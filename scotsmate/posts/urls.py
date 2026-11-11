@@ -2,10 +2,13 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('login/', views.login_view, name='login'),
-    path('logout/', views.logout_view, name='logout'),
+    path('login/', views.ScotsmateLoginView.as_view(), name='login'),
+    path('logout/', views.ScotsmateLogoutView.as_view(), name='logout'),
     path('create/', views.post_create_view, name='post_create'),
     path('profile/', views.profile_view, name='profile'),
+    path('profile/update/avatar/', views.update_profile_avatar_api, name='update_profile_avatar_api'),
+    path('profile/update/cover/', views.update_profile_cover_api, name='update_profile_cover_api'),
+    path('profile/update/bio/', views.update_profile_bio_api, name='update_profile_bio_api'),
     path('profile/<str:username>/', views.profile_view, name='user_profile'),
     path('posts/<int:post_id>/like/', views.toggle_like_api, name='post_like_api'),
     path('posts/<int:post_id>/likes/', views.post_likes_api, name='post_likes_api'),

@@ -12,8 +12,14 @@
 
     <!-- Điều hướng phân hệ (Tabs) -->
     <nav class="doc-tabs">
-      <a href="{% url 'documents' %}" class="doc-tab active">Danh mục tài liệu</a>
-      <a href="{% url 'document_approve' %}" class="doc-tab">Tài liệu chờ duyệt ({{ pending_count|default:0 }})</a>
+      <a href="{% url 'documents' %}" class="doc-tab">Danh mục tài liệu</a>
+
+      {% if request.user.is_superuser or request.user.is_staff %}
+        <a href="{% url 'document_approve' %}" class="doc-tab">
+          Tài liệu chờ duyệt ({{ pending_count|default:0 }})
+        </a>
+      {% endif %}
+
       <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
     </nav>
 
@@ -34,7 +40,7 @@
       <p style="font-size: 13.5px; color: var(--ink-soft, #64748b); margin: 0;">Thêm danh mục mới để sắp xếp và quản lý tài liệu trong thư viện.</p>
     </div>
 
-    <!-- Card biểu mẫu Tạo danh mục sử dụng Django Form -->
+
     <form method="POST" action="{% url 'document_category_create' %}" class="doc-card" style="max-width: 680px; padding: 24px;">
       {% csrf_token %}
 
