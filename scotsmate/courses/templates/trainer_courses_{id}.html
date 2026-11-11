@@ -80,13 +80,11 @@
         Thiết lập bài thi {% if exam %}<span class="text-emerald-600 font-bold">✓</span>{% endif %}
       </a>
       <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
-        Ghi danh học viên ({{ total_enrolled }})
+        Ghi danh học viên ({{ total_enrolled|default:0 }})
       </a>
-      {% if course.status != 'draft' %}
-        <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
-          Tiến độ học viên ({{ total_enrolled }})
-        </a>
-      {% endif %}
+      <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Tiến độ học viên ({{ total_enrolled|default:0 }})
+      </a>
     </nav>
 
     <!-- Grid thông số KPI khóa học -->

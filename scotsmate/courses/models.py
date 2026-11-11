@@ -235,6 +235,17 @@ class CourseMaterial(models.Model):
             return content.split("Cách xử lý chuẩn:")[1].strip()
         return ""
 
+    @property
+    def clean_title(self):
+        """
+        Làm sạch tiêu đề bài giảng, loại bỏ các tiền tố trùng lặp (ví dụ 'Bài 1: ', '1. ', 'Bài 2 - ')
+        để khi giao diện gắn 'Bài {{ forloop.counter }}: ' sẽ luôn tăng dần chuẩn xác.
+        """
+        import re
+        if not self.name:
+            return ""
+        return re.sub(r'^(Bài\s*\d+\s*[:\-\.]\s*|\d+[\.\-]\s*)', '', self.name.strip(), flags=re.IGNORECASE).strip() or self.name
+
 
 # ============================================================
 # 4. BẢNG CẤU HÌNH BÀI THI (course_exam) - Báo cáo trang 82

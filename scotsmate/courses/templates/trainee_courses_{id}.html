@@ -258,7 +258,7 @@
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
                       <h3 class="text-sm font-semibold text-slate-900 group-hover:text-[#134c81] transition truncate">
-                        Bài {{ forloop.counter }}: {{ mat.name }}
+                        Bài {{ forloop.counter }}: {{ mat.clean_title|default:mat.name }}
                       </h3>
                       {% if mat.is_completed %}
                         <span class="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">

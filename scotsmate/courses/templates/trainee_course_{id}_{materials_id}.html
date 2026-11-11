@@ -327,7 +327,7 @@
               <a href="/courses/trainee/course/{{ course.id }}/{{ m.id }}/" class="p-3 rounded-lg text-xs font-medium flex items-center justify-between transition {% if m.id == material.id %}bg-[#edf4fb] text-[#134c81] font-bold border border-blue-200 shadow-xs{% else %}text-slate-600 hover:bg-slate-50 border border-transparent{% endif %}" style="text-decoration: none;">
                 <div class="flex items-start gap-2 max-w-[200px]">
                   <span class="shrink-0 font-bold">Bài {{ m.order }}:</span>
-                  <span class="line-clamp-2">{{ m.name }}</span>
+                  <span class="line-clamp-2">{{ m.clean_title|default:m.name }}</span>
                 </div>
                 <span class="text-slate-400 font-mono text-[11px] shrink-0 ml-1">{{ m.duration_minutes }}p</span>
               </a>
