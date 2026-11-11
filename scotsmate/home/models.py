@@ -8,11 +8,19 @@ class Branch(models.Model):
         NORTH = 'NORTH', 'Miền Bắc'
         CENTRAL = 'CENTRAL', 'Miền Trung'
         SOUTH = 'SOUTH', 'Miền Nam'
-    name = models.CharField(max_length=255, verbose_name="Tên chi nhánh")
+    name = models.CharField(
+        max_length=255,
+        verbose_name="Tên chi nhánh")
     region = models.CharField(
         max_length=20,
         choices=RegionChoices.choices,
         verbose_name="Khu vực"
+    )
+    address = models.CharField(
+        max_length=255,
+        null=True,
+        blank=False,
+        verbose_name='Địa chỉ'
     )
     class Meta:
         db_table = 'branch'
@@ -30,12 +38,13 @@ class Department(models.Model):
         TECHNOLOGY = 'TECHNOLOGY', 'Khối Công Nghệ Thông Tin'
         MKT_SALE = 'MARKETING AND SALE', 'Khối Marketing và Kinh Doanh'
         CENTRAL = 'CENTRAL', 'Khối Trung Tâm'
+        DIRECTOR = 'DIRECTOR', 'Tổng Giám Đốc'
 
     name = models.CharField(
         max_length=100,
         verbose_name="Tên phòng ban")
     manager = models.ForeignKey(
-        'EmployeeInformation',
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

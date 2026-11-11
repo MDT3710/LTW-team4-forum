@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <main class="doc-workspace">
+
+    <!-- Tiêu đề danh mục lấy động từ Database -->
+    <header class="doc-header">
+      <div>
+        <h1 class="doc-header-title">{{ category.name }}</h1>
+        <p class="doc-header-subtitle">{{ category.description|default:"Danh sách các tài liệu thuộc danh mục này" }}</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Quay lại danh mục</a>
+        <a href="{% url 'document_create' %}" class="doc-btn doc-btn-primary">+ Thêm tài liệu mới</a>
+      </div>
+    </header>
+
+    <!-- Điều hướng phân hệ (Tabs) -->
+    <nav class="doc-tabs">
+      <a href="{% url 'documents' %}" class="doc-tab active">Danh mục tài liệu</a>
+      <a href="{% url 'document_approve' %}" class="doc-tab">Tài liệu chờ duyệt ({{ pending_count|default:0 }})</a>
+      <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
+    </nav>
+
+   <!-- Thanh tìm kiếm tài liệu trong danh mục -->
+    <form method="get" action="{% url 'document_category' cate_id=category.id %}" class="doc-toolbar">
+      <div class="doc-search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm tài liệu trong danh mục này...">
+      </div>
+      <button class="doc-filter-btn" type="submit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        Bộ lọc
+      </button>
+    </form>
+
+    <!-- Bảng danh sách tài liệu động -->
+    <section class="doc-table-card">
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Tên tài liệu</th>
+            <th>Mã tài liệu</th>
+            <th>Người tạo</th>
+            <th>Ngày tải lên</th>
+            <th>Định dạng</th>
+            <th>Dung lượng</th>
+            <th style="text-align: right;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in documents %}
+            <tr>
+              <td class="doc-table-title">
+                <strong>{{ doc.title }}</strong>
+              </td>
+              <td>DOC-{{ doc.id|stringformat:"03d" }}</td>
+              <td>{{ doc.creator.get_full_name|default:doc.creator.username }}</td>
+              <td>{{ doc.created_at|date:"d/m/Y" }}</td>
+              <td>
+                <span class="doc-badge doc-badge-in-progress">
+                  {{ doc.file_extension|default:"FILE" }}
+                </span>
+              </td>
+              <td>{{ doc.file_size_display|default:"--" }}</td>
+              <td style="text-align: right;">
+                {% if doc.file %}
+                  <a href="{{ doc.file.url }}" download class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
+                    Tải về
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--ink-soft); padding: 48px;">
+                Chưa có tài liệu nào được phê duyệt trong danh mục <strong>{{ category.name }}</strong>.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <footer class="doc-table-pagination">
+        <div>Tổng số: <strong>{{ documents|length }}</strong> tài liệu</div>
+      </footer>
+    </section>
+
+  </main>
+{% endblock %}

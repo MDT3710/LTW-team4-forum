@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <main class="doc-workspace">
+
+    <!-- Tiêu đề chính -->
+    <header class="doc-header" style="margin-bottom: 16px;">
+      <div>
+        <h1 class="doc-header-title">Thư viện tài liệu</h1>
+      </div>
+    </header>
+
+    <!-- Điều hướng phân hệ (Tabs) -->
+    <nav class="doc-tabs">
+      <a href="{% url 'documents' %}" class="doc-tab active">Danh mục tài liệu</a>
+      <a href="{% url 'document_approve' %}" class="doc-tab">Tài liệu chờ duyệt ({{ pending_count|default:0 }})</a>
+      <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
+    </nav>
+
+    <!-- Nút quay lại -->
+    <div style="margin: 20px 0 16px;">
+      <a href="{% url 'documents' %}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--navy, #1e3a8a); text-decoration: none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Quay lại danh mục tài liệu
+      </a>
+    </div>
+
+    <!-- Tiêu đề phần Tạo danh mục -->
+    <div style="margin-bottom: 24px;">
+      <h2 style="font-size: 22px; font-weight: 700; color: var(--ink, #0f172a); margin: 0 0 6px 0;">Tạo danh mục</h2>
+      <p style="font-size: 13.5px; color: var(--ink-soft, #64748b); margin: 0;">Thêm danh mục mới để sắp xếp và quản lý tài liệu trong thư viện.</p>
+    </div>
+
+    <!-- Card biểu mẫu Tạo danh mục sử dụng Django Form -->
+    <form method="POST" action="{% url 'document_category_create' %}" class="doc-card" style="max-width: 680px; padding: 24px;">
+      {% csrf_token %}
+
+      <div class="doc-form-group" style="margin-bottom: 20px;">
+        <label class="doc-form-label" for="{{ form.name.id_for_label }}">Tên danh mục <span class="required">*</span></label>
+        {{ form.name }}
+        {% if form.name.errors %}
+          <small style="color: #e11d48; font-size: 12px;">{{ form.name.errors.0 }}</small>
+        {% endif %}
+      </div>
+
+      <div class="doc-form-group" style="margin-bottom: 24px;">
+        <label class="doc-form-label" for="{{ form.description.id_for_label }}">Mô tả danh mục</label>
+        {{ form.description }}
+        {% if form.description.errors %}
+          <small style="color: #e11d48; font-size: 12px;">{{ form.description.errors.0 }}</small>
+        {% endif %}
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--line, #e2e8f0); margin: 0 0 20px 0;">
+
+      <!-- Nút hành động -->
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Hủy</a>
+        <button type="submit" class="doc-btn doc-btn-primary">Tạo danh mục</button>
+      </div>
+    </form>
+
+  </main>
+{% endblock %}

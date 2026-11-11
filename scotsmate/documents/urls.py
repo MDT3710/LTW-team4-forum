@@ -5,8 +5,9 @@ urlpatterns = [
     # 1. Trang chủ Thư viện tài liệu -> /documents/
     path('', views.document_list, name='documents'),
 
-    # 2. Tạo mới / Đăng tải tài liệu -> /documents/create/
+    # 2. Tạo mới tài liệu & Tạo mới danh mục
     path('create/', views.document_create, name='document_create'),
+    path('category/create/', views.document_category_create, name='document_category_create'),
 
     # 3. Tài liệu của tôi & Cập nhật tài liệu -> /documents/my_docs/...
     path('my_docs/', views.document_my_docs, name='document_my_docs'),
@@ -17,6 +18,6 @@ urlpatterns = [
     path('approve/<int:id>/', views.document_approve_detail, name='document_approve_detail'),
 
     # 5. Chi tiết danh mục & Xem trước -> /documents/<cate_id>/...
-    path('<str:cate_id>/', views.document_category, name='document_category'),
-    path('<str:cate_id>/preview/', views.document_preview, name='document_preview'),
+    path('<int:cate_id>/', views.document_category, name='document_category'),
+    path('<int:cate_id>/preview/', views.document_preview, name='document_preview'),
 ]
