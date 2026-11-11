@@ -9,4 +9,7 @@ urlpatterns = [
     path('inbox/<int:user_id>/', views.inbox_detail, name='inbox_detail'),
     path('conversation/<int:convo_id>/toggle-mute/', views.toggle_mute, name='toggle_mute'),
     path('conversation/<int:convo_id>/rename/', views.rename_conversation, name='rename_conversation'),
+    # API endpoints realtime
+    path('api/send/', views.api_send_message, name='api_send_message'),
+    path('api/messages/<int:convo_id>/', views.api_get_messages, name='api_get_messages'),
 ]

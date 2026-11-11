@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Chỉnh sửa sự kiện | {{ event.title }}{% else %}Tạo sự kiện mới{% endif %} | ScotsMate{% endblock %}
+
+{% block content %}
+<main class="w-full max-w-[800px] mx-auto px-4 py-8">
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+    <div class="mb-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 m-0">
+          {% if is_edit %}Chỉnh sửa sự kiện{% else %}Tạo sự kiện nội bộ mới{% endif %}
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Hệ thống đào tạo, hội thảo và hoạt động kết nối văn hóa doanh nghiệp Scots English.
+        </p>
+      </div>
+      <a href="{% if is_edit %}{% url 'event_detail' event.id %}{% else %}{% url 'events_list' %}{% endif %}" class="text-xs text-slate-500 hover:text-slate-800" style="text-decoration: none;">
+        ← Quay lại
+      </a>
+    </div>
+
+    {% if messages %}
+      <div class="mb-6">
+        {% for msg in messages %}
+          <div class="p-3.5 rounded-xl text-xs font-medium bg-rose-50 text-rose-800 border border-rose-200 mb-2">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-5 text-xs">
+      {% csrf_token %}
+
+      <!-- Tiêu đề sự kiện -->
+      <div>
+        <label class="block font-bold text-slate-700 mb-1.5">
+          Tên sự kiện <span class="text-rose-500">*</span>
+        </label>
+        <input 
+          type="text" 
+          name="title" 
+          required 
+          value="{{ event.title|default:'' }}" 
+          placeholder="Ví dụ: Đổi mới phương pháp giảng dạy tiếng Anh tương tác 4.0"
+          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-[#134c81] focus:ring-1 focus:ring-[#134c81]"
+        />
+      </div>
+
+      <!-- Phân loại & Số lượng -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">
+            Phân loại sự kiện <span class="text-rose-500">*</span>
+          </label>
+          <select name="category" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:outline-none focus:border-[#134c81]">
+            {% for code, label in category_choices %}
+              <option value="{{ code }}" {% if event.category == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">
+            Số lượng người tham gia tối đa <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            type="number" 
+            name="max_participants" 
+            min="1" 
+            max="1000" 
+            value="{{ event.max_participants|default:50 }}" 
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]"
+          />
+        </div>
+      </div>
+
+      <!-- Thời gian Bắt đầu & Kết thúc -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">
+            Thời gian bắt đầu <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            type="datetime-local" 
+            name="date_start" 
+            required 
+            value="{% if event.date_start %}{{ event.date_start|date:'Y-m-d\TH:i' }}{% endif %}" 
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]"
+          />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">
+            Thời gian kết thúc <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            type="datetime-local" 
+            name="date_end" 
+            required 
+            value="{% if event.date_end %}{{ event.date_end|date:'Y-m-d\TH:i' }}{% endif %}" 
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]"
+          />
+        </div>
+      </div>
+
+      <!-- Địa điểm -->
+      <div>
+        <label class="block font-bold text-slate-700 mb-1.5">
+          Địa điểm tổ chức <span class="text-rose-500">*</span>
+        </label>
+        <input 
+          type="text" 
+          name="location" 
+          required 
+          value="{{ event.location|default:'' }}" 
+          placeholder="Ví dụ: Hội trường Tầng 3 - Cơ sở Cầu Giấy (Tòa nhà Viglacera)"
+          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]"
+        />
+      </div>
+
+      <!-- Chi nhánh & Phòng ban -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">
+            Chi nhánh áp dụng
+          </label>
+          <select name="branch" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:outline-none focus:border-[#134c81]">
+            <option value="">Toàn hệ thống (Tất cả chi nhánh)</option>
+            {% for b in branches %}
+              <option value="{{ b.id }}" {% if event.branch_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">
+            Phòng ban chủ trì
+          </label>
+          <select name="department" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:outline-none focus:border-[#134c81]">
+            <option value="">Toàn công ty</option>
+            {% for d in departments %}
+              <option value="{{ d.id }}" {% if event.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {% if is_edit %}
+        <!-- Trạng thái (chỉ khi sửa) -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">Trạng thái sự kiện</label>
+          <select name="status" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:outline-none focus:border-[#134c81]">
+            {% for code, label in status_choices %}
+              <option value="{{ code }}" {% if event.status == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      <!-- Mô tả sự kiện -->
+      <div>
+        <label class="block font-bold text-slate-700 mb-1.5">
+          Mô tả nội dung &amp; Mục tiêu <span class="text-rose-500">*</span>
+        </label>
+        <textarea 
+          name="description" 
+          rows="4" 
+          required 
+          placeholder="Mô tả mục tiêu, ý nghĩa và đối tượng tham gia sự kiện..."
+          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81]"
+        >{{ event.description|default:'' }}</textarea>
+      </div>
+
+      <!-- Lịch trình (Agenda) -->
+      <div>
+        <label class="block font-bold text-slate-700 mb-1.5">
+          Lịch trình chương trình (Agenda chi tiết)
+        </label>
+        <textarea 
+          name="agenda" 
+          rows="5" 
+          placeholder="Mỗi dòng là một mốc thời gian, ví dụ:&#10;14:00 - 14:30: Khai mạc &amp; Đón tiếp&#10;14:30 - 15:30: Thực hành chuyên môn..."
+          class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-[#134c81] font-mono"
+        >{{ event.agenda|default:'' }}</textarea>
+      </div>
+
+      <!-- Submit button -->
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+        <a href="{% if is_edit %}{% url 'event_detail' event.id %}{% else %}{% url 'events_list' %}{% endif %}" class="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition" style="text-decoration: none;">
+          Hủy bỏ
+        </a>
+        <button type="submit" class="px-6 py-2.5 rounded-xl bg-[#134c81] hover:bg-[#0c375f] text-white text-xs font-bold shadow-md transition active:scale-[0.99] cursor-pointer">
+          {% if is_edit %}Lưu thay đổi sự kiện{% else %}Xuất bản sự kiện mới{% endif %}
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</main>
+{% endblock %}

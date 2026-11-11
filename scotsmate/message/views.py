@@ -1,5 +1,8 @@
+import os
+from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import Attachment, Conversation, ConversationMember, Message
@@ -17,6 +20,20 @@ DEFAULT_AVATAR_PALETTE = (
     'bg-amber-100 text-amber-800',
     'bg-blue-50 text-blue-700',
 )
+
+
+def is_admin_user(user):
+    """Xác định tài khoản có quyền Quản trị viên hay không."""
+    if not user or not user.is_authenticated:
+        return False
+    return bool(user.is_superuser or user.username.lower() == 'admin')
+
+
+def is_regular_employee(user):
+    """Xác định tài khoản là nhân sự thông thường (không phải admin hay quản trị hệ thống)."""
+    if not user or not user.is_authenticated:
+        return False
+    return not (user.is_staff or user.is_superuser)
 
 
 def _compute_initials(text, fallback='SC'):
@@ -68,10 +85,13 @@ def _get_user_display_info(user):
     else:
         display_name = user.username
 
-    default_role = (
-        colleague_meta.get('job_title')
-        or ('Quản trị viên hệ thống' if (user.is_superuser or user.is_staff) else 'Giáo viên')
-    )
+    if user.is_superuser or getattr(user, 'username', '').lower() == 'admin':
+        default_role = 'Quản trị viên hệ thống'
+    elif user.is_staff:
+        default_role = 'Giảng viên đào tạo (Trainer)'
+    else:
+        default_role = colleague_meta.get('job_title') or 'Giáo viên'
+
     default_branch = colleague_meta.get('branch') or 'Cầu Giấy, Hà Nội'
     default_color = DEFAULT_AVATAR_PALETTE[(user.id or 0) % len(DEFAULT_AVATAR_PALETTE)]
 
@@ -115,10 +135,12 @@ def get_sidebar_conversations(user):
         qs = Conversation.objects.all().order_by('-updated_at')
         viewer = User.objects.filter(is_superuser=False).order_by('id').first() or User.objects.first()
 
-    conversations = list(
+    raw_conversations = list(
         qs.distinct().prefetch_related('members__profile', 'memberships', 'messages')
     )
-    for convo in conversations:
+
+    conversations = []
+    for convo in raw_conversations:
         members_list = list(convo.members.all())
         memberships_list = list(convo.memberships.all())
         messages_list = list(convo.messages.all())
@@ -132,26 +154,47 @@ def get_sidebar_conversations(user):
             convo.display_name = convo.title or f"Nhóm #{convo.id}"
             convo.display_initials = convo.get_initials()
             convo.target_user_id = None
+            conversations.append(convo)
         else:
             other_user = None
             if viewer:
                 other_user = next((m for m in members_list if m.id != viewer.id), None)
             if other_user is None:
                 other_user = members_list[0] if members_list else viewer
+
+            # Phân quyền: Nhân sự thường không hiển thị hội thoại 1-1 với Admin
+            if viewer and is_regular_employee(viewer) and other_user and is_admin_user(other_user):
+                continue
+
             display_name, display_initials, _ = _resolve_direct_conversation_display(convo, other_user)
             convo.display_name = display_name
             convo.display_initials = display_initials
             convo.target_user_id = other_user.id if other_user else 1
+            conversations.append(convo)
 
     return conversations
 
 
 def _handle_message_post(request, conversation, sender):
     """Lưu tin nhắn và file đính kèm (nếu có), đồng thời cập nhật updated_at."""
+    if not sender or not sender.is_authenticated:
+        return False
+
+    # Kiểm tra phân quyền: nhân sự không thể gửi tin nhắn cho admin
+    if conversation.conversation_type == Conversation.TYPE_DIRECT:
+        other_user = conversation.get_other_user(sender)
+        if other_user and is_admin_user(other_user) and is_regular_employee(sender):
+            return False
+
     content = (request.POST.get('content') or '').strip()
     attachment = request.FILES.get('attachment')
 
-    if sender and (content or attachment):
+    if content or attachment:
+        ConversationMember.objects.get_or_create(
+            conversation=conversation,
+            user=sender,
+            defaults={'role': ConversationMember.ROLE_MEMBER}
+        )
         new_message = Message.objects.create(
             conversation=conversation,
             sender=sender,
@@ -264,13 +307,18 @@ def _branch_matches(branch_filter, display_branch):
 
 
 def _get_colleague_users(current_user, query='', branch=''):
-    """Lấy danh sách nhân sự thực tế (loại trừ admin kỹ thuật và current_user), hỗ trợ lọc."""
+    """Lấy danh sách nhân sự thực tế (loại trừ admin và current_user nếu là nhân viên), hỗ trợ lọc."""
     users_qs = (
         User.objects.exclude(id=current_user.id)
         .exclude(is_superuser=True, first_name='', last_name='')
         .select_related('profile')
         .order_by('id')
     )
+
+    # Phân quyền: Nhân sự thường không hiển thị Quản trị viên (Admin)
+    if is_regular_employee(current_user):
+        users_qs = users_qs.exclude(is_superuser=True).exclude(username__iexact='admin')
+
     if query:
         users_qs = users_qs.filter(
             Q(first_name__icontains=query)
@@ -333,7 +381,7 @@ def group_detail(request, group_id=1):
         return redirect('group_detail', group_id=group_id)
 
     conversations = get_sidebar_conversations(request.user)
-    messages = _annotate_messages_for_display(
+    messages_list_qs = _annotate_messages_for_display(
         current_group.messages.all()
         .select_related('sender', 'sender__profile')
         .prefetch_related('attachments')
@@ -352,8 +400,9 @@ def group_detail(request, group_id=1):
         'group_id': group_id,
         'conversations': conversations,
         'current_group': current_group,
+        'active_convo': None,
         'current_user': current_user,
-        'messages': messages,
+        'messages': messages_list_qs,
         'members': members,
         'admin_name': admin_name,
         **extras,
@@ -363,6 +412,15 @@ def group_detail(request, group_id=1):
 def inbox_detail(request, user_id=1):
     current_user = get_current_user(request)
     target_user = get_object_or_404(User, id=user_id)
+
+    # Phân quyền: Nhân sự thông thường không thể nhắn tin trực tiếp với Quản trị viên
+    if is_regular_employee(current_user) and is_admin_user(target_user):
+        messages.warning(
+            request,
+            'Theo quy định phân quyền nội bộ, nhân sự không thể gửi tin nhắn trực tiếp cho Quản trị viên (Admin).'
+        )
+        return redirect('messages_list')
+
     convo = _get_or_create_direct_conversation(current_user, target_user)
 
     if request.method == 'POST':
@@ -370,7 +428,7 @@ def inbox_detail(request, user_id=1):
         return redirect('inbox_detail', user_id=user_id)
 
     conversations = get_sidebar_conversations(request.user)
-    messages = _annotate_messages_for_display(
+    messages_list_qs = _annotate_messages_for_display(
         convo.messages.all()
         .select_related('sender', 'sender__profile')
         .prefetch_related('attachments')
@@ -389,8 +447,9 @@ def inbox_detail(request, user_id=1):
         'convo_display_initials': convo_display_initials,
         'convo': convo,
         'active_convo': convo,
+        'current_group': None,
         'current_user': current_user,
-        'messages': messages,
+        'messages': messages_list_qs,
         **extras,
     })
 
@@ -484,6 +543,12 @@ def inbox_create(request):
         target_user_id = request.POST.get('user_id', '').strip()
         if target_user_id.isdigit():
             target_user = get_object_or_404(User, id=int(target_user_id))
+            if is_regular_employee(current_user) and is_admin_user(target_user):
+                messages.warning(
+                    request,
+                    'Theo quy định phân quyền nội bộ, nhân sự không thể gửi tin nhắn trực tiếp cho Quản trị viên (Admin).'
+                )
+                return redirect('inbox_create')
             _get_or_create_direct_conversation(current_user, target_user)
             return redirect('inbox_detail', user_id=target_user.id)
         return redirect('inbox_create')
@@ -499,3 +564,136 @@ def inbox_create(request):
         'conversations': conversations,
         'current_user': current_user,
     })
+
+
+def api_send_message(request):
+    """
+    API gửi tin nhắn thời gian thực (AJAX), không tải lại trang.
+    Hỗ trợ văn bản và tệp đính kèm đa phương tiện.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập để gửi tin nhắn.'}, status=401)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Phương thức không được hỗ trợ.'}, status=405)
+
+    convo_id = request.POST.get('conversation_id')
+    content = (request.POST.get('content') or '').strip()
+    attachment = request.FILES.get('attachment')
+
+    if not convo_id:
+        return JsonResponse({'success': False, 'error': 'Thiếu mã cuộc trò chuyện.'}, status=400)
+
+    convo = get_object_or_404(Conversation, id=convo_id)
+    current_user = request.user
+
+    # Phân quyền: Nhân sự không thể gửi tin cho Admin
+    if convo.conversation_type == Conversation.TYPE_DIRECT:
+        other_user = convo.get_other_user(current_user)
+        if other_user and is_admin_user(other_user) and is_regular_employee(current_user):
+            return JsonResponse({
+                'success': False,
+                'error': 'Theo quy định phân quyền, nhân sự không thể gửi tin nhắn cho Quản trị viên.'
+            }, status=403)
+
+    if not content and not attachment:
+        return JsonResponse({'success': False, 'error': 'Nội dung tin nhắn không thể để trống.'}, status=400)
+
+    ConversationMember.objects.get_or_create(
+        conversation=convo,
+        user=current_user,
+        defaults={'role': ConversationMember.ROLE_MEMBER}
+    )
+
+    new_msg = Message.objects.create(
+        conversation=convo,
+        sender=current_user,
+        content=content,
+    )
+
+    att_info = None
+    if attachment:
+        att = Attachment.objects.create(
+            message=new_msg,
+            file=attachment,
+            file_name=attachment.name,
+        )
+        att_info = {
+            'file_name': att.file_name,
+            'url': att.file.url,
+            'file_size': att.file_size_display,
+            'is_media': att.attachment_type == Attachment.TYPE_MEDIA,
+        }
+
+    convo.save()
+
+    sender_info = _get_user_display_info(current_user)
+    return JsonResponse({
+        'success': True,
+        'message': {
+            'id': new_msg.id,
+            'sender_id': current_user.id,
+            'sender_name': sender_info['display_name'],
+            'content': new_msg.content or '',
+            'created_at': new_msg.created_at.strftime('%H:%M'),
+            'is_me': True,
+            'attachment': att_info,
+        }
+    })
+
+
+def api_get_messages(request, convo_id):
+    """
+    API polling lấy tin nhắn mới thời gian thực từ mốc after_id.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Yêu cầu đăng nhập.'}, status=401)
+
+    convo = get_object_or_404(Conversation, id=convo_id)
+    current_user = request.user
+
+    # Phân quyền truy cập hội thoại
+    is_member = convo.members.filter(id=current_user.id).exists()
+    if not is_member and not (current_user.is_staff or current_user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Bạn không có quyền truy cập.'}, status=403)
+
+    after_id = request.GET.get('after_id', '0')
+    try:
+        after_id = int(after_id)
+    except ValueError:
+        after_id = 0
+
+    new_messages = (
+        convo.messages.filter(id__gt=after_id)
+        .select_related('sender', 'sender__profile')
+        .prefetch_related('attachments')
+        .order_by('created_at')
+    )
+
+    result = []
+    for m in new_messages:
+        sender_info = _get_user_display_info(m.sender)
+        att = m.primary_attachment
+        att_data = None
+        if att and att.file:
+            att_data = {
+                'file_name': att.file_name,
+                'url': att.file.url,
+                'file_size': att.file_size_display,
+                'is_media': att.attachment_type == Attachment.TYPE_MEDIA,
+            }
+        result.append({
+            'id': m.id,
+            'sender_id': m.sender.id,
+            'sender_name': sender_info['display_name'],
+            'content': m.content or '',
+            'created_at': m.created_at.strftime('%H:%M'),
+            'is_me': (m.sender.id == current_user.id),
+            'attachment': att_data,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'messages': result,
+    })
+

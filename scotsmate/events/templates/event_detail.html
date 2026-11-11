@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ event.title }} | ScotsMate Sự kiện{% endblock %}
+
+{% block content %}
+<main class="w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+
+  <!-- Breadcrumbs -->
+  <nav class="flex items-center gap-2 text-xs text-slate-500 mb-6">
+    <a href="{% url 'home' %}" class="hover:text-[#134c81]" style="text-decoration: none;">Trang chủ</a>
+    <span>/</span>
+    <a href="{% url 'events_list' %}" class="hover:text-[#134c81]" style="text-decoration: none;">Sự kiện & Hoạt động</a>
+    <span>/</span>
+    <span class="text-slate-800 font-semibold truncate max-w-sm">{{ event.title }}</span>
+  </nav>
+
+  <!-- Messages Alert -->
+  {% if messages %}
+    <div class="mb-6">
+      {% for msg in messages %}
+        <div class="p-3.5 rounded-xl text-xs font-medium {% if msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif msg.tags == 'error' %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} mb-2">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Event Header Hero Card -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 mb-8 relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+      <div class="flex-1">
+        <div class="flex flex-wrap items-center gap-2.5 mb-3">
+          <span class="text-xs font-bold px-3 py-1 rounded-full {{ event.category_badge_class }}">
+            {{ event.get_category_display }}
+          </span>
+          {% if event.status == 'upcoming' %}
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+              Sắp diễn ra
+            </span>
+          {% elif event.status == 'ongoing' %}
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 animate-pulse">
+              Đang diễn ra
+            </span>
+          {% elif event.status == 'completed' %}
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              Đã kết thúc
+            </span>
+          {% else %}
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800">
+              Đã hủy
+            </span>
+          {% endif %}
+          
+          {% if event.branch %}
+            <span class="text-xs text-slate-500 font-medium flex items-center gap-1">
+              • Cơ sở: <strong>{{ event.branch.name }}</strong>
+            </span>
+          {% endif %}
+        </div>
+
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug m-0">
+          {{ event.title }}
+        </h1>
+
+        <!-- Quick Meta Info Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-100 text-xs text-slate-600">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-[#134c81] flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div>
+              <p class="text-[11px] text-slate-400 m-0 font-medium">Thời gian diễn ra</p>
+              <p class="font-bold text-slate-800 m-0 mt-0.5">{{ event.date_start|date:"H:i - l, d/m/Y" }}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <div>
+              <p class="text-[11px] text-slate-400 m-0 font-medium">Địa điểm tổ chức</p>
+              <p class="font-bold text-slate-800 m-0 mt-0.5 truncate">{{ event.location }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Management Buttons (Trainer/Admin) -->
+      {% if is_manager %}
+        <div class="flex items-center gap-2 shrink-0">
+          <a href="{% url 'event_edit' event.id %}" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm" style="text-decoration: none;">
+            Chỉnh sửa
+          </a>
+          <a href="{% url 'event_delete' event.id %}" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold transition shadow-sm" style="text-decoration: none;">
+            Xóa
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Left Column: Description & Agenda (2 cols) -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+      
+      <!-- Card: Description -->
+      <section class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm">
+        <h2 class="text-base font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
+          <svg class="text-[#134c81]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Mục tiêu &amp; Giới thiệu sự kiện
+        </h2>
+        <div class="text-sm text-slate-700 leading-relaxed space-y-4">
+          {{ event.description|linebreaks }}
+        </div>
+      </section>
+
+      <!-- Card: Agenda Timeline -->
+      {% if event.agenda %}
+        <section class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm">
+          <h2 class="text-base font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
+            <svg class="text-emerald-700" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            Lịch trình chương trình (Agenda)
+          </h2>
+          <div class="space-y-3">
+            {{ event.agenda|linebreaks }}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Card: Participants List -->
+      <section class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+          <h2 class="text-base font-bold text-slate-900 m-0 flex items-center gap-2">
+            <svg class="text-[#134c81]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            Danh sách nhân sự tham dự ({{ participants.count }})
+          </h2>
+          <span class="text-xs text-slate-500 font-medium">Tối đa: {{ event.max_participants }} người</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {% for p in participants %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+              <div class="w-8 h-8 rounded-full bg-[#134c81] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                {{ p.user.first_name|slice:":1"|default:p.user.username|slice:":1"|upper }}{{ p.user.last_name|slice:":1"|upper }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold text-slate-900 truncate m-0">{{ p.user.get_full_name|default:p.user.username }}</p>
+                <p class="text-[10px] text-slate-400 m-0 truncate">Đăng ký {{ p.registered_at|date:"d/m H:i" }}</p>
+              </div>
+              {% if p.attended %}
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">Đã tham gia</span>
+              {% endif %}
+            </div>
+          {% empty %}
+            <p class="text-xs text-slate-400 col-span-full py-4 text-center">Chưa có ai đăng ký tham gia sự kiện này. Hãy là người đầu tiên!</p>
+          {% endfor %}
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right Column: Registration Box & Organizer (1 col) -->
+    <div class="flex flex-col gap-6">
+      
+      <!-- Registration CTA Card -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm sticky top-24">
+        <h3 class="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">Trạng thái đăng ký</h3>
+        
+        <div class="space-y-3 mb-6 text-xs text-slate-600">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Số chỗ đã đăng ký:</span>
+            <strong class="text-slate-800 text-sm" id="detail-reg-count">{{ event.total_registered }} / {{ event.max_participants }}</strong>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Chỗ còn trống:</span>
+            <span class="font-bold text-emerald-700" id="detail-avail-count">{{ event.available_slots }} chỗ</span>
+          </div>
+
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-1">
+            <div class="bg-gradient-to-r from-[#134c81] to-[#1bc1a0] h-2 rounded-full" style="width: {% widthratio event.total_registered event.max_participants 100 %}%;"></div>
+          </div>
+        </div>
+
+        {% if event.status == 'upcoming' or event.status == 'ongoing' %}
+          <button 
+            type="button" 
+            onclick="toggleEventDetailRegistration({{ event.id }}, this)"
+            class="w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 {% if is_registered %}bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300{% else %}bg-[#134c81] text-white hover:bg-[#0c375f]{% endif %}"
+            data-registered="{% if is_registered %}1{% else %}0{% endif %}"
+          >
+            {% if is_registered %}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span class="btn-text">Đã đăng ký tham gia (Hủy?)</span>
+            {% else %}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span class="btn-text">Đăng ký tham gia ngay</span>
+            {% endif %}
+          </button>
+        {% else %}
+          <div class="w-full py-3 text-center rounded-xl bg-slate-100 text-slate-400 font-bold text-xs">
+            Sự kiện đã kết thúc
+          </div>
+        {% endif %}
+
+        <!-- Organizer Info Box -->
+        <div class="mt-6 pt-6 border-t border-slate-100">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Đơn vị &amp; Người phụ trách</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-[#134c81] text-white font-bold text-xs flex items-center justify-center shrink-0">
+              {{ event.organizer.first_name|slice:":1"|default:event.organizer.username|slice:":1"|upper }}
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-900 m-0">{{ event.organizer.get_full_name|default:event.organizer.username }}</p>
+              <p class="text-[11px] text-slate-500 m-0 mt-0.5">
+                {% if event.organizer.is_staff or event.organizer.is_superuser %}
+                  Giảng viên / Ban Đào tạo
+                {% else %}
+                  Cán bộ tổ chức
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+  function toggleEventDetailRegistration(eventId, btn) {
+    btn.disabled = true;
+
+    fetch(`/events/${eventId}/register/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      if (data.success) {
+        if (data.registered) {
+          btn.setAttribute('data-registered', '1');
+          btn.className = "w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300";
+          btn.querySelector('.btn-text').textContent = "Đã đăng ký tham gia (Hủy?)";
+        } else {
+          btn.setAttribute('data-registered', '0');
+          btn.className = "w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 bg-[#134c81] text-white hover:bg-[#0c375f]";
+          btn.querySelector('.btn-text').textContent = "Đăng ký tham gia ngay";
+        }
+        document.getElementById('detail-reg-count').textContent = `${data.total_registered} / {{ event.max_participants }}`;
+        document.getElementById('detail-avail-count').textContent = `${data.available_slots} chỗ`;
+        window.location.reload();
+      } else {
+        alert(data.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      alert('Không thể kết nối đến máy chủ.');
+    });
+  }
+</script>
+{% endblock %}

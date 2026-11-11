@@ -160,7 +160,7 @@
 
     <!-- Điều hướng chính: Bảng tin, Sự kiện, Tài liệu, Đào tạo, Khảo sát (Đã xóa Chi nhánh theo yêu cầu) -->
     <nav class="primary-nav">
-      <a class="nav-tab {% if not 'courses' in request.path and not 'documents' in request.path and not 'surveys' in request.path and not 'message' in request.path and not 'login' in request.path and not 'register' in request.path %}active{% endif %}" href="{% url 'home' %}">
+      <a class="nav-tab {% if not 'courses' in request.path and not 'documents' in request.path and not 'surveys' in request.path and not 'message' in request.path and not 'events' in request.path and not 'login' in request.path and not 'register' in request.path %}active{% endif %}" href="{% url 'home' %}">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -168,7 +168,7 @@
         <span class="nav-label">Bảng tin</span>
       </a>
 
-      <a class="nav-tab" href="/#events-section">
+      <a class="nav-tab {% if 'events' in request.path %}active{% endif %}" href="{% url 'events_list' %}">
         <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -403,6 +403,20 @@
       {% endif %}
     </div>
   </header>
+
+  {% if messages %}
+    <div class="max-w-[1440px] mx-auto px-12 pt-4">
+      {% for message in messages %}
+        <div class="p-3.5 mb-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-3 shadow-xs {% if message.tags == 'error' or message.tags == 'danger' %}bg-rose-50 text-rose-800 border border-rose-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-900 border border-amber-200{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-900 border border-emerald-200{% else %}bg-[#edf4fb] text-[#134c81] border border-blue-200{% endif %}">
+          <div class="flex items-center gap-2.5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>{{ message }}</span>
+          </div>
+          <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 font-bold ml-2">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   {% block content %}
   {% endblock %}

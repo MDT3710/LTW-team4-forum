@@ -1,9 +1,11 @@
       <!-- Composer soạn thảo -->
       <footer class="mt-4 pt-3 border-t border-slate-200 flex flex-col gap-2">
-        <form id="chat-composer-form" method="POST" enctype="multipart/form-data" class="flex flex-col gap-2">
+        <form id="chat-composer-form" method="POST" enctype="multipart/form-data" class="flex flex-col gap-2" data-convo-id="{{ convo_id }}">
           {% csrf_token %}
-          <textarea id="chat-message-input" name="content" rows="2" placeholder="Nhập tin nhắn..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] resize-none"></textarea>
+          <input type="hidden" name="conversation_id" id="chat-conversation-id" value="{{ convo_id }}">
+          <textarea id="chat-message-input" name="content" rows="2" placeholder="Nhập tin nhắn... (Nhấn Enter để gửi, Shift+Enter xuống dòng)" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#134c81] resize-none"></textarea>
           <input type="file" name="attachment" id="attachment-input" class="hidden">
+
 
           <div class="composer-actions flex items-center justify-between">
             <div class="composer-tools flex items-center gap-3 text-slate-400">
@@ -28,8 +30,9 @@
               </div>
             </div>
 
-            <button type="submit" class="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
-              Gửi tin nhắn
+            <button type="submit" id="chat-submit-btn" class="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">
+              <span>Gửi tin nhắn</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
           </div>
         </form>

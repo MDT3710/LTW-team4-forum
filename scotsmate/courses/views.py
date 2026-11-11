@@ -86,9 +86,6 @@ def login_view(request):
                     if role == 'trainer' and '/trainee/' in next_url:
                         return redirect('trainer_courses')
                     return redirect(next_url)
-                role = get_user_role(user)
-                if role == 'trainer':
-                    return redirect('trainer_courses')
                 return redirect('home')
             else:
                 error_msg = 'Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!'

@@ -2,7 +2,7 @@
         <div id="chat-box" class="flex flex-col gap-4 overflow-y-auto max-h-[460px] pr-2">
           {% for msg in messages %}
             {% if msg.sender == request.user or current_user and msg.sender == current_user %}
-              <div class="message sent flex flex-col gap-1 items-end self-end max-w-xl" data-search-text="bạn {{ msg.content|default:''|lower }} {{ msg.primary_attachment.file_name|default:''|lower }}">
+              <div class="message sent flex flex-col gap-1 items-end self-end max-w-xl" data-msg-id="{{ msg.id }}" data-search-text="bạn {{ msg.content|default:''|lower }} {{ msg.primary_attachment.file_name|default:''|lower }}">
                 <span class="text-[11px] font-semibold text-slate-500">Bạn • {{ msg.created_at|date:"H:i" }}</span>
                 <div class="p-3.5 rounded-2xl rounded-tr-sm bg-[#134c81] text-white text-sm leading-relaxed">
                   {% if msg.content %}
@@ -46,7 +46,7 @@
                 {% endif %}
               </div>
             {% else %}
-              <div class="message received flex flex-col gap-1 items-start max-w-xl" data-search-text="{{ msg.sender_display_name|lower }} {{ msg.content|default:''|lower }} {{ msg.primary_attachment.file_name|default:''|lower }}">
+              <div class="message received flex flex-col gap-1 items-start max-w-xl" data-msg-id="{{ msg.id }}" data-search-text="{{ msg.sender_display_name|lower }} {{ msg.content|default:''|lower }} {{ msg.primary_attachment.file_name|default:''|lower }}">
                 <span class="text-[11px] font-semibold text-slate-500">{{ msg.sender_display_name }} • {{ msg.created_at|date:"H:i" }}</span>
                 <div class="p-3.5 rounded-2xl rounded-tl-sm bg-[#edf4fb] text-slate-800 text-sm leading-relaxed flex flex-col gap-2.5">
                   {% if msg.content %}

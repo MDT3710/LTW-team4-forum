@@ -16,6 +16,7 @@ urlpatterns = [
     path('documents/', include('documents.urls')),
     path('message/', include('message.urls')),
     path('surveys/', include('surveys.urls')),
+    path('events/', include('events.urls')),
     path('register/', courses_views.register_view, name='register'),
 ]
 

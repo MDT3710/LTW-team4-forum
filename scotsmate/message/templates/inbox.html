@@ -38,7 +38,7 @@
         {% include 'partials/_chat_messages.html' %}
       </div>
 
-      {% include 'partials/_chat_composer.html' %}
+      {% include 'partials/_chat_composer.html' with convo_id=convo.id %}
 
     </main>
 

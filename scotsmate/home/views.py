@@ -8,17 +8,10 @@ def index_view(request):
     """
     Điều hướng khi mở trang web (đường dẫn gốc /):
     - Nếu chưa đăng nhập: Luôn chuyển hướng ngay sang trang đăng nhập (/login/).
-    - Sau khi đăng nhập: Quản lý phiên người dùng và phân quyền theo vai trò:
-      + Giảng viên (Trainer): Chuyển vào Cổng quản lý đào tạo (/courses/trainer/courses/)
-      + Học viên / Nhân sự (Trainee): Chuyển vào Bảng tin (/home/)
+    - Sau khi đăng nhập: Chuyển vào Trang chủ Bảng tin (/home/).
     """
     if not request.user.is_authenticated:
         return redirect('login')
-
-    from courses.views import get_user_role
-    role = get_user_role(request.user)
-    if role == 'trainer':
-        return redirect('trainer_courses')
     return redirect('home')
 
 
@@ -98,8 +91,19 @@ def HomeView(request):
         except Exception:
             continue
 
+    from events.models import Event
+    from django.utils import timezone
+    now = timezone.now()
+    upcoming_events = list(
+        Event.objects.filter(status=Event.STATUS_UPCOMING, date_start__gte=now)
+        .order_by('date_start')[:3]
+    )
+    for ev in upcoming_events:
+        ev.is_registered = ev.registrations.filter(user=current_user).exists()
+
     return render(request, 'home.html', {
         'posts': valid_posts,
         'current_user': current_user,
         'search_query': query,
+        'upcoming_events': upcoming_events,
     })

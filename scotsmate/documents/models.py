@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class DocumentCategory(models.Model):
@@ -11,7 +12,7 @@ class DocumentCategory(models.Model):
     icon_name = models.CharField("Tên biểu tượng (Icon)", max_length=100, default='folder', blank=True)
     description = models.TextField("Mô tả ngắn", max_length=500, blank=True)
     display_order = models.PositiveIntegerField("Thứ tự hiển thị", default=0)
-    created_time = models.DateTimeField("Thời gian tạo", auto_now_add=True)
+    created_time = models.DateTimeField("Thời gian tạo", default=timezone.now, blank=True)
 
     class Meta:
         verbose_name = "Danh mục tài liệu"

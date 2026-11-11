@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'posts',
     'surveys',
     'documents',
-    'home'
+    'home',
+    'events',
 ]
 
 MIDDLEWARE = [

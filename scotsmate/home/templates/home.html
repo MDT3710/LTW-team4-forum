@@ -12,44 +12,38 @@
       <section class="card events-card">
         <h2 class="card-title">Sự kiện sắp tới</h2>
         <hr class="divider" />
-        <div class="event">
-          <h3 class="event-name">Đổi mới phương pháp giảng dạy</h3>
-          <div class="event-meta">
-            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span>Thứ Sáu · 14:00 – 16:00</span>
+        {% for ev in upcoming_events %}
+          <div class="event" style="margin-bottom: 14px;">
+            <h3 class="event-name" style="margin-bottom: 6px;">
+              <a href="{% url 'event_detail' ev.id %}" style="text-decoration: none; color: inherit;">
+                {{ ev.title }}
+              </a>
+            </h3>
+            <div class="event-meta">
+              <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>{{ ev.date_start|date:"l · H:i" }} – {{ ev.date_end|date:"H:i" }}</span>
+            </div>
+            <div class="event-meta">
+              <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span class="truncate">{{ ev.location }}</span>
+            </div>
+            {% if ev.is_registered %}
+              <span class="pill pill-registered" style="display: inline-block; margin-top: 6px;">Đã đăng ký tham gia</span>
+            {% else %}
+              <a href="{% url 'event_detail' ev.id %}" class="btn-outline btn-block" style="display: block; text-align: center; text-decoration: none; margin-top: 8px;">Chi tiết</a>
+            {% endif %}
           </div>
-          <div class="event-meta">
-            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <span>Scots English Cầu Giấy</span>
-          </div>
-          <span class="pill pill-registered">Đã đăng ký tham gia</span>
-        </div>
-        <hr class="divider" />
-        <div class="event">
-          <h3 class="event-name">Ngày hội thể thao Scots</h3>
-          <div class="event-meta">
-            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span>Thứ Bảy · 07:00 – 11:00</span>
-          </div>
-          <div class="event-meta">
-            <svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <span>Công viên Yên Sở</span>
-          </div>
-          <button class="btn-outline btn-block">Chi tiết</button>
-        </div>
-        <a class="view-all" href="#">Xem tất cả sự kiện →</a>
+          {% if not forloop.last %}<hr class="divider" />{% endif %}
+        {% empty %}
+          <p style="font-size: 12px; color: #94a3b8; text-align: center; padding: 12px 0;">Không có sự kiện sắp tới.</p>
+        {% endfor %}
+        <a class="view-all" href="{% url 'events_list' %}" style="text-decoration: none; display: block; margin-top: 10px;">Xem tất cả sự kiện →</a>
       
       
 

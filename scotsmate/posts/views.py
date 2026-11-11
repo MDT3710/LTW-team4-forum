@@ -41,8 +41,7 @@ class ScotsmateLoginView(auth_views.LoginView):
                 return '/courses/trainer/courses/'
             return next_url
 
-        if role == 'trainer':
-            return '/courses/trainer/courses/'
+        # Sau khi đăng nhập: Luôn đưa về Trang chủ Bảng tin (/home/) theo đúng yêu cầu
         return '/home/'
 
 
