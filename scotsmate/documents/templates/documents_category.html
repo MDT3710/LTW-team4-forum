@@ -2,6 +2,12 @@
 
 {% block content %}
   <main class="doc-workspace">
+    <!-- Hiển thị thông báo khi xoá tài liệu -->
+    {% for message in messages %}
+      <p style="background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 16px;">
+        <em>{{ message.level_tag|title }}:</em> {{ message }}
+      </p>
+    {% endfor %}
 
     <!-- Tiêu đề danh mục lấy động từ Database -->
     <header class="doc-header">
@@ -19,7 +25,7 @@
     <nav class="doc-tabs">
       <a href="{% url 'documents' %}" class="doc-tab active">Danh mục tài liệu</a>
 
-      {% if request.user.is_superuser or request.user.is_staff %}
+      {% if request.user.is_superuser or is_manager %}
         <a href="{% url 'document_approve' %}" class="doc-tab">
           Tài liệu chờ duyệt ({{ pending_count|default:0 }})
         </a>
@@ -94,11 +100,23 @@
 
               <td>{{ doc.created_at|date:"d/m/Y" }}</td>
               <td style="text-align: right;">
-                {% if doc.file %}
-                  <a href="{{ doc.file.url }}" download class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
-                    Tải về
-                  </a>
-                {% endif %}
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                  {% if doc.file %}
+                    <a href="{{ doc.file.url }}" download class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
+                      Tải về
+                    </a>
+                  {% endif %}
+
+                  {% if request.user.is_superuser or is_manager %}
+                    <form method="POST" action="{% url 'document_category' cate_id=category.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn xoá tài liệu này?');" style="margin: 0;">
+                      {% csrf_token %}
+                      <input type="hidden" name="delete_doc_id" value="{{ doc.id }}">
+                      <button type="submit" class="doc-btn" style="height: 34px; padding: 0 12px; font-size: 13px; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer;">
+                        Xoá
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
               </td>
             </tr>
           {% empty %}

@@ -202,18 +202,21 @@
           </div>
 
           <div class="doc-meta-list">
-            <span class="doc-meta-value">{{ request.user.get_full_name|default:request.user.username }}</span>
+            <div class="doc-meta-row">
+              <span class="doc-meta-label">Người tạo</span>
+              <span class="doc-meta-value">{{ acting_user.get_full_name|default:acting_user.username }}</span>
+            </div>
             <div class="doc-meta-row">
               <span class="doc-meta-label">Mã nhân viên</span>
-              <span class="doc-meta-value">NV-024</span>
+              <span class="doc-meta-value">NV-{{ acting_user.id|stringformat:"03d" }}</span>
             </div>
             <div class="doc-meta-row">
-              <span class="doc-meta-label">Phòng ban</span>
-              <span class="doc-meta-value">Phòng Đào tạo</span>
+                <span class="doc-meta-label">Phòng ban</span>
+                <span class="doc-meta-value">{{ user_dept.name|default:"Chưa phân phòng ban" }}</span>
             </div>
             <div class="doc-meta-row">
-              <span class="doc-meta-label">Ngày khởi tạo</span>
-              <span class="doc-meta-value">{% now "d/m/Y" %}</span>
+                <span class="doc-meta-label">Ngày khởi tạo</span>
+                <span class="doc-meta-value">{% now "d/m/Y" %}</span>
             </div>
           </div>
         </div>

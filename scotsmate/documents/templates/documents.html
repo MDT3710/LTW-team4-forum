@@ -35,7 +35,7 @@
     <nav class="doc-tabs">
       <a href="{% url 'documents' %}" class="doc-tab active">Danh mục tài liệu</a>
 
-      {% if request.user.is_superuser or request.user.is_staff %}
+      {% if request.user.is_superuser or is_manager %}
         <a href="{% url 'document_approve' %}" class="doc-tab">
           Tài liệu chờ duyệt ({{ pending_count|default:0 }})
         </a>
@@ -56,13 +56,13 @@
     </form>
 
     <!-- Bảng danh sách danh mục tài liệu -->
+    <!-- Bảng danh sách danh mục tài liệu -->
     <section class="doc-table-card">
       <table class="doc-table">
         <thead>
           <tr>
             <th>Tên danh mục</th>
             <th>Mô tả danh mục</th>
-            <th style="text-align: center;">Số lượng tài liệu</th>
             <th style="text-align: right;">Thao tác</th>
           </tr>
         </thead>
@@ -75,14 +75,10 @@
                 </a>
               </td>
 
-              <td style="color: var(--ink-soft); max-width: 360px;">
+              <td style="color: var(--ink-soft); max-width: 480px;">
                 {{ cat.description|default:"Chưa có mô tả chi tiết." }}
               </td>
-              <td style="text-align: center;">
-                <span class="doc-badge doc-badge-approved">
-                  {{ cat.doc_count|default:0 }} tài liệu
-                </span>
-              </td>
+
               <td style="text-align: right;">
                 <a href="{% url 'document_category' cate_id=cat.id %}" class="doc-btn doc-btn-secondary">
                   Xem chi tiết
@@ -91,14 +87,19 @@
             </tr>
           {% empty %}
             <tr>
-
-              <td colspan="4" style="text-align: center; color: var(--ink-soft); padding: 48px;">
+              <td colspan="3" style="text-align: center; color: var(--ink-soft); padding: 48px;">
                 Chưa có danh mục nào. Nhấn <strong>"Tạo danh mục"</strong> ở góc trên để thêm mới.
               </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
+
+      <!-- Chân bảng thống kê -->
+      <footer class="doc-table-pagination">
+        <div>Tổng số: <strong>{{ categories|length }}</strong> danh mục</div>
+      </footer>
+    </section>
 
       <!-- Chân bảng thống kê -->
       <footer class="doc-table-pagination">
