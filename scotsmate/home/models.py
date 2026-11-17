@@ -106,9 +106,6 @@ class EmployeeInformation(models.Model):
         max_length=15, # chấp nhận sdt quốc tế
         verbose_name="Số điện thoại"
     )
-    email = models.EmailField(
-        verbose_name="Email"
-    )
     dep = models.ForeignKey(
         Department,
         on_delete=models.SET_NULL,

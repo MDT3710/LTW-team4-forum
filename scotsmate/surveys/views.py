@@ -32,6 +32,7 @@ def SurveyList(request):
         access_permissions__emp=user,
         access_permissions__can_respond=True,
         is_visible=True,
+        is_approved=True
     ).filter(
         Q(response_deadline__isnull=True) | Q(response_deadline__gt=timezone.now())
     ).distinct().select_related('department', 'creator').order_by('-date_created')
@@ -505,14 +506,14 @@ def SurveyCreate(request):
     return render(request, 'create.html', context)
 
 def SurveyApproveList(request):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    # if not request.user.is_authenticated:
+    #     default_user = User.objects.filter(username='minhanh').first()
+    #     if default_user:
+    #         login(request, default_user)
 
     user = request.user
     managed_departments = user.managed_departments.all()
-    is_admin = user.is_staff or user.is_superuser
+    is_admin = user.is_superuser
 
     # Kiểm tra quyền: Chỉ Trưởng phòng (hoặc Admin/Superuser) mới được truy cập
     if not (managed_departments.exists() or is_admin):
