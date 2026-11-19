@@ -9,7 +9,6 @@ from .models import DocumentCategory, Document, DocumentUpdateProposal, Document
 from .forms import DocumentCreateForm, DocumentCategoryForm, DocumentEditForm
 from home.roles import (
     is_department_manager,
-    is_director,
     is_it_admin,
     redirect_back_with_error,
 )
@@ -17,25 +16,19 @@ from home.roles import (
 User = get_user_model()
 
 
-def _require_doc_access(request, allow_director=True, require_manager=False):
+def _require_doc_access(request, require_manager=False):
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
     if is_it_admin(request.user):
         return redirect_back_with_error(
             request,
-            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Tài liệu.',
+            'Tài khoản Admin chỉ thao tác quản trị hệ thống trong trang /admin/.',
             fallback_url='home',
         )
     if require_manager and not is_department_manager(request.user):
         return redirect_back_with_error(
             request,
             'Chỉ Trưởng phòng mới có quyền thực hiện chức năng quản lý/phê duyệt tài liệu.',
-            fallback_url='documents',
-        )
-    if not allow_director and is_director(request.user):
-        return redirect_back_with_error(
-            request,
-            'Giám đốc chỉ có quyền xem toàn bộ tài liệu, không thực hiện đăng tải hay chỉnh sửa.',
             fallback_url='documents',
         )
     return None
@@ -52,13 +45,13 @@ def _get_user_department(user):
 
 
 def _is_manager(user):
-    # Kiểm tra user có phải là Trưởng phòng không (không bao gồm Giám đốc/Admin IT)
+    # Kiểm tra user có phải là Trưởng phòng không
     return is_department_manager(user)
 
 
 # 1. Thư viện tài liệu (/documents/)
 def document_list(request):
-    denied = _require_doc_access(request, allow_director=True)
+    denied = _require_doc_access(request)
     if denied:
         return denied
 
@@ -79,14 +72,13 @@ def document_list(request):
         'pending_count': Document.objects.filter(status='PENDING').count(),
         'search_query': search_query,
         'is_manager': _is_manager(request.user),
-        'is_director_readonly': is_director(request.user),
     }
     return render(request, 'documents.html', context)
 
 
 # 2. Tạo mới tài liệu (/documents/create/)
 def document_create(request):
-    denied = _require_doc_access(request, allow_director=False)
+    denied = _require_doc_access(request)
     if denied:
         return denied
 
@@ -145,7 +137,7 @@ def document_create(request):
 
 # 3. Tài liệu của tôi (/documents/my_docs/)
 def document_my_docs(request):
-    denied = _require_doc_access(request, allow_director=False)
+    denied = _require_doc_access(request)
     if denied:
         return denied
 
@@ -179,7 +171,7 @@ def document_my_docs(request):
 
 # 4. Cập nhật tài liệu (/documents/my_docs/<id>/edit/)
 def document_edit(request, id):
-    denied = _require_doc_access(request, allow_director=False)
+    denied = _require_doc_access(request)
     if denied:
         return denied
 
@@ -220,9 +212,12 @@ def document_edit(request, id):
                 approver=doc.approver,
             )
 
-            doc.status = 'PENDING'
-            doc.request_type = 'UPDATE'
-            doc.save()
+            # Chỉ cập nhật trạng thái, giữ nguyên dữ liệu gốc cho tới khi Trưởng phòng phê duyệt
+            Document.objects.filter(id=doc.id).update(
+                status='PENDING',
+                request_type='UPDATE',
+                updated_at=timezone.now(),
+            )
 
             messages.success(
                 request,
@@ -244,7 +239,7 @@ def document_edit(request, id):
 
 # 5. Danh sách tài liệu chờ duyệt (/documents/approve/)
 def document_approve_list(request):
-    denied = _require_doc_access(request, allow_director=False, require_manager=True)
+    denied = _require_doc_access(request, require_manager=True)
     if denied:
         return denied
 
@@ -265,7 +260,7 @@ def document_approve_list(request):
 
 # 6. Chi tiết duyệt tài liệu (/documents/approve/<id>/)
 def document_approve_detail(request, id):
-    denied = _require_doc_access(request, allow_director=False, require_manager=True)
+    denied = _require_doc_access(request, require_manager=True)
     if denied:
         return denied
 
@@ -318,7 +313,7 @@ def document_approve_detail(request, id):
 
 # 7. Chi tiết danh mục (/documents/<int:cate_id>/)
 def document_category(request, cate_id):
-    denied = _require_doc_access(request, allow_director=True)
+    denied = _require_doc_access(request)
     if denied:
         return denied
 
@@ -326,7 +321,6 @@ def document_category(request, cate_id):
     category = get_object_or_404(DocumentCategory, id=cate_id)
     user = request.user
     is_mgr = _is_manager(user)
-    is_dir = is_director(user)
 
     # Xử lý xoá hoặc ẩn/hiện tài liệu (Chỉ Trưởng phòng)
     if request.method == 'POST':
@@ -359,8 +353,6 @@ def document_category(request, cate_id):
 
     if not is_mgr:
         documents = documents.filter(is_visible=True)
-
-    if not is_dir and not is_mgr:
         user_dept = _get_user_department(user)
         access_filter = Q(access_scope='ALL') | Q(creator=user)
         if user_dept:
@@ -377,33 +369,34 @@ def document_category(request, cate_id):
         'pending_count': Document.objects.filter(status='PENDING').count(),
         'search_query': search_query,
         'is_manager': is_mgr,
-        'is_director_readonly': is_dir,
     }
     return render(request, 'documents_category.html', context)
 
+
 # 8. Tạo danh mục tài liệu mới (/documents/category/create/)
 def document_category_create(request):
-    denied = _require_doc_access(request, allow_director=False, require_manager=True)
+    denied = _require_doc_access(request)
     if denied:
         return denied
 
-    if request.method == "POST":
+    if request.method == 'POST':
         form = DocumentCategoryForm(request.POST)
         if form.is_valid():
-            category = form.save(commit=False)
-            category.display_order = DocumentCategory.objects.count() + 1
-            category.save()
-
-            messages.success(
-                request,
-                f'Danh mục "{category.name}" đã được tạo thành công.'
-            )
-            return redirect("documents")
+            name = form.cleaned_data['name'].strip()
+            if DocumentCategory.objects.filter(name__iexact=name).exists():
+                messages.error(request, f"Danh mục '{name}' đã tồn tại trong hệ thống.")
+            else:
+                category = form.save(commit=False)
+                category.display_order = DocumentCategory.objects.count() + 1
+                category.save()
+                messages.success(request, f'Danh mục "{category.name}" đã được tạo thành công.')
+                return redirect('documents')
     else:
         form = DocumentCategoryForm()
 
-    return render(request, "documents_category_create.html", {
-        "form": form,
-        "pending_count": Document.objects.filter(status='PENDING').count(),
-        "is_manager": True,
-    })
+    context = {
+        'form': form,
+        'pending_count': Document.objects.filter(status='PENDING').count(),
+        'is_manager': _is_manager(request.user),
+    }
+    return render(request, 'documents_category_create.html', context)
