@@ -16,6 +16,8 @@ class ScotsmateAuthRequiredMiddleware:
         '/posts/logout/',
         '/register/',
         '/courses/register/',
+        '/password-reset/',
+        '/reset/',
         '/admin/',
     )
 
@@ -29,8 +31,17 @@ class ScotsmateAuthRequiredMiddleware:
         if path.startswith(settings.STATIC_URL) or (settings.MEDIA_URL and path.startswith(settings.MEDIA_URL)):
             return self.get_response(request)
 
-        # Cho phép các đường dẫn đăng nhập / đăng ký / công khai
+        # Cho phép các đường dẫn đăng nhập / đăng ký / quên mật khẩu / công khai
         if any(path.startswith(prefix) for prefix in self.EXEMPT_PREFIXES):
+            # Chỉ Admin (Phòng IT) mới được vào /admin/ khi đã đăng nhập
+            if path.startswith('/admin/') and request.user.is_authenticated:
+                from home.roles import is_it_admin, redirect_back_with_error
+                if not is_it_admin(request.user):
+                    return redirect_back_with_error(
+                        request,
+                        'Bạn không có quyền truy cập trang Quản trị hệ thống (/admin/). Chỉ Admin (Phòng IT) mới được phép.',
+                        fallback_url='home'
+                    )
             return self.get_response(request)
 
         # Nếu chưa xác thực phiên người dùng: Chuyển hướng sang trang đăng nhập

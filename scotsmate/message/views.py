@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .models import Attachment, Conversation, ConversationMember, Message
+from home.roles import get_primary_role_label, is_it_admin
 
 try:
     from posts.colleagues import COLLEAGUES_DATA
@@ -24,17 +25,15 @@ DEFAULT_AVATAR_PALETTE = (
 
 
 def is_admin_user(user):
-    """Xác định tài khoản có quyền Quản trị viên hay không."""
-    if not user or not user.is_authenticated:
-        return False
-    return bool(user.is_superuser or user.username.lower() == 'admin')
+    """Xác định tài khoản có quyền Admin IT hay không."""
+    return is_it_admin(user)
 
 
 def is_regular_employee(user):
-    """Xác định tài khoản là nhân sự thông thường (không phải admin hay quản trị hệ thống)."""
+    """Xác định tài khoản là nhân sự sử dụng nghiệp vụ (không phải Admin IT)."""
     if not user or not user.is_authenticated:
         return False
-    return not (user.is_staff or user.is_superuser)
+    return not is_it_admin(user)
 
 
 def _compute_initials(text, fallback='SC'):
@@ -86,12 +85,10 @@ def _get_user_display_info(user):
     else:
         display_name = user.username
 
-    if user.is_superuser or getattr(user, 'username', '').lower() == 'admin':
-        default_role = 'Quản trị viên hệ thống'
-    elif user.is_staff:
-        default_role = 'Giảng viên đào tạo (Trainer)'
+    if is_it_admin(user):
+        default_role = 'Admin (Phòng IT)'
     else:
-        default_role = colleague_meta.get('job_title') or 'Giáo viên'
+        default_role = get_primary_role_label(user) or colleague_meta.get('job_title') or 'Nhân viên'
 
     default_branch = colleague_meta.get('branch') or 'Cầu Giấy, Hà Nội'
     default_color = DEFAULT_AVATAR_PALETTE[(user.id or 0) % len(DEFAULT_AVATAR_PALETTE)]
@@ -655,7 +652,7 @@ def api_get_messages(request, convo_id):
 
     # Phân quyền truy cập hội thoại
     is_member = convo.members.filter(id=current_user.id).exists()
-    if not is_member and not (current_user.is_staff or current_user.is_superuser):
+    if not is_member:
         return JsonResponse({'success': False, 'error': 'Bạn không có quyền truy cập.'}, status=403)
 
     after_id = request.GET.get('after_id', '0')

@@ -4,7 +4,7 @@
   <main class="doc-workspace">
     <!-- Hiển thị message -->
     {% for message in messages %}
-      <p style="background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 16px;">
+      <p style="background: {% if 'error' in message.tags %}#fee2e2; color: #991b1b; border: 1px solid #fecaca;{% else %}#dcfce7; color: #166534; border: 1px solid #bbf7d0;{% endif %} padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
         <em>{{ message.level_tag|title }}:</em> {{ message }}
       </p>
     {% endfor %}
@@ -16,18 +16,22 @@
         <p class="doc-header-subtitle">Quản lý và phân loại các tài liệu trong toàn hệ thống</p>
       </div>
       <div style="display: flex; gap: 12px;">
+        {% if is_manager %}
         <a href="{% url 'document_category_create' %}" class="doc-btn doc-btn-secondary">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Tạo danh mục
         </a>
+        {% endif %}
+        {% if not user_roles.is_director %}
         <a href="{% url 'document_create' %}" class="doc-btn doc-btn-primary">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Thêm tài liệu mới
         </a>
+        {% endif %}
       </div>
     </header>
 
@@ -35,13 +39,15 @@
     <nav class="doc-tabs">
       <a href="{% url 'documents' %}" class="doc-tab active">Danh mục tài liệu</a>
 
-      {% if request.user.is_superuser or is_manager %}
+      {% if is_manager %}
         <a href="{% url 'document_approve' %}" class="doc-tab">
           Tài liệu chờ duyệt ({{ pending_count|default:0 }})
         </a>
       {% endif %}
 
-      <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
+      {% if not user_roles.is_director %}
+        <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
+      {% endif %}
     </nav>
 
     <!-- Thanh tìm kiếm -->
@@ -94,12 +100,6 @@
           {% endfor %}
         </tbody>
       </table>
-
-      <!-- Chân bảng thống kê -->
-      <footer class="doc-table-pagination">
-        <div>Tổng số: <strong>{{ categories|length }}</strong> danh mục</div>
-      </footer>
-    </section>
 
       <!-- Chân bảng thống kê -->
       <footer class="doc-table-pagination">

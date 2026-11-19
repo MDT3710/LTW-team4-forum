@@ -11,18 +11,77 @@ import collections
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from .models import *
 from home.models import *
+from home.roles import (
+    is_department_manager,
+    is_director,
+    is_it_admin,
+    redirect_back_with_error,
+)
 from .forms import *
+
+
+def _survey_question_content_types():
+    mc_ct = ContentType.objects.get_for_model(SurveyMultipleChoiceQuestion)
+    essay_ct = ContentType.objects.get_for_model(SurveyEssayQuestion)
+    return mc_ct, essay_ct
+
+
+def _require_survey_access(request, allow_director=True, require_manager=False):
+    if not request.user.is_authenticated:
+        return redirect('/login/?next=' + request.path)
+    if is_it_admin(request.user):
+        return redirect_back_with_error(
+            request,
+            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Khảo sát.',
+            fallback_url='home',
+        )
+    if require_manager and not is_department_manager(request.user):
+        fallback = 'SurveyPublished' if is_director(request.user) else 'MySurvey'
+        return redirect_back_with_error(
+            request,
+            'Chỉ Trưởng phòng mới có quyền truy cập chức năng phê duyệt khảo sát.',
+            fallback_url=fallback,
+        )
+    if not allow_director and is_director(request.user):
+        return redirect_back_with_error(
+            request,
+            'Giám đốc chỉ có quyền xem danh sách và báo cáo khảo sát, không tham gia làm hoặc tạo khảo sát.',
+            fallback_url='SurveyPublished',
+        )
+    return None
+
+
+def _can_view_survey_responses(user, survey):
+    if is_director(user):
+        return True
+    if survey.creator_id == user.id:
+        return True
+    if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
+        return True
+    return SurveyAccess.objects.filter(survey=survey, emp=user, can_view_responses=True).exists()
+
+
+def _can_manage_survey(user, survey):
+    if is_director(user) or is_it_admin(user):
+        return False
+    if survey.creator_id == user.id:
+        return True
+    if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
+        return True
+    return SurveyAccess.objects.filter(survey=survey, emp=user, can_view_responses=True).exists()
 
 
 # Create your views here.
 def SurveyList(request):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=True)
+    if denied:
+        return denied
+    if is_director(request.user):
+        return redirect('SurveyPublished')
 
     user = request.user
     query = request.GET.get('q', '').strip()
@@ -91,10 +150,9 @@ def SurveyList(request):
     return render(request, 'list.html', context)
 
 def SurveyHistory(request):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=False)
+    if denied:
+        return denied
 
     user = request.user
     query = request.GET.get('q', '').strip()
@@ -120,23 +178,26 @@ def SurveyHistory(request):
     return render(request, 'history.html', context)
 
 def SurveyTake(request, survey_pk):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=False)
+    if denied:
+        return denied
 
     current_user = request.user
     survey = get_object_or_404(Survey, pk=survey_pk)
 
-    # Kiểm tra quyền truy cập: nếu không phải creator / manager / admin thì phải có SurveyAccess
+    # Kiểm tra quyền truy cập: phải có SurveyAccess hoặc là creator / Trưởng phòng phụ trách
     has_access = SurveyAccess.objects.filter(survey=survey, emp=current_user, can_respond=True).exists()
-    is_admin = current_user.is_staff or current_user.is_superuser
     is_creator = (survey.creator_id == current_user.id)
-    is_manager = bool(survey.department and survey.department.manager_id == current_user.id)
+    is_manager = is_department_manager(current_user) and bool(
+        survey.department and survey.department.manager_id == current_user.id
+    )
 
-    if not (has_access or is_admin or is_creator or is_manager):
-        messages.error(request, 'Bạn không có quyền tham gia trả lời bài khảo sát này.')
-        return redirect('MySurvey')
+    if not (has_access or is_creator or is_manager):
+        return redirect_back_with_error(
+            request,
+            'Bạn không có quyền tham gia trả lời bài khảo sát này.',
+            fallback_url='MySurvey',
+        )
 
     # Thống kê số lần user đã nộp khảo sát này và giới hạn cho phép
     user_submitted_qs = SurveyResponse.objects.filter(
@@ -200,8 +261,9 @@ def SurveyTake(request, survey_pk):
             user_answers[rd.question_id] = rd.answer
 
     # Chuẩn bị dữ liệu MC và Essay
-    mc_ids = [d.object_id for d in details if d.question_type_id == 26]
-    essay_ids = [d.object_id for d in details if d.question_type_id == 25]
+    mc_ct, essay_ct = _survey_question_content_types()
+    mc_ids = [d.object_id for d in details if d.question_type_id == mc_ct.id]
+    essay_ids = [d.object_id for d in details if d.question_type_id == essay_ct.id]
 
     mc_map = {
         mc.id: mc
@@ -222,8 +284,8 @@ def SurveyTake(request, survey_pk):
             'index': idx,
             'caption': d.caption,
             'is_required': d.is_required,
-            'is_mc': (d.question_type_id == 26),
-            'is_essay': (d.question_type_id == 25),
+            'is_mc': (d.question_type_id == mc_ct.id),
+            'is_essay': (d.question_type_id == essay_ct.id),
             'user_answer': raw_ans,
             'selected_choice_ids': [],
             'choices': [],
@@ -233,7 +295,7 @@ def SurveyTake(request, survey_pk):
             'error_msg': None,
         }
 
-        if d.question_type_id == 26:
+        if d.question_type_id == mc_ct.id:
             mc_obj = mc_map.get(d.object_id)
             if mc_obj:
                 q_item['max_choice'] = mc_obj.max_choice
@@ -255,7 +317,7 @@ def SurveyTake(request, survey_pk):
             if q_item['selected_choice_ids']:
                 answered_count += 1
 
-        elif d.question_type_id == 25:
+        elif d.question_type_id == essay_ct.id:
             eq_obj = essay_map.get(d.object_id)
             if eq_obj:
                 q_item['max_character'] = eq_obj.max_character
@@ -424,17 +486,19 @@ def process_survey_questions(survey, raw_json):
     if not raw_json:
         return
 
+    mc_ct, essay_ct = _survey_question_content_types()
     questions_list = json.loads(raw_json)
     for q in questions_list:
         caption = q.get('caption', '').strip()
         if not caption:
             continue
 
-        q_type = int(q.get('question_type_id'))
-        is_req = q.get('is_required')
+        raw_type = q.get('question_type_id')
+        raw_type_str = str(raw_type).strip().lower() if raw_type is not None else ''
+        is_req = bool(q.get('is_required', True))
 
-        if q_type == 26:  # Trắc nghiệm
-            max_c = int(q.get('max_choice', 1))
+        if raw_type_str in (str(mc_ct.id), 'mc', 'multiple_choice'):  # Trắc nghiệm
+            max_c = int(q.get('max_choice') or 1)
             choices = q.get('choices', [])
 
             mc_q = SurveyMultipleChoiceQuestion.objects.create(max_choice=max_c)
@@ -446,23 +510,22 @@ def process_survey_questions(survey, raw_json):
             if choice_objs:
                 SurveyQuestionChoice.objects.bulk_create(choice_objs)
 
-            # Lưu ý: Đảm bảo model được gọi đúng (không bị trùng tên với view)
             SurveyDetail.objects.create(
                 survey=survey,
-                question_type_id=26,
+                question_type=mc_ct,
                 object_id=mc_q.id,
                 caption=caption,
                 is_required=is_req
             )
 
-        elif q_type == 25:  # Tự luận
+        elif raw_type_str in (str(essay_ct.id), 'essay', 'text'):  # Tự luận
             essay_q = SurveyEssayQuestion.objects.create(
                 max_character=int(q['max_character']) if q.get('max_character') else None
             )
 
             SurveyDetail.objects.create(
                 survey=survey,
-                question_type_id=25,
+                question_type=essay_ct,
                 object_id=essay_q.id,
                 caption=caption,
                 is_required=is_req
@@ -470,6 +533,10 @@ def process_survey_questions(survey, raw_json):
 
 
 def SurveyCreate(request):
+    denied = _require_survey_access(request, allow_director=False)
+    if denied:
+        return denied
+
     if request.method == 'POST':
         survey_info = Create(request.POST)
         if survey_info.is_valid():
@@ -477,10 +544,11 @@ def SurveyCreate(request):
                 # 1. Lưu thông tin cơ bản của khảo sát
                 survey = survey_info.save(commit=False)
                 survey.creator = request.user
-                survey.department = request.user.employee_info.dep
+                emp_info = getattr(request.user, 'employee_info', None)
+                survey.department = getattr(emp_info, 'dep', None)
 
-                manager = survey.department.manager
-                if manager == request.user:
+                manager = survey.department.manager if survey.department else None
+                if manager == request.user or not manager:
                     survey.is_approved = True
                 else:
                     survey.approver = manager
@@ -500,39 +568,29 @@ def SurveyCreate(request):
     else:
         survey_info = Create()
 
+    mc_ct, essay_ct = _survey_question_content_types()
     context = {
         'survey_info': survey_info,
+        'mc_type_id': mc_ct.id,
+        'essay_type_id': essay_ct.id,
     }
     return render(request, 'create.html', context)
 
 def SurveyApproveList(request):
-    # if not request.user.is_authenticated:
-    #     default_user = User.objects.filter(username='minhanh').first()
-    #     if default_user:
-    #         login(request, default_user)
+    denied = _require_survey_access(request, allow_director=False, require_manager=True)
+    if denied:
+        return denied
 
     user = request.user
     managed_departments = user.managed_departments.all()
-    is_admin = user.is_superuser
-
-    # Kiểm tra quyền: Chỉ Trưởng phòng (hoặc Admin/Superuser) mới được truy cập
-    if not (managed_departments.exists() or is_admin):
-        messages.error(request, 'Bạn không có quyền truy cập trang phê duyệt khảo sát.')
-        return redirect('MySurvey')
 
     query = request.GET.get('q', '').strip()
 
-    # Lọc khảo sát:
-    # 1. Thuộc các phòng ban do user làm trưởng phòng
-    # 2. Chưa duyệt (is_approved=False)
-    # 3. Chưa quá hạn (response_deadline > now() hoặc không đặt hạn)
-    if is_admin and not managed_departments.exists():
-        surveys_qs = Survey.objects.filter(is_approved=False)
-    else:
-        surveys_qs = Survey.objects.filter(
-            department__in=managed_departments,
-            is_approved=False
-        )
+    # Lọc khảo sát thuộc các phòng ban do Trưởng phòng phụ trách, chưa duyệt và chưa quá hạn
+    surveys_qs = Survey.objects.filter(
+        department__in=managed_departments,
+        is_approved=False
+    )
 
     surveys_qs = surveys_qs.filter(
         Q(response_deadline__isnull=True) | Q(response_deadline__gt=timezone.now())
@@ -560,10 +618,9 @@ def SurveyApproveList(request):
     return render(request, 'approve_list.html', context)
 
 def SurveyApproveDetail(request, survey_pk=None):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=False, require_manager=True)
+    if denied:
+        return denied
 
     current_user = request.user
     survey = get_object_or_404(
@@ -571,13 +628,15 @@ def SurveyApproveDetail(request, survey_pk=None):
         pk=survey_pk
     )
 
-    # Kiểm tra quyền: phải là Trưởng phòng của phòng ban khảo sát hoặc Admin/Superuser
+    # Kiểm tra quyền: phải là Trưởng phòng của phòng ban khảo sát
     is_manager = current_user.managed_departments.filter(id=survey.department_id).exists()
-    is_admin = current_user.is_staff or current_user.is_superuser
 
-    if not (is_manager or is_admin):
-        messages.error(request, 'Bạn không có quyền thẩm định bài khảo sát này.')
-        return redirect('SurveyApproveList')
+    if not is_manager:
+        return redirect_back_with_error(
+            request,
+            'Bạn chỉ có quyền thẩm định khảo sát thuộc phòng ban mình phụ trách.',
+            fallback_url='SurveyApproveList',
+        )
 
     # Xử lý POST (Từ chối xóa khảo sát, hoặc Phê duyệt & Phát hành)
     if request.method == 'POST':
@@ -596,9 +655,10 @@ def SurveyApproveDetail(request, survey_pk=None):
             return redirect('SurveyApproveList')
 
     # Lấy danh sách câu hỏi
+    mc_ct, essay_ct = _survey_question_content_types()
     details = list(survey.details.select_related('question_type').all().order_by('id'))
-    mc_ids = [d.object_id for d in details if d.question_type_id == 26]
-    essay_ids = [d.object_id for d in details if d.question_type_id == 25]
+    mc_ids = [d.object_id for d in details if d.question_type_id == mc_ct.id]
+    essay_ids = [d.object_id for d in details if d.question_type_id == essay_ct.id]
 
     mc_map = {
         mc.id: mc
@@ -616,18 +676,18 @@ def SurveyApproveDetail(request, survey_pk=None):
             'index': idx,
             'caption': d.caption,
             'is_required': d.is_required,
-            'is_mc': (d.question_type_id == 26),
-            'is_essay': (d.question_type_id == 25),
+            'is_mc': (d.question_type_id == mc_ct.id),
+            'is_essay': (d.question_type_id == essay_ct.id),
             'choices': [],
             'max_choice': 1,
             'max_character': None,
         }
-        if d.question_type_id == 26:
+        if d.question_type_id == mc_ct.id:
             mc_obj = mc_map.get(d.object_id)
             if mc_obj:
                 q_item['max_choice'] = mc_obj.max_choice
                 q_item['choices'] = list(mc_obj.choices.all())
-        elif d.question_type_id == 25:
+        elif d.question_type_id == essay_ct.id:
             eq_obj = essay_map.get(d.object_id)
             if eq_obj:
                 q_item['max_character'] = eq_obj.max_character
@@ -660,7 +720,7 @@ def SurveyApproveDetail(request, survey_pk=None):
         u = acc.emp
         initials = get_initials(u)
         full_name = u.get_full_name() or u.username
-        email = u.email or (u.employee_info.email if hasattr(u, 'employee_info') and u.employee_info and u.employee_info.email else '') or f'{u.username}@scotsenglish.edu.vn'
+        email = u.email or f'{u.username}@scotsenglish.edu.vn'
         dep_name = get_dep_name(u)
 
         user_info = {
@@ -697,23 +757,29 @@ def SurveyApproveDetail(request, survey_pk=None):
     return render(request, 'approve_detail.html', context)
 
 def SurveyPublished(request):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=True)
+    if denied:
+        return denied
 
     current_user = request.user
-    is_admin = current_user.is_staff or current_user.is_superuser
+    is_dir = is_director(current_user)
+    is_mgr = is_department_manager(current_user)
 
-    # 1. Chỉ khảo sát mình được gán quyền xem kết quả (can_view_responses=True) và admin/superadmin mới được xem
-    # Lưu ý: Hiển thị cả các khảo sát đã ẩn (is_visible=False) để người quản lý/Admin theo dõi và có thể Bỏ ẩn
-    if is_admin:
+    # Giám đốc xem tất cả khảo sát đã duyệt (chỉ xem); Trưởng phòng xem phòng ban mình + được gán quyền;
+    # Nhân viên chỉ xem khảo sát được gán quyền can_view_responses=True hoặc tự tạo
+    if is_dir:
         surveys_qs = Survey.objects.filter(is_approved=True)
+    elif is_mgr:
+        managed_depts = current_user.managed_departments.all()
+        surveys_qs = Survey.objects.filter(is_approved=True).filter(
+            Q(department__in=managed_depts) |
+            Q(creator=current_user) |
+            Q(access_permissions__emp=current_user, access_permissions__can_view_responses=True)
+        ).distinct()
     else:
-        surveys_qs = Survey.objects.filter(
-            is_approved=True,
-            access_permissions__emp=current_user,
-            access_permissions__can_view_responses=True
+        surveys_qs = Survey.objects.filter(is_approved=True).filter(
+            Q(creator=current_user) |
+            Q(access_permissions__emp=current_user, access_permissions__can_view_responses=True)
         ).distinct()
 
     # Tìm kiếm theo tiêu đề
@@ -771,7 +837,7 @@ def SurveyPublished(request):
         for acc in participants_qs:
             u = acc.emp
             full_name = u.get_full_name() or u.username
-            email = u.email or (u.employee_info.email if hasattr(u, 'employee_info') and u.employee_info and u.employee_info.email else '') or f'{u.username}@scotsenglish.edu.vn'
+            email = u.email or f'{u.username}@scotsenglish.edu.vn'
             dep_name = (
                 u.employee_info.dep.name
                 if hasattr(u, 'employee_info') and u.employee_info and u.employee_info.dep
@@ -805,14 +871,14 @@ def SurveyPublished(request):
         'page_obj': page_obj,
         'search_query': query,
         'total_count': total_count,
+        'is_director_readonly': is_dir,
     }
     return render(request, 'published.html', context)
 
 def ResponseOverview(request, rep_pk=None, survey_pk=None):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=True)
+    if denied:
+        return denied
 
     current_user = request.user
     survey_id = rep_pk or survey_pk
@@ -821,16 +887,23 @@ def ResponseOverview(request, rep_pk=None, survey_pk=None):
         pk=survey_id
     )
 
-    # 1. Kiểm tra quyền truy cập: Chỉ admin/superadmin hoặc người được gán quyền can_view_responses
-    is_admin = current_user.is_staff or current_user.is_superuser
-    has_access = SurveyAccess.objects.filter(survey=survey, emp=current_user, can_view_responses=True).exists()
+    if not _can_view_survey_responses(current_user, survey):
+        return redirect_back_with_error(
+            request,
+            'Bạn không có quyền xem báo cáo phản hồi của khảo sát này.',
+            fallback_url='SurveyPublished',
+        )
 
-    if not (is_admin or has_access):
-        messages.error(request, 'Bạn không có quyền xem báo cáo phản hồi của khảo sát này.')
-        return redirect('SurveyPublished')
+    can_manage = _can_manage_survey(current_user, survey)
 
-    # Xử lý POST điều chỉnh is_visible hoặc is_respondable
+    # Xử lý POST điều chỉnh is_visible hoặc is_respondable (Giám đốc chỉ xem, không chỉnh sửa)
     if request.method == 'POST':
+        if not can_manage:
+            return redirect_back_with_error(
+                request,
+                'Bạn không có quyền thay đổi trạng thái bài khảo sát này.',
+                fallback_url='SurveyPublished',
+            )
         action = request.POST.get('action')
         if action == 'toggle_visible':
             survey.is_visible = not survey.is_visible
@@ -866,9 +939,10 @@ def ResponseOverview(request, rep_pk=None, survey_pk=None):
     is_open = survey.is_respondable and (survey.response_deadline is None or survey.response_deadline > now)
 
     # 3. Lấy danh sách câu hỏi và phân tích kết quả từng câu
+    mc_ct, essay_ct = _survey_question_content_types()
     details = list(survey.details.select_related('question_type').all().order_by('id'))
-    mc_ids = [d.object_id for d in details if d.question_type_id == 26]
-    essay_ids = [d.object_id for d in details if d.question_type_id == 25]
+    mc_ids = [d.object_id for d in details if d.question_type_id == mc_ct.id]
+    essay_ids = [d.object_id for d in details if d.question_type_id == essay_ct.id]
 
     mc_map = {
         mc.id: mc
@@ -896,15 +970,15 @@ def ResponseOverview(request, rep_pk=None, survey_pk=None):
             'index': idx,
             'caption': d.caption,
             'is_required': d.is_required,
-            'is_mc': (d.question_type_id == 26),
-            'is_essay': (d.question_type_id == 25),
+            'is_mc': (d.question_type_id == mc_ct.id),
+            'is_essay': (d.question_type_id == essay_ct.id),
             'choices': [],
             'answers': [],
             'max_choice': 1,
             'max_character': None,
         }
 
-        if d.question_type_id == 26:
+        if d.question_type_id == mc_ct.id:
             mc_obj = mc_map.get(d.object_id)
             if mc_obj:
                 q_item['max_choice'] = mc_obj.max_choice
@@ -934,7 +1008,7 @@ def ResponseOverview(request, rep_pk=None, survey_pk=None):
                         'pct': pct,
                     })
 
-        elif d.question_type_id == 25:
+        elif d.question_type_id == essay_ct.id:
             eq_obj = essay_map.get(d.object_id)
             if eq_obj:
                 q_item['max_character'] = eq_obj.max_character
@@ -979,14 +1053,14 @@ def ResponseOverview(request, rep_pk=None, survey_pk=None):
         'completion_pct': completion_pct,
         'is_open': is_open,
         'questions': questions_data,
+        'can_manage_survey': can_manage,
     }
     return render(request, 'responses_overview.html', context)
 
 def ResponseDetail(request, rep_pk=None, survey_pk=None):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=True)
+    if denied:
+        return denied
 
     current_user = request.user
     survey_id = rep_pk or survey_pk
@@ -995,17 +1069,17 @@ def ResponseDetail(request, rep_pk=None, survey_pk=None):
         pk=survey_id
     )
 
-    # 1. Kiểm tra quyền truy cập: Chỉ admin/superadmin hoặc người được gán quyền can_view_responses
-    is_admin = current_user.is_staff or current_user.is_superuser
-    has_access = SurveyAccess.objects.filter(survey=survey, emp=current_user, can_view_responses=True).exists()
-
-    if not (is_admin or has_access):
-        messages.error(request, 'Bạn không có quyền xem chi tiết phản hồi của khảo sát này.')
-        return redirect('SurveyPublished')
+    if not _can_view_survey_responses(current_user, survey):
+        return redirect_back_with_error(
+            request,
+            'Bạn không có quyền xem chi tiết phản hồi của khảo sát này.',
+            fallback_url='SurveyPublished',
+        )
 
     # 2. Lấy danh sách câu hỏi trong khảo sát và map lựa chọn trắc nghiệm
+    mc_ct, essay_ct = _survey_question_content_types()
     details = list(survey.details.select_related('question_type').all().order_by('id'))
-    mc_ids = [d.object_id for d in details if d.question_type_id == 26]
+    mc_ids = [d.object_id for d in details if d.question_type_id == mc_ct.id]
 
     mc_choices_map = collections.defaultdict(dict)
     for mc in SurveyMultipleChoiceQuestion.objects.filter(id__in=mc_ids).prefetch_related('choices'):
@@ -1069,7 +1143,7 @@ def ResponseDetail(request, rep_pk=None, survey_pk=None):
             raw_ans = resp_answers.get(d.id, '')
             ans_display = []
 
-            if d.question_type_id == 26:  # Trắc nghiệm
+            if d.question_type_id == mc_ct.id:  # Trắc nghiệm
                 mc_choice_dict = mc_choices_map.get(d.object_id, {})
                 selected_ids = []
                 if raw_ans:
@@ -1086,15 +1160,15 @@ def ResponseDetail(request, rep_pk=None, survey_pk=None):
                     choice_text = mc_choice_dict.get(cid, f"Lựa chọn #{cid}")
                     ans_display.append(choice_text)
 
-            elif d.question_type_id == 25:  # Tự luận
+            elif d.question_type_id == essay_ct.id:  # Tự luận
                 if raw_ans and str(raw_ans).strip():
                     ans_display.append(str(raw_ans).strip())
 
             qa_list.append({
                 'index': idx,
                 'caption': d.caption,
-                'is_mc': (d.question_type_id == 26),
-                'is_essay': (d.question_type_id == 25),
+                'is_mc': (d.question_type_id == mc_ct.id),
+                'is_essay': (d.question_type_id == essay_ct.id),
                 'is_required': d.is_required,
                 'answers': ans_display,
                 'has_answered': bool(ans_display),
@@ -1124,7 +1198,7 @@ def ResponseDetail(request, rep_pk=None, survey_pk=None):
                 'respondent_name': full_name,
                 'initials': get_initials(u),
                 'department_name': dep_name,
-                'email': u.email or (u.employee_info.email if hasattr(u, 'employee_info') and u.employee_info and u.employee_info.email else '') or f'{u.username}@scotsenglish.edu.vn',
+                'email': u.email or f'{u.username}@scotsenglish.edu.vn',
                 'submission_date_display': resp.submission_date.strftime("%H:%M %d/%m/%Y"),
                 'is_anonymous': False,
                 'qa_list': qa_list,
@@ -1144,10 +1218,9 @@ def ResponseDetail(request, rep_pk=None, survey_pk=None):
     return render(request, 'responses_detail.html', context)
 
 def SurveyExportExcel(request, survey_pk):
-    if not request.user.is_authenticated:
-        default_user = User.objects.filter(username='minhanh').first()
-        if default_user:
-            login(request, default_user)
+    denied = _require_survey_access(request, allow_director=True)
+    if denied:
+        return denied
 
     current_user = request.user
     survey = get_object_or_404(
@@ -1155,12 +1228,12 @@ def SurveyExportExcel(request, survey_pk):
         pk=survey_pk
     )
 
-    is_admin = current_user.is_staff or current_user.is_superuser
-    has_access = SurveyAccess.objects.filter(survey=survey, emp=current_user, can_view_responses=True).exists()
-
-    if not (is_admin or has_access):
-        messages.error(request, 'Bạn không có quyền xuất báo cáo khảo sát này.')
-        return redirect('SurveyPublished')
+    if not _can_view_survey_responses(current_user, survey):
+        return redirect_back_with_error(
+            request,
+            'Bạn không có quyền xuất báo cáo khảo sát này.',
+            fallback_url='SurveyPublished',
+        )
 
     wb = openpyxl.Workbook()
 
@@ -1222,9 +1295,10 @@ def SurveyExportExcel(request, survey_pk):
     ws_summary.cell(row=row_num, column=1, value="BẢNG TỔNG HỢP KẾT QUẢ THEO CÂU HỎI").font = Font(name="Calibri", size=13, bold=True, color="134C81")
     row_num += 1
 
+    mc_ct, essay_ct = _survey_question_content_types()
     details = list(survey.details.select_related('question_type').all().order_by('id'))
-    mc_ids = [d.object_id for d in details if d.question_type_id == 26]
-    essay_ids = [d.object_id for d in details if d.question_type_id == 25]
+    mc_ids = [d.object_id for d in details if d.question_type_id == mc_ct.id]
+    essay_ids = [d.object_id for d in details if d.question_type_id == essay_ct.id]
 
     mc_map = {
         mc.id: mc
@@ -1248,7 +1322,7 @@ def SurveyExportExcel(request, survey_pk):
         ws_summary.cell(row=row_num, column=1, value=f"Câu {idx}: {d.caption}").font = bold_font
         row_num += 1
 
-        if d.question_type_id == 26:
+        if d.question_type_id == mc_ct.id:
             mc_obj = mc_map.get(d.object_id)
             choices = list(mc_obj.choices.all()) if mc_obj else []
 
@@ -1292,7 +1366,7 @@ def SurveyExportExcel(request, survey_pk):
                     cell.font = normal_font
                 row_num += 1
 
-        elif d.question_type_id == 25:
+        elif d.question_type_id == essay_ct.id:
             essay_answers = [rd.answer.strip() for rd in rd_by_question[d.id] if rd.answer and rd.answer.strip()]
             cell_ans = ws_summary.cell(row=row_num, column=1, value=f"(Dạng tự luận: Đã thu thập được {len(essay_answers)} ý kiến phản hồi - Xem chi tiết tại Sheet 'Ý kiến tự luận')")
             cell_ans.font = Font(name="Calibri", italic=True, color="64748B")
@@ -1301,7 +1375,7 @@ def SurveyExportExcel(request, survey_pk):
         row_num += 1  # Dòng trống giữa các câu hỏi
 
     # Sheet 2: Danh sách câu trả lời tự luận
-    has_essay = any(d.question_type_id == 25 for d in details)
+    has_essay = any(d.question_type_id == essay_ct.id for d in details)
     if has_essay:
         ws_essay = wb.create_sheet(title="Ý kiến tự luận")
         ws_essay.views.sheetView[0].showGridLines = True
@@ -1317,7 +1391,7 @@ def SurveyExportExcel(request, survey_pk):
         e_row = 2
         stt = 1
         for d in details:
-            if d.question_type_id == 25:
+            if d.question_type_id == essay_ct.id:
                 for rd in rd_by_question[d.id]:
                     text = (rd.answer or '').strip()
                     if text:

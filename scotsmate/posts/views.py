@@ -9,7 +9,8 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
 from .models import Post, PostAttachment, PostReaction, PostComment
-from .colleagues import get_profile_details
+from .colleagues import get_profile_details, get_user_department
+from home.roles import is_it_admin, redirect_back_with_error
 from django.contrib.auth import views as auth_views
 from .forms import PostForm, PostCommentForm, PostAttachmentForm, ScotsmateAuthenticationForm
 
@@ -123,6 +124,34 @@ def post_create_view(request):
     })
 
 
+def post_detail_view(request, post_id):
+    """Xem chi tiết một bài đăng (kèm kiểm tra phạm vi hiển thị)."""
+    if not request.user.is_authenticated:
+        return redirect(f'/login/?next=/posts/{post_id}/')
+
+    current_user = request.user
+    post = get_object_or_404(
+        Post.objects.select_related('author').prefetch_related('attachments', 'reactions__emp', 'comments__emp'),
+        id=post_id,
+    )
+
+    if post.author_id != current_user.id:
+        if post.visibility == Post.VISIBILITY_PRIVATE:
+            return redirect_back_with_error(request, 'Bài viết này ở chế độ riêng tư.', fallback_url='home')
+        if post.visibility == Post.VISIBILITY_DEPARTMENT and not is_it_admin(current_user):
+            if get_user_department(current_user) != get_user_department(post.author):
+                return redirect_back_with_error(request, 'Bạn không thuộc phòng ban được phép xem bài viết này.', fallback_url='home')
+
+    post.is_liked_by_user = PostReaction.objects.filter(post=post, emp=current_user).exists()
+    post.author_avatar = get_profile_details(post.author).get('avatar', '/static/img/profile_avatar_144.png')
+    prepare_post_comments(post, current_user.id)
+
+    return render(request, 'post_detail.html', {
+        'post': post,
+        'current_user': current_user,
+    })
+
+
 def profile_view(request, username=None):
     """
     Hiển thị hồ sơ cá nhân kèm danh sách bài viết động của tác giả từ database.
@@ -148,7 +177,7 @@ def profile_view(request, username=None):
         target_dept = get_user_department(profile_user)
 
         profile_vis_filter = Q(visibility=Post.VISIBILITY_COMPANY) | Q(visibility='') | Q(visibility__isnull=True)
-        if current_user.is_superuser or viewer_dept == target_dept:
+        if is_it_admin(current_user) or viewer_dept == target_dept:
             profile_vis_filter |= Q(visibility=Post.VISIBILITY_DEPARTMENT)
         posts_qs = posts_qs.filter(profile_vis_filter)
 
@@ -446,7 +475,7 @@ def delete_comment_api(request, comment_id):
 
         is_comment_author = (user and user.id == comment.emp_id)
         is_post_author = (user and user.id == post.author_id)
-        is_admin = (user and (user.is_staff or user.is_superuser))
+        is_admin = is_it_admin(user)
 
         if not (is_comment_author or is_post_author or is_admin):
             return JsonResponse({
@@ -466,21 +495,18 @@ def delete_comment_api(request, comment_id):
 def edit_post_api(request, post_id):
     """
     API AJAX chỉnh sửa bài viết sử dụng PostForm (Django ModelForm):
-    Hỗ trợ lấy dữ liệu cũ kèm hình ảnh (GET) và lưu cập nhật nội dung, thêm/xóa ảnh (POST).
-    Chỉ tác giả hoặc admin mới có quyền sửa.
+    Chỉ tác giả của bài viết mới có quyền chỉnh sửa bài đăng của mình.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Vui lòng đăng nhập!'}, status=401)
     post = get_object_or_404(Post, id=post_id)
-    user = request.user if request.user.is_authenticated else (
-        User.objects.filter(username='minhanh').first() or User.objects.first()
-    )
+    user = request.user
 
     is_author = (user and user.id == post.author_id)
-    is_admin = (user and (user.is_staff or user.is_superuser))
-
-    if not (is_author or is_admin):
+    if not is_author:
         return JsonResponse({
             'success': False,
-            'error': 'Bạn không có quyền chỉnh sửa bài viết này! Chỉ tác giả hoặc quản trị viên mới có quyền sửa.'
+            'error': 'Bạn không có quyền chỉnh sửa bài viết này! Chỉ tác giả mới có quyền sửa bài đăng của mình.'
         }, status=403)
 
     if request.method == 'GET':
@@ -569,7 +595,7 @@ def edit_post_api(request, post_id):
 def delete_post_api(request, post_id):
     """
     API AJAX xóa bài viết:
-    Chỉ tác giả của bài viết HOẶC quản trị viên (admin) mới được phép xóa.
+    Chỉ tác giả của bài viết HOẶC Admin (Phòng IT) mới được phép xóa (Giám đốc và nhân sự khác không xóa bài của người khác).
     """
     if request.method == 'POST':
         post = get_object_or_404(Post, id=post_id)
@@ -578,12 +604,12 @@ def delete_post_api(request, post_id):
         user = request.user
 
         is_author = (user and user.id == post.author_id)
-        is_admin = (user and (user.is_staff or user.is_superuser))
+        is_admin = is_it_admin(user)
 
         if not (is_author or is_admin):
             return JsonResponse({
                 'success': False,
-                'error': 'Bạn không có quyền xóa bài viết này! Chỉ tác giả hoặc quản trị viên (admin) mới có quyền xóa.'
+                'error': 'Bạn không có quyền xóa bài viết này! Chỉ tác giả hoặc Admin (Phòng IT) mới có quyền xóa.'
             }, status=403)
 
         # Xóa các tệp đính kèm trên ổ đĩa nếu có

@@ -1,7 +1,21 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
+from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q
 from posts.models import Post, PostReaction
+from .models import Department, Branch, EmployeeInformation
+from .roles import (
+    is_it_admin,
+    redirect_back_with_error,
+    ensure_role_groups,
+    get_primary_role_label,
+    ROLE_ADMIN,
+    ROLE_DIRECTOR,
+    ROLE_MANAGER,
+    ROLE_TRAINER,
+    ROLE_EMPLOYEE,
+)
 
 
 def index_view(request):
@@ -53,7 +67,7 @@ def HomeView(request):
         Q(visibility__isnull=True) |
         Q(author=current_user)
     )
-    if current_user.is_superuser:
+    if is_it_admin(current_user):
         vis_filter |= Q(visibility=Post.VISIBILITY_DEPARTMENT)
     else:
         vis_filter |= Q(visibility=Post.VISIBILITY_DEPARTMENT, author_id__in=same_dept_user_ids)
@@ -172,4 +186,194 @@ def HomeView(request):
         'search_query': query,
         'upcoming_events': upcoming_events,
         'calendar_schedule': calendar_schedule,
+    })
+
+
+def accounts_manage_view(request):
+    """
+    Quản lý tài khoản (Chỉ Admin - Phòng Phát triển & vận hành ứng dụng):
+    - Xem danh sách tài khoản và thông tin nhân sự
+    - Tạo tài khoản mới
+    - Cập nhật tài khoản (extend: Cập nhật thông tin hiển thị, Đổi role phân quyền, Vô hiệu/kích hoạt, Xóa)
+    Lưu ý: Mật khẩu do nhân viên tự xử lý qua cơ chế Django Built-in PasswordResetView / PasswordChangeView.
+    """
+    if not request.user.is_authenticated:
+        return redirect('/login/?next=/accounts/manage/')
+    if not is_it_admin(request.user):
+        return redirect_back_with_error(
+            request,
+            'Bạn không có quyền truy cập chức năng Quản lý tài khoản. Chỉ Admin (Phòng IT) mới được phép.',
+            fallback_url='home'
+        )
+
+    groups = ensure_role_groups()
+    departments = Department.objects.all().order_by('id')
+    branches = Branch.objects.all().order_by('id')
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '').strip()
+
+        if action == 'create_account':
+            username = request.POST.get('username', '').strip().lower()
+            password = request.POST.get('password', '').strip()
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            email = request.POST.get('email', '').strip()
+            role = request.POST.get('role', ROLE_EMPLOYEE).strip()
+            is_official = (request.POST.get('is_staff') == '1')
+            dep_id = request.POST.get('department_id')
+            branch_id = request.POST.get('branch_id')
+            nin = request.POST.get('nin', '').strip()
+            tel = request.POST.get('tel', '').strip() or '0900000000'
+            dob = request.POST.get('date_of_birth', '').strip() or '1995-01-01'
+
+            if not username or not password:
+                messages.error(request, 'Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu khởi tạo.')
+                return redirect('accounts_manage')
+            if User.objects.filter(username=username).exists():
+                messages.error(request, f'Tên đăng nhập "{username}" đã tồn tại.')
+                return redirect('accounts_manage')
+
+            with transaction.atomic():
+                new_user = User.objects.create_user(
+                    username=username,
+                    password=password,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                )
+                new_user.is_staff = is_official
+                new_user.is_superuser = (role == ROLE_ADMIN)
+                new_user.save()
+
+                role_map = {
+                    ROLE_ADMIN: [groups[ROLE_ADMIN]],
+                    ROLE_DIRECTOR: [groups[ROLE_DIRECTOR]],
+                    ROLE_MANAGER: [groups[ROLE_MANAGER], groups[ROLE_EMPLOYEE]],
+                    ROLE_TRAINER: [groups[ROLE_TRAINER], groups[ROLE_EMPLOYEE]],
+                    ROLE_EMPLOYEE: [groups[ROLE_EMPLOYEE]],
+                }
+                new_user.groups.set(role_map.get(role, [groups[ROLE_EMPLOYEE]]))
+
+                dep = Department.objects.filter(id=dep_id).first() if dep_id else None
+                branch = Branch.objects.filter(id=branch_id).first() if branch_id else None
+                if not nin or len(nin) != 12 or EmployeeInformation.objects.filter(NIN=nin).exists():
+                    nin = f"0012{new_user.id:08d}"[:12]
+                EmployeeInformation.objects.create(
+                    emp_id=new_user,
+                    gender=EmployeeInformation.GenderChoices.OTHER,
+                    NIN=nin,
+                    tel=tel,
+                    dep=dep,
+                    branch=branch,
+                    date_of_birth=dob,
+                )
+                if role == ROLE_MANAGER and dep:
+                    dep.manager = new_user
+                    dep.save(update_fields=['manager'])
+
+            messages.success(request, f'Đã tạo tài khoản "{username}" ({role}) thành công.')
+            return redirect('accounts_manage')
+
+        target_id = request.POST.get('user_id')
+        target_user = get_object_or_404(User, id=target_id)
+
+        if action == 'update_account':
+            target_user.first_name = request.POST.get('first_name', '').strip()
+            target_user.last_name = request.POST.get('last_name', '').strip()
+            target_user.email = request.POST.get('email', '').strip()
+            target_user.is_staff = (request.POST.get('is_staff') == '1')
+            new_role = request.POST.get('role', ROLE_EMPLOYEE).strip()
+
+            if target_user.id == request.user.id and new_role != ROLE_ADMIN:
+                messages.error(request, 'Không thể tự hạ quyền Admin của chính tài khoản đang đăng nhập.')
+                return redirect('accounts_manage')
+
+            with transaction.atomic():
+                target_user.is_superuser = (new_role == ROLE_ADMIN)
+                target_user.save()
+
+                role_map = {
+                    ROLE_ADMIN: [groups[ROLE_ADMIN]],
+                    ROLE_DIRECTOR: [groups[ROLE_DIRECTOR]],
+                    ROLE_MANAGER: [groups[ROLE_MANAGER], groups[ROLE_EMPLOYEE]],
+                    ROLE_TRAINER: [groups[ROLE_TRAINER], groups[ROLE_EMPLOYEE]],
+                    ROLE_EMPLOYEE: [groups[ROLE_EMPLOYEE]],
+                }
+                target_user.groups.set(role_map.get(new_role, [groups[ROLE_EMPLOYEE]]))
+
+                dep_id = request.POST.get('department_id')
+                branch_id = request.POST.get('branch_id')
+                dep = Department.objects.filter(id=dep_id).first() if dep_id else None
+                branch = Branch.objects.filter(id=branch_id).first() if branch_id else None
+
+                emp_info = getattr(target_user, 'employee_info', None)
+                if emp_info:
+                    emp_info.dep = dep
+                    emp_info.branch = branch
+                    tel = request.POST.get('tel', '').strip()
+                    if tel:
+                        emp_info.tel = tel
+                    emp_info.save()
+
+                if new_role == ROLE_MANAGER and dep:
+                    dep.manager = target_user
+                    dep.save(update_fields=['manager'])
+                elif new_role != ROLE_MANAGER:
+                    Department.objects.filter(manager=target_user).update(manager=None)
+
+            messages.success(request, f'Đã cập nhật thông tin & phân quyền cho tài khoản "{target_user.username}".')
+            return redirect('accounts_manage')
+
+        elif action == 'toggle_active':
+            if target_user.id == request.user.id:
+                messages.error(request, 'Không thể tự vô hiệu hóa tài khoản đang đăng nhập.')
+                return redirect('accounts_manage')
+            target_user.is_active = not target_user.is_active
+            target_user.save(update_fields=['is_active'])
+            state_lbl = 'kích hoạt' if target_user.is_active else 'vô hiệu hóa'
+            messages.success(request, f'Đã {state_lbl} tài khoản "{target_user.username}".')
+            return redirect('accounts_manage')
+
+        elif action == 'delete_account':
+            if target_user.id == request.user.id:
+                messages.error(request, 'Không thể tự xóa tài khoản đang đăng nhập.')
+                return redirect('accounts_manage')
+            uname = target_user.username
+            target_user.delete()
+            messages.success(request, f'Đã xóa tài khoản "{uname}" khỏi hệ thống.')
+            return redirect('accounts_manage')
+
+    query = request.GET.get('q', '').strip()
+    users_qs = User.objects.select_related('employee_info__dep', 'employee_info__branch').prefetch_related('groups').order_by('id')
+    if query:
+        users_qs = users_qs.filter(
+            Q(username__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query) |
+            Q(email__icontains=query)
+        )
+
+    users_list = []
+    for u in users_qs:
+        gnames = set(u.groups.values_list('name', flat=True))
+        if ROLE_ADMIN in gnames or u.is_superuser:
+            u.selected_role = ROLE_ADMIN
+        elif ROLE_DIRECTOR in gnames:
+            u.selected_role = ROLE_DIRECTOR
+        elif ROLE_MANAGER in gnames:
+            u.selected_role = ROLE_MANAGER
+        elif ROLE_TRAINER in gnames:
+            u.selected_role = ROLE_TRAINER
+        else:
+            u.selected_role = ROLE_EMPLOYEE
+        u.role_label = get_primary_role_label(u)
+        users_list.append(u)
+
+    return render(request, 'accounts_manage.html', {
+        'users_list': users_list,
+        'departments': departments,
+        'branches': branches,
+        'search_query': query,
+        'role_choices': [ROLE_EMPLOYEE, ROLE_TRAINER, ROLE_MANAGER, ROLE_DIRECTOR, ROLE_ADMIN],
     })

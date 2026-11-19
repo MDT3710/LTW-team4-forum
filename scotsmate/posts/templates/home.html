@@ -129,6 +129,16 @@
       <section class="feed">
         <h1 class="feed-title">Bảng tin</h1>
 
+        {% if messages %}
+          <div style="margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;">
+            {% for msg in messages %}
+              <div style="padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; {% if msg.tags == 'error' %}background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;{% else %}background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;{% endif %}">
+                {{ msg }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
         {% if search_query %}
         <div class="card" style="margin-bottom: 20px; padding: 14px 20px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
           <div>
@@ -150,7 +160,8 @@
                   <a href="/profile/{{ post.author.username }}/" class="author-profile-link" style="color: inherit; text-decoration: none; font-weight: inherit; transition: color 0.15s;" onmouseover="this.style.color='#134c81'; this.style.textDecoration='underline';" onmouseout="this.style.color='inherit'; this.style.textDecoration='none';" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">{{ post.author.get_full_name|default:post.author.username }}</a>
                 </span>
                 <span class="author-meta" style="display: flex; align-items: center; gap: 6px;">
-                  <span>{{ post.created_at_vi }} · Scots English</span>
+                  <a href="{% url 'post_detail' post.id %}" style="color: inherit; text-decoration: none;" title="Xem chi tiết bài đăng">{{ post.created_at_vi }}</a>
+                  <span>· Scots English</span>
                   <span id="post-vis-badge-{{ post.id }}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b;" title="Phạm vi: {{ post.visibility|default:'Toàn công ty' }}">
                     <span>·</span>
                     {% if post.visibility == 'Chỉ mình tôi' %}
@@ -166,7 +177,7 @@
                   </span>
                 </span>
               </div>
-              {% if current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+              {% if current_user.id == post.author_id or user_roles.is_it_admin %}
                             <div class="post-more-menu-wrap" style="position: relative;">
                 <button type="button" class="more-btn" aria-label="Thêm tuỳ chọn" onclick="togglePostMenu({{ post.id }}, event)">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
@@ -176,6 +187,7 @@
                   </svg>
                 </button>
                 <div class="post-dropdown-menu" id="menu-post-{{ post.id }}" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); min-width: 160px; z-index: 100; overflow: hidden; padding: 4px 0;">
+                  {% if current_user.id == post.author_id %}
                   <button type="button" onclick="openEditPostModal({{ post.id }})" style="width: 100%; border: none; background: none; text-align: left; padding: 10px 16px; font-size: 14px; font-weight: 500; color: #134c81; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 20h9"></path>
@@ -183,6 +195,7 @@
                     </svg>
                     <span>Chỉnh sửa bài viết</span>
                   </button>
+                  {% endif %}
                   <button type="button" onclick="confirmDeletePost({{ post.id }})" style="width: 100%; border: none; background: none; text-align: left; padding: 10px 16px; font-size: 14px; font-weight: 500; color: #e25555; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#fff1f0'" onmouseout="this.style.background='none'">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e25555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="3 6 5 6 21 6"></polyline>
@@ -304,7 +317,7 @@
                       </span>
                     </div>
                   </div>
-                  {% if current_user.id == comment.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+                  {% if current_user.id == comment.emp_id or current_user.id == post.author_id or user_roles.is_it_admin %}
                   <button type="button" onclick="deleteComment({{ comment.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 18px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
                   {% endif %}
                 </div>
@@ -346,7 +359,7 @@
                         </span>
                       </div>
                     </div>
-                    {% if current_user.id == reply.emp_id or current_user.id == post.author_id or current_user.is_staff or current_user.is_superuser %}
+                    {% if current_user.id == reply.emp_id or current_user.id == post.author_id or user_roles.is_it_admin %}
                     <button type="button" onclick="deleteComment({{ reply.id }}, {{ post.id }})" title="Xóa bình luận" style="border: none; background: none; color: #94a3b8; cursor: pointer; padding: 0 4px; font-size: 16px; line-height: 1; align-self: flex-start;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">&times;</button>
                     {% endif %}
                   </div>

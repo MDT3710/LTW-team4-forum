@@ -19,6 +19,12 @@
           {{ survey_info.questions_data }}
           <!-- Cột chính: Nội dung khảo sát -->
           <section class="doc-col-main">
+              {% if survey_info.errors %}
+                <div style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;">
+                  <strong>Vui lòng kiểm tra lại thông tin khảo sát:</strong>
+                  {{ survey_info.errors }}
+                </div>
+              {% endif %}
               <!-- Khối 1: Thông tin cơ bản -->
         <div class="doc-card">
           <h2 class="doc-card-title">1. Thông tin khảo sát</h2>
@@ -83,7 +89,10 @@
             </div>
 
             <!-- Tách container ra ngoài header -->
-            <div id="questions-container" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px;">
+            <div id="questions-container"
+                 data-mc-type-id="{{ mc_type_id }}"
+                 data-essay-type-id="{{ essay_type_id }}"
+                 style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px;">
                 <!-- JavaScript sẽ render ở đây -->
             </div>
 

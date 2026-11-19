@@ -195,6 +195,7 @@
 
     </section>
 
+    {% if can_manage_survey %}
     <!-- Cụm nút quản trị khảo sát (ở cuối trang bên phải) -->
     <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 16px; padding-top: 24px; border-top: 1px solid var(--line);">
       <form method="POST" style="display: inline-flex; gap: 12px;">
@@ -240,6 +241,7 @@
 
       </form>
     </div>
+    {% endif %}
 
   </main>
 

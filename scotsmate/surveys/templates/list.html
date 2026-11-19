@@ -16,11 +16,23 @@
       </a>
     </header>
 
+    {% if messages %}
+      <div style="margin-bottom: 16px;">
+        {% for message in messages %}
+          <div style="padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 14px;
+                      {% if 'error' in message.tags %}background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;
+                      {% else %}background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <!-- Điều hướng phân hệ Tabs -->
     <nav class="doc-tabs">
       <a href="{% url 'MySurvey' %}" class="doc-tab active">Khảo sát cần làm</a>
       <a href="{% url 'SurveyHistory' %}" class="doc-tab">Lịch sử đã làm</a>
-      {% if request.user.managed_departments.exists %}
+      {% if user_roles.is_department_manager %}
         <a href="{% url 'SurveyApproveList' %}" class="doc-tab">Duyệt khảo sát</a>
       {% endif %}
       <a href="{% url 'SurveyPublished' %}" class="doc-tab">Báo cáo & Phản hồi</a>
@@ -79,9 +91,24 @@
                     <span class="doc-badge {{ survey.status_badge_class }}">{{ survey.status_label }}</span>
                 </td>
                 <td style="text-align: right;">
-                    <a href="{% url 'SurveyTake' survey.id %}" class="doc-btn doc-btn-primary">
-                        {{ survey.btn_label }}
-                    </a>
+                    <div style="display: inline-flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                        <button type="button"
+                                class="doc-btn doc-btn-secondary btn-survey-detail"
+                                data-name="{{ survey.name }}"
+                                data-desc="{{ survey.description|default:'Chưa có mô tả chi tiết cho đợt khảo sát này.' }}"
+                                data-dept="{{ survey.department.name|default:'Toàn hệ thống' }}"
+                                data-creator="{{ survey.creator.get_full_name|default:survey.creator.username }}"
+                                data-deadline="{% if survey.response_deadline %}{{ survey.response_deadline|date:'H:i d/m/Y' }}{% else %}Không giới hạn{% endif %}"
+                                data-limit="{{ survey.response_limit|default:'1' }} lượt"
+                                data-anon="{% if survey.anonymous %}Ẩn danh{% else %}Công khai danh tính{% endif %}"
+                                data-take-url="{% url 'SurveyTake' survey.id %}"
+                                data-btn-label="{{ survey.btn_label }}">
+                            Xem chi tiết
+                        </button>
+                        <a href="{% url 'SurveyTake' survey.id %}" class="doc-btn doc-btn-primary">
+                            {{ survey.btn_label }}
+                        </a>
+                    </div>
                 </td>
             </tr>
         {% empty %}
@@ -116,6 +143,51 @@
 {#        </div>#}
 {#      </footer>#}
     </section>
+
+    <!-- Modal Xem chi tiết khảo sát -->
+    <div id="surveyDetailModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+      <div style="background:#fff; border-radius:14px; max-width:540px; width:100%; padding:24px; box-shadow:0 20px 45px rgba(15,23,42,0.2);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+          <div>
+            <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#134c81; letter-spacing:0.04em;">Chi tiết khảo sát</span>
+            <h2 id="sdm-title" style="font-size:18px; font-weight:700; color:#0f172a; margin:4px 0 0 0;"></h2>
+          </div>
+          <button type="button" onclick="document.getElementById('surveyDetailModal').style.display='none'" style="border:none; background:none; font-size:18px; color:#64748b; cursor:pointer;">✕</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:13px; color:#334155;">
+          <div><strong>Đơn vị phụ trách:</strong> <span id="sdm-dept"></span></div>
+          <div><strong>Người tạo:</strong> <span id="sdm-creator"></span></div>
+          <div><strong>Thời hạn hoàn thành:</strong> <span id="sdm-deadline"></span></div>
+          <div><strong>Giới hạn phản hồi:</strong> <span id="sdm-limit"></span> • <strong>Hình thức:</strong> <span id="sdm-anon"></span></div>
+          <div style="margin-top:6px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+            <strong style="display:block; margin-bottom:4px;">Mô tả nội dung:</strong>
+            <span id="sdm-desc" style="color:#475569; line-height:1.5;"></span>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:14px; border-top:1px solid #e2e8f0;">
+          <button type="button" onclick="document.getElementById('surveyDetailModal').style.display='none'" class="doc-btn doc-btn-secondary">Đóng</button>
+          <a id="sdm-take-link" href="#" class="doc-btn doc-btn-primary">Thực hiện khảo sát</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.querySelectorAll('.btn-survey-detail').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('sdm-title').textContent = btn.dataset.name;
+          document.getElementById('sdm-desc').textContent = btn.dataset.desc;
+          document.getElementById('sdm-dept').textContent = btn.dataset.dept;
+          document.getElementById('sdm-creator').textContent = btn.dataset.creator;
+          document.getElementById('sdm-deadline').textContent = btn.dataset.deadline;
+          document.getElementById('sdm-limit').textContent = btn.dataset.limit;
+          document.getElementById('sdm-anon').textContent = btn.dataset.anon;
+          const link = document.getElementById('sdm-take-link');
+          link.href = btn.dataset.takeUrl;
+          link.textContent = btn.dataset.btnLabel || 'Thực hiện khảo sát';
+          document.getElementById('surveyDetailModal').style.display = 'flex';
+        });
+      });
+    </script>
 
   </main>
 {% endblock %}

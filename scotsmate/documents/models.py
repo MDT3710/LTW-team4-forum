@@ -96,6 +96,7 @@ class Document(models.Model):
         default='NEW'
     )
     rejection_reason = models.TextField("Lý do từ chối", blank=True, null=True)
+    is_visible = models.BooleanField("Hiển thị", default=True)
 
     # Thời gian
     created_at = models.DateTimeField("Ngày tạo", auto_now_add=True)

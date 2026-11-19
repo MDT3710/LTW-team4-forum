@@ -681,12 +681,30 @@ COLLEAGUES_DATA = {
 def get_user_department(user_or_username):
     """
     Xác định phòng ban thực tế của nhân viên / người dùng Scots English.
-    Dùng để lọc phạm vi hiển thị bài viết theo 'Phòng ban'.
+    Ưu tiên đọc từ bảng employee_information trong DB, sau đó mới fallback COLLEAGUES_DATA.
     """
     if not user_or_username:
         return "Phòng Đào tạo & Giảng dạy"
 
-    uname = getattr(user_or_username, 'username', str(user_or_username)).lower()
+    user_obj = None
+    if isinstance(user_or_username, str):
+        uname = user_or_username.lower()
+        try:
+            from django.contrib.auth.models import User
+            user_obj = User.objects.select_related('employee_info__dep').filter(username=user_or_username).first()
+        except Exception:
+            user_obj = None
+    else:
+        user_obj = user_or_username
+        uname = getattr(user_or_username, 'username', str(user_or_username)).lower()
+
+    if user_obj:
+        try:
+            emp_info = getattr(user_obj, 'employee_info', None)
+            if emp_info and emp_info.dep:
+                return emp_info.dep.name
+        except Exception:
+            pass
 
     if uname in COLLEAGUES_DATA and 'department' in COLLEAGUES_DATA[uname]:
         return COLLEAGUES_DATA[uname]['department']
@@ -710,9 +728,7 @@ def get_user_department(user_or_username):
 
 def get_profile_details(user):
     """
-    Trả về thông tin chi tiết hồ sơ cá nhân của user dựa trên username hoặc thông tin tài khoản.
-    Hỗ trợ nạp các tùy chỉnh ảnh đại diện, ảnh bìa, giới thiệu từ cơ sở dữ liệu và file `user_profiles.json`.
-    Hỗ trợ cả instance User lẫn string username, tự động phục hồi tệp ảnh nếu có gián đoạn.
+    Trả về thông tin chi tiết hồ sơ cá nhân của user dựa trên EmployeeInformation và tài khoản.
     """
     if not user:
         return {}
@@ -721,35 +737,53 @@ def get_profile_details(user):
     if isinstance(user, str):
         uname = user
         from django.contrib.auth.models import User
-        user_obj = User.objects.filter(username=uname).first()
+        user_obj = User.objects.select_related('employee_info__dep', 'employee_info__branch').filter(username=uname).first()
     else:
         uname = getattr(user, 'username', '')
         user_obj = user
 
+    from home.roles import get_primary_role_label
+    emp_info = None
+    if user_obj:
+        try:
+            emp_info = getattr(user_obj, 'employee_info', None)
+        except Exception:
+            emp_info = None
+
     if uname in COLLEAGUES_DATA:
         data = dict(COLLEAGUES_DATA[uname])
-        # Đảm bảo tên hiển thị ưu tiên tên User model nếu có
         if user_obj:
             full_name = user_obj.get_full_name()
             if full_name:
                 data['name'] = full_name
             if user_obj.email:
                 data['email'] = user_obj.email
-        data['department'] = get_user_department(uname)
+            role_label = get_primary_role_label(user_obj)
+            dep_name = emp_info.dep.name if (emp_info and emp_info.dep) else get_user_department(user_obj)
+            data['role'] = f"{role_label} · {dep_name}"
+            data['job_title'] = role_label
+            if emp_info:
+                if emp_info.branch:
+                    data['branch'] = emp_info.branch.name
+                if emp_info.tel:
+                    data['phone'] = emp_info.tel
+        data['department'] = get_user_department(user_obj or uname)
     else:
-        # Fallback cho user ngoài danh sách
         full_name = (user_obj.get_full_name() if user_obj else None) or uname
-        is_admin = getattr(user_obj, 'is_staff', False) or getattr(user_obj, 'is_superuser', False) if user_obj else (uname == 'admin')
+        role_label = get_primary_role_label(user_obj) if user_obj else 'Nhân viên'
+        dep_name = emp_info.dep.name if (emp_info and emp_info.dep) else get_user_department(user_obj or uname)
+        branch_name = emp_info.branch.name if (emp_info and emp_info.branch) else "Hội sở Scots English"
+        phone_val = emp_info.tel if (emp_info and emp_info.tel) else "090 123 4567"
         user_email = (user_obj.email if user_obj else None) or f"{uname}@scotsenglish.edu.vn"
         data = {
             "name": full_name,
             "username": uname,
-            "role": "Quản trị viên hệ thống" if is_admin else "Giáo viên · Scots English",
-            "job_title": "Quản trị viên" if is_admin else "Giáo viên tiếng Anh",
-            "department": get_user_department(uname),
-            "branch": "Hội sở Scots English",
+            "role": f"{role_label} · {dep_name}",
+            "job_title": role_label,
+            "department": dep_name,
+            "branch": branch_name,
             "email": user_email,
-            "phone": "090 123 4567",
+            "phone": phone_val,
             "join_date": "15/08/2022",
             "bio": "Cùng học, cùng chia sẻ và truyền cảm hứng trong mỗi giờ học tiếng Anh.",
             "avatar": "/static/img/profile_avatar_144.png",

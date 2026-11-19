@@ -2,9 +2,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('login/', views.ScotsmateLoginView.as_view(), name='login'),
-    path('logout/', views.ScotsmateLogoutView.as_view(), name='logout'),
+    path('login/', views.ScotsmateLoginView.as_view(), name='posts_login'),
+    path('logout/', views.ScotsmateLogoutView.as_view(), name='posts_logout'),
     path('create/', views.post_create_view, name='post_create'),
+    path('posts/<int:post_id>/', views.post_detail_view, name='post_detail'),
     path('profile/', views.profile_view, name='profile'),
     path('profile/update/avatar/', views.update_profile_avatar_api, name='update_profile_avatar_api'),
     path('profile/update/cover/', views.update_profile_cover_api, name='update_profile_cover_api'),

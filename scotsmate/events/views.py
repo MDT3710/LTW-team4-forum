@@ -6,6 +6,11 @@ from django.db.models import Q, Count
 from django.utils import timezone
 from .models import Event, EventRegistration
 from home.models import Branch, Department
+from home.roles import (
+    is_department_manager,
+    is_it_admin,
+    redirect_back_with_error,
+)
 
 
 def events_list(request):
@@ -16,6 +21,12 @@ def events_list(request):
     - Lọc theo chi nhánh và trạng thái.
     - Phân tab: 'all' (Tất cả), 'upcoming' (Sắp diễn ra), 'my' (Sự kiện của tôi), 'past' (Đã kết thúc).
     """
+    if request.user.is_authenticated and is_it_admin(request.user):
+        return redirect_back_with_error(
+            request,
+            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Lịch trình, sự kiện.',
+            fallback_url='home',
+        )
     tab = request.GET.get('tab', 'all')
     category = request.GET.get('category', '')
     branch_id = request.GET.get('branch', '')
@@ -86,6 +97,13 @@ def event_detail(request, event_id):
     - Danh sách người tham dự.
     - Nút Đăng ký / Hủy đăng ký.
     """
+    if request.user.is_authenticated and is_it_admin(request.user):
+        return redirect_back_with_error(
+            request,
+            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Lịch trình, sự kiện.',
+            fallback_url='home',
+        )
+
     event = get_object_or_404(
         Event.objects.select_related('organizer', 'branch', 'department'),
         id=event_id
@@ -101,8 +119,7 @@ def event_detail(request, event_id):
     if request.user.is_authenticated:
         is_manager = (
             request.user == event.organizer or
-            request.user.is_staff or
-            request.user.is_superuser
+            is_department_manager(request.user)
         )
 
     return render(request, 'event_detail.html', {
@@ -119,6 +136,8 @@ def event_register_toggle_api(request, event_id):
     """
     if not request.user.is_authenticated:
         return JsonResponse({'success': False, 'message': 'Vui lòng đăng nhập để đăng ký tham gia sự kiện!'}, status=401)
+    if is_it_admin(request.user):
+        return JsonResponse({'success': False, 'message': 'Tài khoản Admin phòng IT không tham gia đăng ký sự kiện.'}, status=403)
 
     event = get_object_or_404(Event, id=event_id)
 
@@ -151,10 +170,22 @@ def event_register_toggle_api(request, event_id):
 
 def event_create(request):
     """
-    Tạo sự kiện nội bộ mới (dành cho Trainer / Quản lý / Admin):
+    Tạo sự kiện nội bộ mới (chỉ dành cho Trưởng phòng):
     """
     if not request.user.is_authenticated:
         return redirect('/login/?next=/events/create/')
+    if is_it_admin(request.user):
+        return redirect_back_with_error(
+            request,
+            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Lịch trình, sự kiện.',
+            fallback_url='home',
+        )
+    if not is_department_manager(request.user):
+        return redirect_back_with_error(
+            request,
+            'Chỉ Trưởng phòng mới có quyền tạo sự kiện nội bộ.',
+            fallback_url='events_list',
+        )
 
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -206,16 +237,25 @@ def event_create(request):
 
 def event_edit(request, event_id):
     """
-    Chỉnh sửa thông tin sự kiện:
+    Chỉnh sửa thông tin sự kiện (chỉ Trưởng phòng hoặc người tổ chức):
     """
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
+    if is_it_admin(request.user):
+        return redirect_back_with_error(
+            request,
+            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Lịch trình, sự kiện.',
+            fallback_url='home',
+        )
 
     event = get_object_or_404(Event, id=event_id)
 
-    if not (request.user == event.organizer or request.user.is_staff or request.user.is_superuser):
-        messages.error(request, 'Bạn không có quyền chỉnh sửa sự kiện này.')
-        return redirect('event_detail', event_id=event.id)
+    if not (request.user == event.organizer or is_department_manager(request.user)):
+        return redirect_back_with_error(
+            request,
+            'Bạn không có quyền chỉnh sửa sự kiện này.',
+            fallback_url='events_list',
+        )
 
     if request.method == 'POST':
         event.title = request.POST.get('title', event.title).strip()
@@ -262,16 +302,25 @@ def event_edit(request, event_id):
 
 def event_delete(request, event_id):
     """
-    Xóa sự kiện:
+    Xóa sự kiện (chỉ Trưởng phòng hoặc người tổ chức):
     """
     if not request.user.is_authenticated:
         return redirect('login')
+    if is_it_admin(request.user):
+        return redirect_back_with_error(
+            request,
+            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Lịch trình, sự kiện.',
+            fallback_url='home',
+        )
 
     event = get_object_or_404(Event, id=event_id)
 
-    if not (request.user == event.organizer or request.user.is_staff or request.user.is_superuser):
-        messages.error(request, 'Bạn không có quyền xóa sự kiện này.')
-        return redirect('event_detail', event_id=event.id)
+    if not (request.user == event.organizer or is_department_manager(request.user)):
+        return redirect_back_with_error(
+            request,
+            'Bạn không có quyền xóa sự kiện này.',
+            fallback_url='events_list',
+        )
 
     if request.method == 'POST':
         title = event.title

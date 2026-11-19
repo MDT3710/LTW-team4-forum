@@ -217,10 +217,10 @@
             <div>
               <p class="text-xs font-bold text-slate-900 m-0">{{ event.organizer.get_full_name|default:event.organizer.username }}</p>
               <p class="text-[11px] text-slate-500 m-0 mt-0.5">
-                {% if event.organizer.is_staff or event.organizer.is_superuser %}
-                  Giảng viên / Ban Đào tạo
+                {% if event.department %}
+                  {{ event.department.name }}
                 {% else %}
-                  Cán bộ tổ chức
+                  Ban tổ chức nội bộ
                 {% endif %}
               </p>
             </div>

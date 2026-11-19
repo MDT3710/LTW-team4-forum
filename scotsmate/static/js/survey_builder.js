@@ -5,22 +5,41 @@ document.addEventListener("DOMContentLoaded", function () {
         allowClear: true,
         width: '100%'
     });
-    // 1. Khai báo danh sách câu hỏi mặc định (26: Trắc nghiệm, 25: Tự luận)
+    const container = document.getElementById("questions-container");
+    const MC_TYPE_ID = parseInt(container?.dataset.mcTypeId, 10) || "mc";
+    const ESSAY_TYPE_ID = parseInt(container?.dataset.essayTypeId, 10) || "essay";
+
+    // 1. Khai báo danh sách câu hỏi mặc định (đọc ContentType ID động từ template)
     let questions = [
         {
             id: Date.now(),
             caption: "",
-            question_type_id: 26, // Mặc định là Trắc nghiệm (ID = 26)
+            question_type_id: MC_TYPE_ID,
             is_required: true,
             max_choice: 1,
             choices: ["Lựa chọn 1", "Lựa chọn 2"]
         }
     ];
 
-    const container = document.getElementById("questions-container");
     const btnAddQuestion = document.getElementById("btn-add-question");
     const form = document.getElementById("survey-form");
     const hiddenInput = document.querySelector("input[name='questions_data']");
+
+    // Khôi phục câu hỏi đã nhập nếu form POST bị lỗi validation
+    if (hiddenInput && hiddenInput.value) {
+        try {
+            const restored = JSON.parse(hiddenInput.value);
+            if (Array.isArray(restored) && restored.length > 0) {
+                questions = restored;
+            }
+        } catch (e) {}
+    }
+
+    const escAttr = (val) => String(val ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 
     function renderQuestions() {
         container.innerHTML = "";
@@ -33,10 +52,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <strong>Câu ${index + 1}</strong>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <!-- Đổi value của option thành 26 và 25 -->
                         <select class="doc-form-select" onchange="updateQuestionType(${q.id}, this.value)" style="padding: 4px 8px; font-size: 13px;">
-                            <option value="26" ${q.question_type_id == 26 ? 'selected' : ''}>Trắc nghiệm</option>
-                            <option value="25" ${q.question_type_id == 25 ? 'selected' : ''}>Tự luận</option>
+                            <option value="${MC_TYPE_ID}" ${String(q.question_type_id) === String(MC_TYPE_ID) ? 'selected' : ''}>Trắc nghiệm</option>
+                            <option value="${ESSAY_TYPE_ID}" ${String(q.question_type_id) === String(ESSAY_TYPE_ID) ? 'selected' : ''}>Tự luận</option>
                         </select>
                         <label style="font-size: 13px; cursor: pointer;min-width: 6rem;display: flex;align-items: center;gap: 6px;justify-content: center">
                             <input type="checkbox" ${q.is_required ? 'checked' : ''} onchange="toggleRequired(${q.id}, this.checked)"> Bắt buộc
@@ -45,25 +63,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                 </div>
 
-                <input type="text" class="doc-form-input" value="${q.caption}"
+                <input type="text" class="doc-form-input" value="${escAttr(q.caption)}"
                        placeholder="Nhập nội dung câu hỏi..."
                        oninput="updateCaption(${q.id}, this.value)"
                        style="margin-bottom: 12px;">
 
-                <!-- Hiển thị theo question_type_id = 26 -->
-                ${q.question_type_id == 26 ? `
+                ${String(q.question_type_id) === String(MC_TYPE_ID) ? `
                     <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 13px;">
                         <span>Số câu chọn tối đa:</span>
-                        <input type="number" class="doc-form-input" value="${q.max_choice || 1}" min="1" max="${q.choices.length}"
+                        <input type="number" class="doc-form-input" value="${q.max_choice || 1}" min="1" max="${(q.choices || []).length || 1}"
                                onchange="updateMaxChoice(${q.id}, this.value)"
                                style="width: 70px; height: 28px; padding: 2px 6px;">
                     </div>
 
                     <div style="padding-left: 12px; display: flex; flex-direction: column; gap: 8px;">
-                        ${q.choices.map((c, cIndex) => `
+                        ${(q.choices || []).map((c, cIndex) => `
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <span style="color: #6b7280;">•</span>
-                                <input type="text" class="doc-form-input" value="${c}"
+                                <input type="text" class="doc-form-input" value="${escAttr(c)}"
                                        placeholder="Lựa chọn ${cIndex + 1}"
                                        oninput="updateChoice(${q.id}, ${cIndex}, this.value)"
                                        style="height: 32px; font-size: 13px;">
@@ -92,11 +109,12 @@ document.addEventListener("DOMContentLoaded", function () {
     window.updateCaption = (id, val) => { questions.find(q => q.id === id).caption = val; };
     window.toggleRequired = (id, val) => { questions.find(q => q.id === id).is_required = val; };
     window.updateMaxChoice = (id, val) => { questions.find(q => q.id === id).max_choice = parseInt(val) || 1; };
+    window.updateMaxCharacter = (id, val) => { questions.find(q => q.id === id).max_character = val ? parseInt(val, 10) : null; };
 
     window.updateQuestionType = (id, val) => {
         let q = questions.find(q => q.id === id);
-        q.question_type_id = parseInt(val);
-        if (q.question_type_id === 26 && (!q.choices || q.choices.length === 0)) {
+        q.question_type_id = isNaN(Number(val)) ? val : parseInt(val, 10);
+        if (String(q.question_type_id) === String(MC_TYPE_ID) && (!q.choices || q.choices.length === 0)) {
             q.choices = ["Lựa chọn 1", "Lựa chọn 2"];
             q.max_choice = 1;
         }
@@ -122,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
             questions.push({
                 id: Date.now(),
                 caption: "",
-                question_type_id: 26, // Thêm mới mặc định là Trắc nghiệm (ID = 26)
+                question_type_id: MC_TYPE_ID,
                 is_required: true,
                 max_choice: 1,
                 choices: ["Lựa chọn 1", "Lựa chọn 2"]
