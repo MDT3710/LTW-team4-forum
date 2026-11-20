@@ -2,9 +2,11 @@
     <aside class="conversation-list w-[260px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 shrink-0 shadow-sm self-start min-h-[680px]">
       <div class="convo-header flex items-center justify-between w-full pb-1">
         <h2 class="convo-title text-base font-bold text-slate-900 m-0">Hộp thư</h2>
-        <a href="{% url 'group_create' %}" class="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm no-underline">
-          + Thêm mới
-        </a>
+        {% if user_roles.is_department_manager or user_roles.is_it_admin %}
+          <a href="{% url 'group_create' %}" class="inline-flex items-center justify-center px-3 py-1 rounded-full bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm no-underline">
+            + Tạo nhóm
+          </a>
+        {% endif %}
       </div>
 
       <!-- Tìm kiếm cuộc trò chuyện -->

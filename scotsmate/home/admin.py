@@ -12,7 +12,13 @@ class EmployeeInformationInline(admin.StackedInline):
 
 class ScotsmateUserAdmin(BaseUserAdmin):
     inlines = (EmployeeInformationInline,)
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'get_roles')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'get_department', 'get_roles')
+    list_filter = ('is_active', 'is_staff', 'is_superuser', 'groups')
+
+    @admin.display(description='Phòng ban')
+    def get_department(self, obj):
+        emp = getattr(obj, 'employee_info', None)
+        return emp.dep.name if emp and emp.dep else '-'
 
     @admin.display(description='Vai trò')
     def get_roles(self, obj):

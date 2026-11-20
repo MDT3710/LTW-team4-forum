@@ -21,7 +21,7 @@
     <nav class="doc-tabs">
       <a href="{% url 'MySurvey' %}" class="doc-tab">Khảo sát cần làm</a>
       <a href="{% url 'SurveyHistory' %}" class="doc-tab active">Lịch sử đã làm</a>
-      {% if user_roles.is_department_manager %}
+      {% if user_roles.is_department_manager or user_roles.is_it_admin %}
         <a href="{% url 'SurveyApproveList' %}" class="doc-tab">Duyệt khảo sát</a>
       {% endif %}
       <a href="{% url 'SurveyPublished' %}" class="doc-tab">Báo cáo & Phản hồi</a>

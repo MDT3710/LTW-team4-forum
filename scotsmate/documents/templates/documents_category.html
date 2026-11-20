@@ -17,9 +17,7 @@
       </div>
       <div style="display: flex; gap: 12px;">
         <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Quay lại danh mục</a>
-        {% if not user_roles.is_director %}
         <a href="{% url 'document_create' %}" class="doc-btn doc-btn-primary">+ Thêm tài liệu mới</a>
-        {% endif %}
       </div>
     </header>
 
@@ -33,9 +31,7 @@
         </a>
       {% endif %}
 
-      {% if not user_roles.is_director %}
-        <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
-      {% endif %}
+      <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
     </nav>
 
    <!-- Thanh tìm kiếm tài liệu trong danh mục -->
@@ -47,12 +43,6 @@
         </svg>
         <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm tài liệu trong danh mục này...">
       </div>
-      <button class="doc-filter-btn" type="submit">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-        </svg>
-        Bộ lọc
-      </button>
     </form>
 
     <!-- Bảng danh sách tài liệu -->
@@ -114,7 +104,7 @@
                     </a>
                   {% endif %}
 
-                  {% if is_manager %}
+                  {% if doc.can_manage %}
                     <a href="{% url 'document_edit' id=doc.id %}" class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
                       Sửa
                     </a>
@@ -142,7 +132,7 @@
             <tr>
 
               <td colspan="7" style="text-align: center; color: var(--ink-soft); padding: 48px;">
-                Chưa có tài liệu nào được phê duyệt trong danh mục <strong>{{ category.name }}</strong>.
+                Chưa có tài liệu nào trong danh mục <strong>{{ category.name }}</strong>.
               </td>
             </tr>
           {% endfor %}

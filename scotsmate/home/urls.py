@@ -5,5 +5,4 @@ urlpatterns = [
     path('', views.index_view, name='index'),
     path('home/', views.HomeView, name='home'),
     path('newfeeds/', views.HomeView, name='newfeeds'),
-    path('accounts/manage/', views.accounts_manage_view, name='accounts_manage'),
 ]
