@@ -54,16 +54,10 @@ def _require_survey_access(request, allow_director=True, require_manager=False):
         raise PermissionDenied('Tài khoản Admin phòng IT không tham gia nghiệp vụ Khảo sát.')
     if require_manager and not is_department_manager(request.user):
         raise PermissionDenied('Chỉ Trưởng phòng mới có quyền truy cập chức năng phê duyệt khảo sát.')
-    if not allow_director and is_director(request.user):
-        raise PermissionDenied(
-            'Giám đốc chỉ có quyền xem danh sách và báo cáo khảo sát, không tham gia làm hoặc tạo khảo sát.'
-        )
     return None
 
 
 def _can_view_survey_responses(user, survey):
-    if is_director(user):
-        return True
     if survey.creator_id == user.id:
         return True
     if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
@@ -72,8 +66,6 @@ def _can_view_survey_responses(user, survey):
 
 
 def _can_manage_survey(user, survey):
-    if is_director(user) or is_it_admin(user):
-        return False
     if survey.creator_id == user.id:
         return True
     if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
@@ -87,8 +79,6 @@ def SurveyList(request):
     denied = _require_survey_access(request, allow_director=True)
     if denied:
         return denied
-    if is_director(request.user):
-        return redirect('SurveyPublished')
 
     user = request.user
     query = request.GET.get('q', '').strip()
@@ -769,14 +759,10 @@ def SurveyPublished(request):
         return denied
 
     current_user = request.user
-    is_dir = is_director(current_user)
     is_mgr = is_department_manager(current_user)
 
-    # Giám đốc xem tất cả khảo sát đã duyệt (chỉ xem); Trưởng phòng xem phòng ban mình + được gán quyền;
     # Nhân viên chỉ xem khảo sát được gán quyền can_view_responses=True hoặc tự tạo
-    if is_dir:
-        surveys_qs = Survey.objects.filter(is_approved=True)
-    elif is_mgr:
+    if is_mgr:
         managed_depts = current_user.managed_departments.all()
         surveys_qs = Survey.objects.filter(is_approved=True).filter(
             Q(department__in=managed_depts) |
@@ -878,7 +864,6 @@ def SurveyPublished(request):
         'page_obj': page_obj,
         'search_query': query,
         'total_count': total_count,
-        'is_director_readonly': is_dir,
     }
     return render(request, 'published.html', context)
 
