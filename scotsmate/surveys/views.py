@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Exists, OuterRef, Q
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from django.core.paginator import Paginator
 import json
@@ -23,27 +24,40 @@ from home.roles import (
 from .forms import *
 
 
+# ── Hàm kiểm tra vai trò dùng cho decorator @user_passes_test ──────────────
+def _is_not_it_admin(user):
+    """Kiểm tra người dùng KHÔNG phải Admin phòng IT (Admin IT không tham gia nghiệp vụ Khảo sát)."""
+    return not is_it_admin(user)
+
+
+def _is_manager_user(user):
+    """Kiểm tra người dùng có quyền Trưởng phòng (phê duyệt khảo sát)."""
+    return is_department_manager(user)
+
+
 def _survey_question_content_types():
     mc_ct = ContentType.objects.get_for_model(SurveyMultipleChoiceQuestion)
     essay_ct = ContentType.objects.get_for_model(SurveyEssayQuestion)
     return mc_ct, essay_ct
 
 
-def _require_survey_access(request, require_manager=False):
+def _require_survey_access(request, allow_director=True, require_manager=False):
+    """
+    Kiểm tra quyền truy cập vào module Khảo sát (Chương 7 – LO2: Phân quyền & Bảo mật).
+
+    Sử dụng raise PermissionDenied để trả về lỗi HTTP 403 Forbidden chuẩn Django
+    khi người dùng cố tình truy cập trái phép vào tài nguyên không thuộc quyền hạn.
+    """
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
-    if require_manager and not (is_it_admin(request.user) or is_department_manager(request.user)):
-        return redirect_back_with_error(
-            request,
-            'Chỉ Trưởng phòng hoặc Admin mới có quyền truy cập chức năng phê duyệt khảo sát.',
-            fallback_url='MySurvey',
-        )
+    if is_it_admin(request.user):
+        raise PermissionDenied('Tài khoản Admin phòng IT không tham gia nghiệp vụ Khảo sát.')
+    if require_manager and not is_department_manager(request.user):
+        raise PermissionDenied('Chỉ Trưởng phòng mới có quyền truy cập chức năng phê duyệt khảo sát.')
     return None
 
 
 def _can_view_survey_responses(user, survey):
-    if is_it_admin(user):
-        return True
     if survey.creator_id == user.id:
         return True
     if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
@@ -52,8 +66,6 @@ def _can_view_survey_responses(user, survey):
 
 
 def _can_manage_survey(user, survey):
-    if is_it_admin(user):
-        return True
     if survey.creator_id == user.id:
         return True
     if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
@@ -62,8 +74,9 @@ def _can_manage_survey(user, survey):
 
 
 # Create your views here.
+@login_required
 def SurveyList(request):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=True)
     if denied:
         return denied
 
@@ -133,8 +146,9 @@ def SurveyList(request):
     }
     return render(request, 'list.html', context)
 
+@login_required
 def SurveyHistory(request):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=False)
     if denied:
         return denied
 
@@ -161,29 +175,24 @@ def SurveyHistory(request):
     }
     return render(request, 'history.html', context)
 
+@login_required
 def SurveyTake(request, survey_pk):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=False)
     if denied:
         return denied
 
     current_user = request.user
     survey = get_object_or_404(Survey, pk=survey_pk)
 
-    # Kiểm tra quyền truy cập: phải có SurveyAccess hoặc là creator / Trưởng phòng phụ trách / Admin
+    # Kiểm tra quyền truy cập: phải có SurveyAccess hoặc là creator / Trưởng phòng phụ trách
     has_access = SurveyAccess.objects.filter(survey=survey, emp=current_user, can_respond=True).exists()
     is_creator = (survey.creator_id == current_user.id)
-    is_manager = is_it_admin(current_user) or (
-        is_department_manager(current_user) and bool(
-            survey.department and survey.department.manager_id == current_user.id
-        )
+    is_manager = is_department_manager(current_user) and bool(
+        survey.department and survey.department.manager_id == current_user.id
     )
 
     if not (has_access or is_creator or is_manager):
-        return redirect_back_with_error(
-            request,
-            'Bạn không có quyền tham gia trả lời bài khảo sát này.',
-            fallback_url='MySurvey',
-        )
+        raise PermissionDenied('Bạn không có quyền tham gia trả lời bài khảo sát này.')
 
     # Thống kê số lần user đã nộp khảo sát này và giới hạn cho phép
     user_submitted_qs = SurveyResponse.objects.filter(
@@ -518,8 +527,9 @@ def process_survey_questions(survey, raw_json):
             )
 
 
+@login_required
 def SurveyCreate(request):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=False)
     if denied:
         return denied
 
@@ -562,23 +572,23 @@ def SurveyCreate(request):
     }
     return render(request, 'create.html', context)
 
+@login_required
+@user_passes_test(_is_manager_user, login_url='MySurvey')
 def SurveyApproveList(request):
-    denied = _require_survey_access(request, require_manager=True)
+    denied = _require_survey_access(request, allow_director=False, require_manager=True)
     if denied:
         return denied
 
     user = request.user
+    managed_departments = user.managed_departments.all()
+
     query = request.GET.get('q', '').strip()
 
-    # Admin xem tất cả khảo sát chưa duyệt; Trưởng phòng chỉ xem khảo sát thuộc phòng ban phụ trách
-    if is_it_admin(user):
-        surveys_qs = Survey.objects.filter(is_approved=False)
-    else:
-        managed_departments = user.managed_departments.all()
-        surveys_qs = Survey.objects.filter(
-            department__in=managed_departments,
-            is_approved=False
-        )
+    # Lọc khảo sát thuộc các phòng ban do Trưởng phòng phụ trách, chưa duyệt và chưa quá hạn
+    surveys_qs = Survey.objects.filter(
+        department__in=managed_departments,
+        is_approved=False
+    )
 
     surveys_qs = surveys_qs.filter(
         Q(response_deadline__isnull=True) | Q(response_deadline__gt=timezone.now())
@@ -605,8 +615,10 @@ def SurveyApproveList(request):
     }
     return render(request, 'approve_list.html', context)
 
+@login_required
+@user_passes_test(_is_manager_user, login_url='MySurvey')
 def SurveyApproveDetail(request, survey_pk=None):
-    denied = _require_survey_access(request, require_manager=True)
+    denied = _require_survey_access(request, allow_director=False, require_manager=True)
     if denied:
         return denied
 
@@ -616,15 +628,11 @@ def SurveyApproveDetail(request, survey_pk=None):
         pk=survey_pk
     )
 
-    # Kiểm tra quyền: Admin hoặc Trưởng phòng của phòng ban khảo sát
-    is_manager = is_it_admin(current_user) or current_user.managed_departments.filter(id=survey.department_id).exists()
+    # Kiểm tra quyền: phải là Trưởng phòng của phòng ban khảo sát
+    is_manager = current_user.managed_departments.filter(id=survey.department_id).exists()
 
     if not is_manager:
-        return redirect_back_with_error(
-            request,
-            'Bạn chỉ có quyền thẩm định khảo sát thuộc phòng ban mình phụ trách.',
-            fallback_url='SurveyApproveList',
-        )
+        raise PermissionDenied('Bạn chỉ có quyền thẩm định khảo sát thuộc phòng ban mình phụ trách.')
 
     # Xử lý POST (Từ chối xóa khảo sát, hoặc Phê duyệt & Phát hành)
     if request.method == 'POST':
@@ -744,20 +752,17 @@ def SurveyApproveDetail(request, survey_pk=None):
     }
     return render(request, 'approve_detail.html', context)
 
+@login_required
 def SurveyPublished(request):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=True)
     if denied:
         return denied
 
     current_user = request.user
-    is_admin = is_it_admin(current_user)
     is_mgr = is_department_manager(current_user)
 
-    # Admin xem tất cả khảo sát đã duyệt; Trưởng phòng xem phòng ban mình + được gán quyền + tự tạo;
     # Nhân viên chỉ xem khảo sát được gán quyền can_view_responses=True hoặc tự tạo
-    if is_admin:
-        surveys_qs = Survey.objects.filter(is_approved=True)
-    elif is_mgr:
+    if is_mgr:
         managed_depts = current_user.managed_departments.all()
         surveys_qs = Survey.objects.filter(is_approved=True).filter(
             Q(department__in=managed_depts) |
@@ -862,8 +867,9 @@ def SurveyPublished(request):
     }
     return render(request, 'published.html', context)
 
+@login_required
 def ResponseOverview(request, rep_pk=None, survey_pk=None):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=True)
     if denied:
         return denied
 
@@ -875,22 +881,14 @@ def ResponseOverview(request, rep_pk=None, survey_pk=None):
     )
 
     if not _can_view_survey_responses(current_user, survey):
-        return redirect_back_with_error(
-            request,
-            'Bạn không có quyền xem báo cáo phản hồi của khảo sát này.',
-            fallback_url='SurveyPublished',
-        )
+        raise PermissionDenied('Bạn không có quyền xem báo cáo phản hồi của khảo sát này.')
 
     can_manage = _can_manage_survey(current_user, survey)
 
-    # Xử lý POST điều chỉnh is_visible hoặc is_respondable
+    # Xử lý POST điều chỉnh is_visible hoặc is_respondable (Giám đốc chỉ xem, không chỉnh sửa)
     if request.method == 'POST':
         if not can_manage:
-            return redirect_back_with_error(
-                request,
-                'Bạn không có quyền thay đổi trạng thái bài khảo sát này.',
-                fallback_url='SurveyPublished',
-            )
+            raise PermissionDenied('Bạn không có quyền thay đổi trạng thái bài khảo sát này.')
         action = request.POST.get('action')
         if action == 'toggle_visible':
             survey.is_visible = not survey.is_visible
@@ -1044,8 +1042,9 @@ def ResponseOverview(request, rep_pk=None, survey_pk=None):
     }
     return render(request, 'responses_overview.html', context)
 
+@login_required
 def ResponseDetail(request, rep_pk=None, survey_pk=None):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=True)
     if denied:
         return denied
 
@@ -1057,11 +1056,7 @@ def ResponseDetail(request, rep_pk=None, survey_pk=None):
     )
 
     if not _can_view_survey_responses(current_user, survey):
-        return redirect_back_with_error(
-            request,
-            'Bạn không có quyền xem chi tiết phản hồi của khảo sát này.',
-            fallback_url='SurveyPublished',
-        )
+        raise PermissionDenied('Bạn không có quyền xem chi tiết phản hồi của khảo sát này.')
 
     # 2. Lấy danh sách câu hỏi trong khảo sát và map lựa chọn trắc nghiệm
     mc_ct, essay_ct = _survey_question_content_types()
@@ -1204,8 +1199,9 @@ def ResponseDetail(request, rep_pk=None, survey_pk=None):
     }
     return render(request, 'responses_detail.html', context)
 
+@login_required
 def SurveyExportExcel(request, survey_pk):
-    denied = _require_survey_access(request)
+    denied = _require_survey_access(request, allow_director=True)
     if denied:
         return denied
 
@@ -1216,11 +1212,7 @@ def SurveyExportExcel(request, survey_pk):
     )
 
     if not _can_view_survey_responses(current_user, survey):
-        return redirect_back_with_error(
-            request,
-            'Bạn không có quyền xuất báo cáo khảo sát này.',
-            fallback_url='SurveyPublished',
-        )
+        raise PermissionDenied('Bạn không có quyền xuất báo cáo khảo sát này.')
 
     wb = openpyxl.Workbook()
 

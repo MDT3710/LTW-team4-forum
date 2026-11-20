@@ -181,7 +181,9 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Bảo mật phiên làm việc và cấu hình nhúng iframe
+# Bảo mật phiên làm việc và cấu hình nhúng iframe (Chương 7 – LO1 & LO3)
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'          # Lưu phiên vào bảng django_session trong CSDL
+SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'  # Tuần tự hóa an toàn, chống tấn công RCE
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
