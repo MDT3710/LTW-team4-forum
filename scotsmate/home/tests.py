@@ -184,62 +184,132 @@ class RBACAndModulesTests(TestCase):
         self.assertEqual(res_adm_setup.status_code, 200)
 
     def test_documents_usecase_category_create_and_department_scope(self):
-        """Nhân viên được tạo danh mục; Trưởng phòng chỉ duyệt/quản lý tài liệu thuộc phòng ban mình; Admin toàn quyền."""
+        """Use case Tài liệu mới: Chỉ Trưởng phòng/Admin tạo-sửa-xóa danh mục; Nhân viên xem danh mục & tự sửa-xóa tài liệu mình tạo; Từ chối bắt buộc nhập lý do."""
         cat = DocumentCategory.objects.create(name='Quy định chung', display_order=1)
 
-        # Nhân viên vào trang tạo danh mục được phép (theo Use Case Tài liệu)
+        # 1. Nhân viên chỉ được xem danh mục, KHÔNG được tạo/sửa/xóa danh mục
         self.client.force_login(self.employee)
-        res_cat_create = self.client.get('/documents/category/create/')
-        self.assertEqual(res_cat_create.status_code, 200)
-        res_cat_post = self.client.post('/documents/category/create/', {
-            'name': 'Danh mục nhân viên tạo',
-            'description': 'Mô tả',
-        })
-        self.assertEqual(res_cat_post.status_code, 302)
-        self.assertTrue(DocumentCategory.objects.filter(name='Danh mục nhân viên tạo').exists())
+        res_doc_list = self.client.get('/documents/')
+        self.assertEqual(res_doc_list.status_code, 200)
+        self.assertNotContains(res_doc_list, 'Tạo danh mục')
+        self.assertEqual(self.client.get('/documents/category/create/').status_code, 302)
+        self.client.post('/documents/category/create/', {'name': 'Danh mục trái phép', 'description': 'x'})
+        self.assertFalse(DocumentCategory.objects.filter(name='Danh mục trái phép').exists())
+        self.assertEqual(self.client.get(f'/documents/category/{cat.id}/edit/').status_code, 302)
+        self.client.post('/documents/', {'delete_cat_id': cat.id})
+        self.assertTrue(DocumentCategory.objects.filter(id=cat.id).exists())
 
-        doc_hr = Document.objects.create(
-            category=cat, title='Tài liệu phòng HR', description='HR',
-            file=SimpleUploadedFile('hr.pdf', b'%PDF-1.4 hr'),
-            creator=self.employee, status='PENDING', request_type='NEW',
-        )
+        # Trưởng phòng toàn quyền tạo/sửa/xóa mọi danh mục
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get('/documents/category/create/').status_code, 200)
+        self.client.post('/documents/category/create/', {'name': 'Danh mục Trưởng phòng tạo', 'description': 'Mô tả'})
+        mgr_cat = DocumentCategory.objects.get(name='Danh mục Trưởng phòng tạo')
+        self.client.post(f'/documents/category/{mgr_cat.id}/edit/', {'name': 'Danh mục TP đã sửa', 'description': 'Mới'})
+        mgr_cat.refresh_from_db()
+        self.assertEqual(mgr_cat.name, 'Danh mục TP đã sửa')
+
+        # 2. Mô tả quá 300 ký tự bị từ chối khi nhân viên tạo tài liệu
+        self.client.force_login(self.employee)
+        res_too_long = self.client.post('/documents/create/', {
+            'title': 'Tài liệu mô tả dài',
+            'category': cat.id,
+            'access_scope': 'ALL',
+            'description': 'x' * 301,
+            'file': SimpleUploadedFile('long.pdf', b'%PDF-1.4 long'),
+        })
+        self.assertEqual(res_too_long.status_code, 200)
+        self.assertFalse(Document.objects.filter(title='Tài liệu mô tả dài').exists())
+
+        # Nhân viên đăng tài liệu hợp lệ -> phải PENDING
+        long_valid_desc = 'A' * 120
+        res_emp_doc = self.client.post('/documents/create/', {
+            'title': 'Tài liệu nhân viên gửi',
+            'category': cat.id,
+            'access_scope': 'ALL',
+            'description': long_valid_desc,
+            'file': SimpleUploadedFile('emp.pdf', b'%PDF-1.4 emp'),
+        })
+        self.assertEqual(res_emp_doc.status_code, 302)
+        doc_hr = Document.objects.get(title='Tài liệu nhân viên gửi')
+        self.assertEqual(doc_hr.status, 'PENDING')
+
+        # Tài liệu phòng Đào tạo gửi duyệt -> Trưởng phòng thấy và duyệt được; từ chối trống lý do bị chặn
         doc_dt = Document.objects.create(
-            category=cat, title='Tài liệu phòng Đào tạo', description='ĐT',
+            category=cat, title='Tài liệu phòng Đào tạo', description='ĐT ' * 40,
             file=SimpleUploadedFile('dt.pdf', b'%PDF-1.4 dt'),
             creator=self.training_emp, status='PENDING', request_type='NEW',
         )
 
-        # Trưởng phòng HR chỉ thấy doc_hr trong chờ duyệt, bị chặn duyệt doc_dt
+        # Trưởng phòng đăng tài liệu mới -> APPROVED ngay không cần chờ duyệt
         self.client.force_login(self.manager)
-        res_app_list = self.client.get('/documents/approve/')
-        self.assertContains(res_app_list, 'Tài liệu phòng HR')
-        self.assertNotContains(res_app_list, 'Tài liệu phòng Đào tạo')
+        self.client.post('/documents/create/', {
+            'title': 'Quy định Trưởng phòng đăng',
+            'category': cat.id,
+            'access_scope': 'ALL',
+            'description': 'Nội dung trưởng phòng ban hành',
+            'file': SimpleUploadedFile('mgr.pdf', b'%PDF-1.4 mgr'),
+        })
+        doc_mgr = Document.objects.get(title='Quy định Trưởng phòng đăng')
+        self.assertEqual(doc_mgr.status, 'APPROVED')
 
-        res_cross = self.client.post(f'/documents/approve/{doc_dt.id}/', {'action': 'approve'})
-        self.assertEqual(res_cross.status_code, 302)
+        # Từ chối để trống lý do -> KHÔNG đổi sang REJECTED
+        self.client.post(f'/documents/approve/{doc_dt.id}/', {'action': 'reject', 'rejection_reason': '   '})
         doc_dt.refresh_from_db()
         self.assertEqual(doc_dt.status, 'PENDING')
 
-        # Admin IT thấy cả 2 và phê duyệt được doc_dt
-        self.client.force_login(self.admin_user)
-        res_adm_list = self.client.get('/documents/approve/')
-        self.assertContains(res_adm_list, 'Tài liệu phòng Đào tạo')
+        # Trưởng phòng thấy CẢ doc_hr lẫn doc_dt ở /documents/approve/ và duyệt được
+        res_app_list = self.client.get('/documents/approve/')
+        self.assertContains(res_app_list, 'Tài liệu nhân viên gửi')
+        self.assertContains(res_app_list, 'Tài liệu phòng Đào tạo')
         self.client.post(f'/documents/approve/{doc_dt.id}/', {'action': 'approve'})
         doc_dt.refresh_from_db()
         self.assertEqual(doc_dt.status, 'APPROVED')
-
-        # Quản lý ẩn/hiện thuộc phạm vi phòng ban của Trưởng phòng HR
-        doc_hr.status = 'APPROVED'
-        doc_hr.save()
-        self.client.force_login(self.manager)
-        self.client.post(f'/documents/{cat.id}/', {'toggle_visibility_id': doc_hr.id})
+        self.client.post(f'/documents/approve/{doc_hr.id}/', {'action': 'approve'})
         doc_hr.refresh_from_db()
-        self.assertFalse(doc_hr.is_visible)
+        self.assertEqual(doc_hr.status, 'APPROVED')
 
-        # Trưởng phòng HR không xóa được doc_dt (phòng Đào tạo)
-        res_del_cross = self.client.post(f'/documents/{cat.id}/', {'delete_doc_id': doc_dt.id})
-        self.assertEqual(res_del_cross.status_code, 302)
+        # 3. Trong danh mục: Nhân viên bấm tên để xem chi tiết đầy đủ, có nút Tải về (không có nút Chi tiết riêng ở cột Thao tác)
+        self.client.force_login(self.employee)
+        res_cat_view = self.client.get(f'/documents/{cat.id}/')
+        self.assertContains(res_cat_view, long_valid_desc)
+        self.assertContains(res_cat_view, 'Tải về')
+
+        # Kiểm tra sửa file sai định dạng bị từ chối ở DocumentEditForm
+        res_bad_ext = self.client.post(f'/documents/my_docs/{doc_hr.id}/edit/', {
+            'title': 'Sai đuôi',
+            'category': cat.id,
+            'access_scope': 'ALL',
+            'description': 'Test',
+            'file': SimpleUploadedFile('malware.exe', b'MZ'),
+        })
+        self.assertEqual(res_bad_ext.status_code, 200)
+
+        # Sửa tài liệu Đã duyệt sang DEPARTMENT nhưng chưa duyệt -> không ghi đè DocumentAccess gốc
+        self.client.post(f'/documents/my_docs/{doc_hr.id}/edit/', {
+            'title': 'Tài liệu nhân viên sửa',
+            'category': cat.id,
+            'access_scope': 'DEPARTMENT',
+            'departments': [self.dept_hr.id],
+            'description': 'Mô tả mới sau sửa',
+        })
+        doc_hr.refresh_from_db()
+        self.assertEqual(doc_hr.status, 'PENDING')
+        self.assertEqual(doc_hr.request_type, 'UPDATE')
+        self.assertEqual(doc_hr.access_permissions.count(), 0)
+
+        # Không xóa được tài liệu của người khác (doc_dt), nhưng xóa được tài liệu của mình
+        self.client.post(f'/documents/{cat.id}/', {'delete_doc_id': doc_dt.id})
         self.assertTrue(Document.objects.filter(id=doc_dt.id).exists())
+        self.client.post('/documents/my_docs/', {'delete_doc_id': doc_hr.id})
+        self.assertFalse(Document.objects.filter(id=doc_hr.id).exists())
+
+        # Trưởng phòng xóa được danh mục vừa tạo và ẩn/hiện tài liệu
+        self.client.force_login(self.manager)
+        self.client.post('/documents/', {'delete_cat_id': mgr_cat.id})
+        self.assertFalse(DocumentCategory.objects.filter(id=mgr_cat.id).exists())
+        self.client.post(f'/documents/{cat.id}/', {'toggle_visibility_id': doc_dt.id})
+        doc_dt.refresh_from_db()
+        self.assertFalse(doc_dt.is_visible)
 
     def test_surveys_and_events_admin_manager_creator(self):
         """Khảo sát: creator + Trưởng phòng + Admin xem được phản hồi; Sự kiện: Trưởng phòng + Admin tạo/sửa/xóa."""

@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from .models import DocumentCategory, Document, DocumentUpdateProposal, DocumentAccess
 from .forms import DocumentCreateForm, DocumentCategoryForm, DocumentEditForm
+from home.models import Department
 from home.roles import (
     is_department_manager,
     is_it_admin,
@@ -43,33 +44,45 @@ def _is_manager(user):
 
 
 def _pending_docs_for_user(user):
-    qs = Document.objects.select_related('category', 'creator').filter(status='PENDING')
-    if is_it_admin(user):
-        return qs
-    if not is_department_manager(user):
-        return Document.objects.none()
-    managed_ids = list(user.managed_departments.values_list('id', flat=True))
-    return qs.filter(
-        Q(creator=user)
-        | Q(creator__employee_info__dep_id__in=managed_ids)
-        | Q(access_permissions__department_id__in=managed_ids)
-        | Q(creator__employee_info__dep__isnull=True)
-    ).distinct()
+    if is_it_admin(user) or is_department_manager(user):
+        return Document.objects.select_related('category', 'creator').prefetch_related(
+            'access_permissions__department'
+        ).filter(status='PENDING')
+    return Document.objects.none()
 
 
 def _can_manage_doc(user, doc):
-    if is_it_admin(user):
-        return True
-    if not is_department_manager(user):
-        return False
-    if doc.creator_id == user.id:
-        return True
-    managed_ids = set(user.managed_departments.values_list('id', flat=True))
-    emp_info = getattr(doc.creator, 'employee_info', None)
-    creator_dep_id = getattr(emp_info, 'dep_id', None)
-    if creator_dep_id is None or creator_dep_id in managed_ids:
-        return True
-    return doc.access_permissions.filter(department_id__in=managed_ids).exists()
+    return _is_manager(user)
+
+
+def _can_manage_category(user, category=None):
+    return _is_manager(user)
+
+
+def _visible_docs_queryset_for_user(user, category=None, include_hidden_for_manager=False):
+    is_mgr = _is_manager(user)
+    qs = Document.objects.select_related('creator', 'approver', 'category').prefetch_related(
+        'access_permissions__department'
+    ).filter(status='APPROVED')
+    if category is not None:
+        qs = qs.filter(category=category)
+    if not (is_mgr and include_hidden_for_manager):
+        qs = qs.filter(is_visible=True)
+    if not is_mgr:
+        user_dept = _get_user_department(user)
+        access_filter = Q(access_scope='ALL') | Q(creator=user)
+        if user_dept:
+            access_filter |= Q(access_scope='DEPARTMENT', access_permissions__department=user_dept)
+        qs = qs.filter(access_filter).distinct()
+    return qs
+
+
+def _sync_doc_access(doc, access_scope, selected_departments):
+    doc.access_permissions.all().delete()
+    if access_scope == 'DEPARTMENT' and selected_departments:
+        DocumentAccess.objects.bulk_create([
+            DocumentAccess(document=doc, department=dept) for dept in selected_departments
+        ])
 
 
 # 1. Thư viện tài liệu (/documents/)
@@ -78,23 +91,44 @@ def document_list(request):
     if denied:
         return denied
 
+    if request.method == 'POST' and 'delete_cat_id' in request.POST:
+        cat_to_delete = get_object_or_404(DocumentCategory, id=request.POST.get('delete_cat_id'))
+        if not _can_manage_category(request.user, cat_to_delete):
+            return redirect_back_with_error(
+                request,
+                'Chỉ Trưởng phòng hoặc Admin mới có quyền xóa danh mục tài liệu.',
+                fallback_url='documents',
+            )
+        cat_name = cat_to_delete.name
+        cat_to_delete.delete()
+        messages.success(request, f'Đã xoá danh mục "{cat_name}".')
+        return redirect('documents')
+
     search_query = request.GET.get('q', '').strip()
 
-    categories = DocumentCategory.objects.annotate(
-        doc_count=Count('documents', filter=Q(documents__status='APPROVED', documents__is_visible=True))
-    )
-
+    categories_qs = DocumentCategory.objects.select_related('creator').all()
     if search_query:
-        categories = categories.filter(
+        categories_qs = categories_qs.filter(
             Q(name__icontains=search_query) |
             Q(description__icontains=search_query)
         )
+
+    visible_docs = _visible_docs_queryset_for_user(request.user, include_hidden_for_manager=False)
+    counts_by_cat = dict(
+        visible_docs.values('category_id').annotate(c=Count('id', distinct=True)).values_list('category_id', 'c')
+    )
+
+    is_mgr = _is_manager(request.user)
+    categories = list(categories_qs)
+    for cat in categories:
+        cat.can_manage = is_mgr
+        cat.doc_count = counts_by_cat.get(cat.id, 0)
 
     context = {
         'categories': categories,
         'pending_count': _pending_docs_for_user(request.user).count(),
         'search_query': search_query,
-        'is_manager': _is_manager(request.user),
+        'is_manager': is_mgr,
     }
     return render(request, 'documents.html', context)
 
@@ -106,6 +140,7 @@ def document_create(request):
         return denied
 
     error_message = None
+    is_mgr = _is_manager(request.user)
 
     if request.method == "POST":
         form = DocumentCreateForm(request.POST, request.FILES)
@@ -117,6 +152,10 @@ def document_create(request):
             selected_departments = form.cleaned_data.get('departments', [])
             uploaded_files = form.cleaned_data['file']
 
+            doc_status = 'APPROVED' if is_mgr else 'PENDING'
+            approver_user = request.user if is_mgr else None
+            approved_time = timezone.now() if is_mgr else None
+
             for index, f in enumerate(uploaded_files, start=1):
                 doc_title = title if len(uploaded_files) == 1 else f"{title} ({index})"
                 new_doc = Document.objects.create(
@@ -126,12 +165,21 @@ def document_create(request):
                     file=f,
                     access_scope=access_scope,
                     creator=request.user,
-                    status='PENDING',
+                    approver=approver_user,
+                    approved_at=approved_time,
+                    status=doc_status,
                     request_type='NEW',
+                    is_visible=True,
                 )
                 if access_scope == 'DEPARTMENT':
-                    for dept in selected_departments:
-                        DocumentAccess.objects.create(document=new_doc, department=dept)
+                    _sync_doc_access(new_doc, access_scope, selected_departments)
+
+            if is_mgr:
+                messages.success(
+                    request,
+                    f'Tài liệu "{title}" đã được đăng tải trực tiếp lên thư viện thành công.'
+                )
+                return redirect('document_category', cate_id=category.id)
 
             messages.success(
                 request,
@@ -151,7 +199,7 @@ def document_create(request):
         'form': form,
         'pending_count': _pending_docs_for_user(request.user).count(),
         'error_message': error_message,
-        'is_manager': _is_manager(request.user),
+        'is_manager': is_mgr,
         'acting_user': acting_user,
         'user_dept': user_dept,
     }
@@ -168,15 +216,25 @@ def document_my_docs(request):
     user = request.user
 
     if request.method == 'POST' and 'delete_doc_id' in request.POST:
-        doc_to_delete = get_object_or_404(Document, id=request.POST.get('delete_doc_id'), creator=user)
+        doc_to_delete = get_object_or_404(Document, id=request.POST.get('delete_doc_id'))
+        if doc_to_delete.creator_id != user.id and not _is_manager(user):
+            return redirect_back_with_error(
+                request,
+                'Bạn chỉ được phép xóa tài liệu do mình đăng tải.',
+                fallback_url='document_my_docs',
+            )
         doc_to_delete.delete()
         messages.success(request, 'Đã xóa tài liệu của bạn.')
         return redirect('document_my_docs')
 
-    my_documents = Document.objects.select_related('category', 'approver').filter(creator=user)
+    my_documents = Document.objects.select_related('category', 'approver', 'creator').prefetch_related(
+        'access_permissions__department'
+    ).filter(creator=user)
 
     if search_query:
-        my_documents = my_documents.filter(title__icontains=search_query)
+        my_documents = my_documents.filter(
+            Q(title__icontains=search_query) | Q(description__icontains=search_query)
+        )
 
     paginator = Paginator(my_documents, 10)
     page_number = request.GET.get('page')
@@ -203,50 +261,80 @@ def document_edit(request, id):
     if doc.creator_id != request.user.id and not can_manage:
         return redirect_back_with_error(
             request,
-            'Bạn không có quyền chỉnh sửa tài liệu ngoài phạm vi quản lý.',
+            'Bạn chỉ có quyền chỉnh sửa tài liệu do mình tạo hoặc thuộc phạm vi quản lý.',
             fallback_url='document_my_docs',
         )
 
+    error_message = None
     if request.method == 'POST':
         form = DocumentEditForm(request.POST, request.FILES, instance=doc)
         if form.is_valid():
             proposed_title = form.cleaned_data['title']
             proposed_category = form.cleaned_data['category']
+            proposed_description = form.cleaned_data.get('description', '')
+            proposed_scope = form.cleaned_data.get('access_scope') or doc.access_scope or 'ALL'
+            selected_departments = form.cleaned_data.get('departments', [])
             proposed_file = request.FILES.get('file') or doc.file
 
             if can_manage:
                 doc.title = proposed_title
                 doc.category = proposed_category
+                doc.description = proposed_description
+                doc.access_scope = proposed_scope
                 doc.file = proposed_file
                 doc.approver = request.user
                 doc.approved_at = timezone.now()
                 doc.status = 'APPROVED'
+                doc.rejection_reason = ''
                 doc.save()
+                _sync_doc_access(doc, proposed_scope, selected_departments)
+                doc.proposals.filter(is_processed=False).update(is_processed=True)
                 messages.success(request, f'Đã cập nhật tài liệu "{doc.title}".')
                 return redirect('document_category', cate_id=doc.category_id)
 
-            DocumentUpdateProposal.objects.create(
-                document=doc,
-                proposed_title=proposed_title,
-                proposed_category=proposed_category,
-                proposed_file=proposed_file,
-                proposed_scope=doc.access_scope,
-                submitted_by=request.user,
-                approver=doc.approver,
-            )
-
-            # Chỉ cập nhật trạng thái, giữ nguyên dữ liệu gốc cho tới khi Trưởng phòng phê duyệt
-            Document.objects.filter(id=doc.id).update(
-                status='PENDING',
-                request_type='UPDATE',
-                updated_at=timezone.now(),
-            )
-
-            messages.success(
-                request,
-                f'Tài liệu "{proposed_title}" đã được lưu và gửi phê duyệt chỉnh sửa thành công.'
-            )
+            if doc.status == 'APPROVED':
+                doc.proposals.filter(is_processed=False).update(is_processed=True)
+                DocumentUpdateProposal.objects.create(
+                    document=doc,
+                    proposed_title=proposed_title,
+                    proposed_category=proposed_category,
+                    proposed_description=proposed_description,
+                    proposed_file=proposed_file,
+                    proposed_scope=proposed_scope,
+                    proposed_department_ids=[d.id for d in selected_departments] if proposed_scope == 'DEPARTMENT' else [],
+                    submitted_by=request.user,
+                    approver=doc.approver,
+                )
+                Document.objects.filter(id=doc.id).update(
+                    status='PENDING',
+                    request_type='UPDATE',
+                    rejection_reason='',
+                    updated_at=timezone.now(),
+                )
+                messages.success(
+                    request,
+                    f'Tài liệu "{proposed_title}" đã được lưu và gửi phê duyệt chỉnh sửa thành công.'
+                )
+            else:
+                doc.title = proposed_title
+                doc.category = proposed_category
+                doc.description = proposed_description
+                doc.access_scope = proposed_scope
+                doc.file = proposed_file
+                doc.status = 'PENDING'
+                doc.request_type = 'NEW'
+                doc.rejection_reason = ''
+                doc.save()
+                _sync_doc_access(doc, proposed_scope, selected_departments)
+                messages.success(
+                    request,
+                    f'Đã cập nhật tài liệu "{doc.title}" và giữ trạng thái chờ phê duyệt.'
+                )
             return redirect('document_my_docs')
+        else:
+            for field_errors in form.errors.values():
+                error_message = field_errors[0]
+                break
     else:
         form = DocumentEditForm(instance=doc)
 
@@ -254,6 +342,7 @@ def document_edit(request, id):
         'doc_id': id,
         'doc': doc,
         'form': form,
+        'error_message': error_message,
         'pending_count': _pending_docs_for_user(request.user).count(),
         'is_manager': _is_manager(request.user),
     }
@@ -267,14 +356,22 @@ def document_approve_list(request):
         return denied
 
     search_query = request.GET.get('q', '').strip()
-    pending_docs = _pending_docs_for_user(request.user)
+    pending_qs = _pending_docs_for_user(request.user)
+    total_pending = pending_qs.count()
 
+    filtered_qs = pending_qs
     if search_query:
-        pending_docs = pending_docs.filter(title__icontains=search_query)
+        filtered_qs = filtered_qs.filter(
+            Q(title__icontains=search_query) | Q(description__icontains=search_query)
+        )
+
+    paginator = Paginator(filtered_qs, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     context = {
-        'pending_docs': pending_docs,
-        'pending_count': pending_docs.count(),
+        'page_obj': page_obj,
+        'pending_docs': page_obj,
+        'pending_count': total_pending,
         'search_query': search_query,
         'is_manager': True,
     }
@@ -291,7 +388,7 @@ def document_approve_detail(request, id):
     if not _can_manage_doc(request.user, doc):
         return redirect_back_with_error(
             request,
-            'Bạn chỉ được phê duyệt tài liệu thuộc phòng ban mình quản lý.',
+            'Bạn không có quyền phê duyệt tài liệu này.',
             fallback_url='document_approve',
         )
     proposal = doc.proposals.filter(is_processed=False).first()
@@ -304,22 +401,36 @@ def document_approve_detail(request, id):
                 doc.title = proposal.proposed_title
                 if proposal.proposed_category:
                     doc.category = proposal.proposed_category
+                if proposal.proposed_description is not None:
+                    doc.description = proposal.proposed_description
                 if proposal.proposed_file:
                     doc.file = proposal.proposed_file
                 doc.access_scope = proposal.proposed_scope
+                selected_depts = (
+                    Department.objects.filter(id__in=proposal.proposed_department_ids)
+                    if proposal.proposed_scope == 'DEPARTMENT' else []
+                )
+                _sync_doc_access(doc, proposal.proposed_scope, selected_depts)
                 proposal.is_processed = True
                 proposal.save()
 
             doc.status = 'APPROVED'
             doc.approver = request.user
             doc.approved_at = timezone.now()
+            doc.is_visible = True
+            doc.rejection_reason = ''
             doc.save()
 
             messages.success(request, f'Đã phê duyệt thành công tài liệu "{doc.title}".')
 
         elif action == 'reject':
+            rejection_reason = (request.POST.get('rejection_reason') or '').strip()
+            if not rejection_reason:
+                messages.error(request, 'Vui lòng nhập lý do từ chối phê duyệt trước khi xác nhận.')
+                return redirect('document_approve_detail', id=doc.id)
+
             doc.status = 'REJECTED'
-            doc.rejection_reason = request.POST.get('rejection_reason', '')
+            doc.rejection_reason = rejection_reason
             doc.save()
 
             if proposal:
@@ -330,10 +441,16 @@ def document_approve_detail(request, id):
 
         return redirect('document_approve')
 
+    proposed_departments = (
+        list(Department.objects.filter(id__in=proposal.proposed_department_ids))
+        if (proposal and proposal.proposed_scope == 'DEPARTMENT') else []
+    )
+
     context = {
         'doc_id': id,
         'doc': doc,
         'proposal': proposal,
+        'proposed_departments': proposed_departments,
         'pending_count': _pending_docs_for_user(request.user).count(),
         'is_manager': True,
     }
@@ -350,22 +467,15 @@ def document_category(request, cate_id):
     category = get_object_or_404(DocumentCategory, id=cate_id)
     user = request.user
     is_mgr = _is_manager(user)
-    is_admin = is_it_admin(user)
 
-    # Xử lý xoá hoặc ẩn/hiện tài liệu (Trưởng phòng trong phạm vi phòng ban hoặc Admin)
+    # Xử lý xoá (người tạo hoặc Trưởng phòng/Admin) hoặc ẩn/hiện (Trưởng phòng/Admin)
     if request.method == 'POST':
-        if not is_mgr:
-            return redirect_back_with_error(
-                request,
-                'Chỉ Trưởng phòng hoặc Admin mới có quyền xóa hoặc ẩn/hiện tài liệu.',
-                fallback_url=f'/documents/{cate_id}/',
-            )
         if 'delete_doc_id' in request.POST:
             doc_to_delete = get_object_or_404(Document, id=request.POST.get('delete_doc_id'), category=category)
-            if not _can_manage_doc(user, doc_to_delete):
+            if doc_to_delete.creator_id != user.id and not is_mgr:
                 return redirect_back_with_error(
                     request,
-                    'Bạn chỉ được xóa tài liệu thuộc phòng ban mình quản lý.',
+                    'Bạn chỉ được phép xóa tài liệu do mình đăng tải.',
                     fallback_url=f'/documents/{cate_id}/',
                 )
             doc_title = doc_to_delete.title
@@ -373,53 +483,38 @@ def document_category(request, cate_id):
             messages.success(request, f'Đã xoá thành công tài liệu "{doc_title}".')
             return redirect('document_category', cate_id=cate_id)
         if 'toggle_visibility_id' in request.POST:
-            doc_to_toggle = get_object_or_404(Document, id=request.POST.get('toggle_visibility_id'), category=category)
-            if not _can_manage_doc(user, doc_to_toggle):
+            if not is_mgr:
                 return redirect_back_with_error(
                     request,
-                    'Bạn chỉ được ẩn/hiện tài liệu thuộc phòng ban mình quản lý.',
+                    'Chỉ Trưởng phòng hoặc Admin mới có quyền ẩn/hiện tài liệu.',
                     fallback_url=f'/documents/{cate_id}/',
                 )
+            doc_to_toggle = get_object_or_404(Document, id=request.POST.get('toggle_visibility_id'), category=category)
             doc_to_toggle.is_visible = not doc_to_toggle.is_visible
             doc_to_toggle.save(update_fields=['is_visible'])
             state_txt = 'hiển thị lại' if doc_to_toggle.is_visible else 'ẩn'
             messages.success(request, f'Đã {state_txt} tài liệu "{doc_to_toggle.title}".')
             return redirect('document_category', cate_id=cate_id)
 
-    documents = Document.objects.select_related('creator', 'approver').prefetch_related(
-        'access_permissions__department'
-    ).filter(
-        category=category,
-        status='APPROVED'
-    )
-
-    if not is_mgr:
-        documents = documents.filter(is_visible=True)
-
-    if not is_admin:
-        user_dept = _get_user_department(user)
-        access_filter = Q(access_scope='ALL') | Q(creator=user)
-        if user_dept:
-            access_filter |= Q(access_scope='DEPARTMENT', access_permissions__department=user_dept)
-        if is_department_manager(user):
-            managed_ids = list(user.managed_departments.values_list('id', flat=True))
-            access_filter |= (
-                Q(creator__employee_info__dep_id__in=managed_ids)
-                | Q(access_permissions__department_id__in=managed_ids)
-                | Q(creator__employee_info__dep__isnull=True)
-            )
-        documents = documents.filter(access_filter).distinct()
+    documents = _visible_docs_queryset_for_user(user, category=category, include_hidden_for_manager=True)
 
     if search_query:
-        documents = documents.filter(title__icontains=search_query)
+        documents = documents.filter(
+            Q(title__icontains=search_query) | Q(description__icontains=search_query)
+        )
 
-    docs_list = list(documents)
+    paginator = Paginator(documents, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    docs_list = list(page_obj)
     for d in docs_list:
-        d.can_manage = _can_manage_doc(user, d)
+        d.can_manage = is_mgr
+        d.can_edit_delete = (d.creator_id == user.id or is_mgr)
 
     context = {
         'cate_id': cate_id,
         'category': category,
+        'can_manage_category': _can_manage_category(user, category),
+        'page_obj': page_obj,
         'documents': docs_list,
         'pending_count': _pending_docs_for_user(user).count(),
         'search_query': search_query,
@@ -430,7 +525,7 @@ def document_category(request, cate_id):
 
 # 8. Tạo danh mục tài liệu mới (/documents/category/create/)
 def document_category_create(request):
-    denied = _require_doc_access(request)
+    denied = _require_doc_access(request, require_manager=True)
     if denied:
         return denied
 
@@ -442,6 +537,7 @@ def document_category_create(request):
                 messages.error(request, f"Danh mục '{name}' đã tồn tại trong hệ thống.")
             else:
                 category = form.save(commit=False)
+                category.creator = request.user
                 category.display_order = DocumentCategory.objects.count() + 1
                 category.save()
                 messages.success(request, f'Danh mục "{category.name}" đã được tạo thành công.')
@@ -452,6 +548,36 @@ def document_category_create(request):
     context = {
         'form': form,
         'pending_count': _pending_docs_for_user(request.user).count(),
-        'is_manager': _is_manager(request.user),
+        'is_manager': True,
+    }
+    return render(request, 'documents_category_create.html', context)
+
+
+# 9. Chỉnh sửa danh mục tài liệu (/documents/category/<cate_id>/edit/)
+def document_category_edit(request, cate_id):
+    denied = _require_doc_access(request, require_manager=True)
+    if denied:
+        return denied
+
+    category = get_object_or_404(DocumentCategory, id=cate_id)
+
+    if request.method == 'POST':
+        form = DocumentCategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            name = form.cleaned_data['name'].strip()
+            if DocumentCategory.objects.filter(name__iexact=name).exclude(id=category.id).exists():
+                messages.error(request, f"Danh mục '{name}' đã tồn tại trong hệ thống.")
+            else:
+                form.save()
+                messages.success(request, f'Đã cập nhật danh mục "{category.name}" thành công.')
+                return redirect('documents')
+    else:
+        form = DocumentCategoryForm(instance=category)
+
+    context = {
+        'form': form,
+        'editing_category': category,
+        'pending_count': _pending_docs_for_user(request.user).count(),
+        'is_manager': True,
     }
     return render(request, 'documents_category_create.html', context)

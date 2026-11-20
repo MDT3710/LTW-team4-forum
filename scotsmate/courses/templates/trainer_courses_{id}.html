@@ -2,6 +2,7 @@
 
 {% block content %}
   {% include 'includes/header_profile_sync.html' %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <div class="staff-workspace flex flex-col px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto gap-6">
     
@@ -35,19 +36,23 @@
       </div>
 
       <div class="flex items-center gap-3">
-        {% if course.status == 'draft' %}
-          <form method="POST" action="/courses/trainer/courses/{{ course.id }}/publish/" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="inline-flex items-center gap-2 h-10 px-5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-md cursor-pointer">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Xuất bản khóa học ngay
-            </button>
-          </form>
+        {% if course.status != 'completed' %}
+          {% if course.status == 'draft' %}
+            <form method="POST" action="/courses/trainer/courses/{{ course.id }}/publish/" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="inline-flex items-center gap-2 h-10 px-5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-md cursor-pointer">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Xuất bản khóa học ngay
+              </button>
+            </form>
+          {% endif %}
+          <button type="button" onclick="toggleEditModal()" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm cursor-pointer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Sửa thông tin
+          </button>
+        {% else %}
+          <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold">Đã kết thúc (Chỉ xem báo cáo)</span>
         {% endif %}
-        <button type="button" onclick="toggleEditModal()" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm cursor-pointer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Sửa thông tin
-        </button>
         {% if course.status != 'draft' %}
           <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm" style="text-decoration:none;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
@@ -73,6 +78,7 @@
       <a href="/courses/trainer/courses/{{ course.id }}/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
         Tổng quan khóa học
       </a>
+      {% if course.status != 'completed' %}
       <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
         Tài liệu & Bài giảng ({{ course.materials.count }})
       </a>
@@ -82,6 +88,11 @@
       <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
         Ghi danh học viên ({{ total_enrolled|default:0 }})
       </a>
+      {% else %}
+      <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
+        Nội dung bài giảng ({{ course.materials.count }})
+      </a>
+      {% endif %}
       {% if course.status != 'draft' %}
       <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
         Tiến độ học viên ({{ total_enrolled|default:0 }})
@@ -92,17 +103,17 @@
     <!-- Grid thông số KPI khóa học -->
     {% if course.status == 'draft' %}
       <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <span class="text-xs text-slate-400 font-medium">Trạng thái khóa học</span>
           <p class="text-2xl font-bold text-amber-600 mt-2">Bản nháp</p>
           <span class="text-xs text-slate-500 mt-1 block">Chưa mở ghi danh học viên</span>
         </div>
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <span class="text-xs text-slate-400 font-medium">Bài giảng & Tài liệu</span>
           <p class="text-2xl font-bold text-[#134c81] mt-2">{{ materials|length }} bài giảng</p>
           <span class="text-xs text-slate-500 mt-1 block">Sẵn sàng tài liệu đào tạo</span>
         </div>
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <span class="text-xs text-slate-400 font-medium">Đề thi đánh giá</span>
           {% if exam %}
             <p class="text-2xl font-bold text-emerald-600 mt-2">Đã cấu hình</p>
@@ -112,7 +123,7 @@
             <span class="text-xs text-amber-600 mt-1 block">Cần cấu hình trước khi xuất bản</span>
           {% endif %}
         </div>
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <span class="text-xs text-slate-400 font-medium">Kế hoạch triển khai</span>
           <p class="text-sm font-bold text-slate-800 mt-2.5 truncate">{{ course.date_start|date:"d/m/Y" }} → {{ course.date_end|date:"d/m/Y" }}</p>
           <span class="text-xs text-slate-500 mt-1 block">Thời hạn khóa học</span>
@@ -120,28 +131,28 @@
       </section>
     {% else %}
       <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <span class="text-xs text-slate-400 font-medium">Tổng học viên được giao</span>
           <p class="text-2xl font-bold text-slate-900 mt-2">{{ total_enrolled }} nhân sự</p>
           <span class="text-xs text-slate-500 mt-1 block">Toàn hệ thống chi nhánh</span>
         </div>
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <span class="text-xs text-slate-400 font-medium">Đã hoàn thành khóa</span>
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <span class="text-xs text-slate-400 font-medium">Đã hoàn thành đạt chuẩn</span>
           <p class="text-2xl font-bold text-emerald-600 mt-2">{{ total_completed }} / {{ total_enrolled }}</p>
           <span class="text-xs text-emerald-600 mt-1 block">
             {% if total_enrolled > 0 %}
-              Tỷ lệ hoàn thành: {% widthratio total_completed total_enrolled 100 %}%
+              Tỷ lệ đạt khóa: {% widthratio total_completed total_enrolled 100 %}%
             {% else %}
               0%
             {% endif %}
           </span>
         </div>
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <span class="text-xs text-slate-400 font-medium">Tài liệu học tập</span>
           <p class="text-2xl font-bold text-[#134c81] mt-2">{{ materials|length }} bài giảng</p>
-          <span class="text-xs text-slate-500 mt-1 block">PDF, Video trực quan</span>
+          <span class="text-xs text-slate-500 mt-1 block">PDF, Video, Slide trực quan</span>
         </div>
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
           <span class="text-xs text-slate-400 font-medium">Trạng thái bài thi</span>
           {% if exam %}
             <p class="text-2xl font-bold text-emerald-600 mt-2">Đã cấu hình</p>
@@ -152,10 +163,53 @@
           {% endif %}
         </div>
       </section>
+
+      <!-- Dashboard minh họa trực quan kết quả & tiến độ khóa học -->
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-3">
+          <div class="border-b border-slate-100 pb-2.5">
+            <h2 class="text-sm font-bold text-slate-900">Biểu đồ cơ cấu kết quả thi</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Tổng hợp {{ total_enrolled }} học viên ghi danh</p>
+          </div>
+          <div class="relative h-[210px] w-full flex items-center justify-center">
+            <canvas id="courseOverviewResultChart"></canvas>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-100">
+            <div class="p-1.5 rounded-lg bg-emerald-50">
+              <strong class="block text-emerald-700 text-sm">{{ passed_count }}</strong>
+              <span class="text-[11px] text-slate-600">Đạt</span>
+            </div>
+            <div class="p-1.5 rounded-lg bg-rose-50">
+              <strong class="block text-rose-700 text-sm">{{ failed_count }}</strong>
+              <span class="text-[11px] text-slate-600">Chưa đạt</span>
+            </div>
+            <div class="p-1.5 rounded-lg bg-slate-100">
+              <strong class="block text-slate-700 text-sm">{{ not_tested_count }}</strong>
+              <span class="text-[11px] text-slate-600">Chưa thi</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 course-panel bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-3">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">Dashboard tiến độ bài học & Điểm thi học viên</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Đối chiếu tỷ lệ hoàn thành bài giảng (%) và điểm đánh giá năng lực (/100)</p>
+            </div>
+            <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="text-xs font-semibold text-[#134c81] hover:underline shrink-0" style="text-decoration:none;">
+              Xem phân tích chi tiết →
+            </a>
+          </div>
+          <div class="relative h-[250px] w-full">
+            <canvas id="courseOverviewTraineeChart"></canvas>
+          </div>
+        </div>
+      </section>
     {% endif %}
 
+    {% if course.status != 'completed' %}
     <!-- Khối chỉnh sửa thông tin nhanh (ẩn theo mặc định, bật khi nhấn "Sửa thông tin") -->
-    <div id="editCourseSection" class="hidden workspace-card bg-white border-2 border-blue-200 rounded-xl p-6 shadow-md">
+    <div id="editCourseSection" class="{% if not open_edit_on_load %}hidden {% endif %}course-panel bg-white border-2 border-blue-200 rounded-xl p-6 shadow-md">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
         <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#134c81]"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -211,12 +265,13 @@
         </div>
       </form>
     </div>
+    {% endif %}
 
     <!-- 2 Cột thông tin chi tiết -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       <!-- Cột trái: Thông tin cấu hình -->
-      <div class="lg:col-span-2 workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-5">
+      <div class="lg:col-span-2 course-panel bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-5">
         <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Thông tin chi tiết khóa học</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -253,9 +308,10 @@
       </div>
 
       <!-- Cột phải: Các lối tắt thao tác nhanh -->
-      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
-        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Thao tác quản trị</h2>
+      <div class="course-panel bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">{% if course.status == 'completed' %}Truy cập báo cáo (Chỉ xem){% else %}Thao tác quản trị{% endif %}</h2>
 
+        {% if course.status != 'completed' %}
         {% if course.status == 'draft' %}
           <form method="POST" action="/courses/trainer/courses/{{ course.id }}/publish/">
             {% csrf_token %}
@@ -286,6 +342,15 @@
           </div>
           <span class="text-sm font-bold text-[#134c81]">→</span>
         </a>
+        {% else %}
+        <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="p-3.5 rounded-lg border border-slate-200 hover:border-[#134c81] hover:bg-[#edf4fb] flex items-center justify-between transition" style="text-decoration:none;">
+          <div>
+            <span class="text-xs font-bold text-slate-800 block">Xem lại nội dung bài giảng</span>
+            <span class="text-[11px] text-slate-500">Khóa học đã kết thúc ({{ materials|length }} bài giảng)</span>
+          </div>
+          <span class="text-sm font-bold text-[#134c81]">→</span>
+        </a>
+        {% endif %}
 
         {% if course.status != 'draft' %}
           <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="p-3.5 rounded-lg border border-slate-200 hover:border-[#134c81] hover:bg-[#edf4fb] flex items-center justify-between transition" style="text-decoration:none;">
@@ -301,15 +366,17 @@
     </section>
 
     <!-- BẢNG DANH SÁCH HỌC VIÊN THAM GIA KHÓA HỌC -->
-    <section class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+    <section class="course-panel bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 class="text-base font-bold text-slate-900">Danh sách học viên tham gia khóa học ({{ total_enrolled }} học viên)</h2>
         </div>
+        {% if course.status != 'completed' %}
         <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#134c81] hover:bg-[#0e3b65] text-white text-xs font-bold transition shadow-sm cursor-pointer" style="text-decoration:none;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Phân công học viên
         </a>
+        {% endif %}
       </div>
 
       <div class="overflow-x-auto">
@@ -358,14 +425,17 @@
                 </td>
                 <td class="py-3 px-4">
                   {% if en.is_pass %}
-                    <span class="text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Đạt</span>
-                  {% elif en.is_completed %}
+                    <span class="text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Đạt{% if en.exam_response %} ({{ en.exam_response.score|floatformat:0 }}đ){% endif %}</span>
+                  {% elif en.exam_response %}
+                    <span class="text-rose-700 font-bold text-[11px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">✕ Chưa đạt ({{ en.exam_response.score|floatformat:0 }}đ)</span>
+                  {% elif en.is_completed or en.study_process >= 100 %}
                     <span class="text-blue-700 font-bold text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Đã học xong</span>
                   {% else %}
                     <span class="text-slate-400 text-[11px]">Chưa thi</span>
                   {% endif %}
                 </td>
                 <td class="py-3 px-4 text-right">
+                  {% if course.status != 'completed' %}
                   <form method="POST" action="/courses/trainer/courses/{{ course.id }}/" onsubmit="return confirm('Bạn có chắc chắn muốn xóa học viên này khỏi khóa học không?');" style="display:inline;">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="remove_trainee">
@@ -374,6 +444,9 @@
                       Xóa ✕
                     </button>
                   </form>
+                  {% else %}
+                    <span class="text-slate-400 text-[11px]">Chỉ xem</span>
+                  {% endif %}
                 </td>
               </tr>
             {% empty %}
@@ -401,6 +474,67 @@
         }
       }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const ctxOverviewResult = document.getElementById('courseOverviewResultChart');
+      if (ctxOverviewResult && typeof Chart !== 'undefined') {
+        new Chart(ctxOverviewResult, {
+          type: 'doughnut',
+          data: {
+            labels: ['Đạt chuẩn', 'Chưa đạt', 'Chưa thi'],
+            datasets: [{
+              data: [{{ passed_count|default:0 }}, {{ failed_count|default:0 }}, {{ not_tested_count|default:0 }}],
+              backgroundColor: ['#10b981', '#e11d48', '#cbd5e1'],
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
+            }
+          }
+        });
+      }
+
+      const ctxOverviewTrainee = document.getElementById('courseOverviewTraineeChart');
+      if (ctxOverviewTrainee && typeof Chart !== 'undefined') {
+        new Chart(ctxOverviewTrainee, {
+          type: 'bar',
+          data: {
+            labels: {{ chart_labels_json|safe }},
+            datasets: [
+              {
+                label: 'Tiến độ bài học (%)',
+                data: {{ chart_progress_json|safe }},
+                backgroundColor: 'rgba(19, 76, 129, 0.85)',
+                borderRadius: 5
+              },
+              {
+                label: 'Điểm bài thi (/100)',
+                data: {{ chart_scores_json|safe }},
+                backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                borderRadius: 5
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, max: 100, ticks: { stepSize: 25, font: { size: 11 } }, grid: { color: 'rgba(226, 232, 240, 0.6)' } },
+              x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            },
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } } }
+            }
+          }
+        });
+      }
+    });
   </script>
 
 {% endblock %}

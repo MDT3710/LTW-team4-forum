@@ -3,6 +3,12 @@
 {% block content %}
   <main class="doc-workspace">
 
+    {% for message in messages %}
+      <p style="background: {% if 'error' in message.tags %}#fee2e2; color: #991b1b; border: 1px solid #fecaca;{% else %}#dcfce7; color: #166534; border: 1px solid #bbf7d0;{% endif %} padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
+        <em>{{ message.level_tag|title }}:</em> {{ message }}
+      </p>
+    {% endfor %}
+
     <!-- Tiêu đề trang -->
     <header class="doc-header">
       <div>
@@ -63,7 +69,7 @@
               <span class="doc-meta-label">Thời điểm gửi</span>
               <span class="doc-meta-value">
                  {% if proposal %}
-                   {{ proposal.submitted_at|date:"H:i d/m/Y" }}
+                   {{ proposal.created_at|date:"H:i d/m/Y" }}
                  {% else %}
                    {{ doc.created_at|date:"H:i d/m/Y" }}
                  {% endif %}
@@ -86,8 +92,8 @@
       <!-- Cột chính bên phải: Xem trước tài liệu & Hành động phê duyệt -->
       <section class="doc-col-main">
         <div class="doc-card">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-            <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 240px;">
               <h2 style="font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
                 {% if proposal %}
                    {{ proposal.proposed_title|default:doc.title }}
@@ -95,25 +101,30 @@
                    {{ doc.title }}
                 {% endif %}
               </h2>
-              <p style="font-size: 13px; color: var(--ink-soft); line-height: 1.5;">
-                 {{ doc.description|default:"Chưa có mô tả cho tài liệu này." }}
+              <p style="font-size: 13px; color: var(--ink-soft); line-height: 1.6; white-space: pre-wrap;">
+                 {% if proposal and proposal.proposed_description %}{{ proposal.proposed_description }}{% else %}{{ doc.description|default:"Chưa có mô tả cho tài liệu này." }}{% endif %}
               </p>
             </div>
-            {% if proposal and proposal.proposed_file %}
-              <a href="{{ proposal.proposed_file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Tải file đề xuất
-              </a>
-            {% elif doc.file %}
-               <a href="{{ doc.file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>
-                 Tải tài liệu
-               </a>
-            {% endif %}
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              {% if proposal and proposal.proposed_file %}
+                <a href="{{ proposal.proposed_file.url }}" target="_blank" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem trực tiếp ↗</a>
+                <a href="{{ proposal.proposed_file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>Tải file đề xuất</a>
+              {% elif doc.file %}
+                <a href="{{ doc.file.url }}" target="_blank" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem trực tiếp ↗</a>
+                <a href="{{ doc.file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>Tải tài liệu</a>
+              {% endif %}
+            </div>
           </div>
+
+          {% if proposal %}
+            <div style="margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 12px; color: #334155;">
+              <strong style="color: var(--navy); display: block; margin-bottom: 6px;">Đối chiếu bản hiện tại vs Đề xuất chỉnh sửa:</strong>
+              <div>• Tiêu đề: <span style="color:#64748b;">{{ doc.title }}</span> → <strong>{{ proposal.proposed_title }}</strong></div>
+              <div>• Danh mục: <span style="color:#64748b;">{{ doc.category.name }}</span> → <strong>{{ proposal.proposed_category.name|default:doc.category.name }}</strong></div>
+              <div>• Phạm vi: <span style="color:#64748b;">{{ doc.get_access_scope_display }}</span> → <strong>{{ proposal.get_proposed_scope_display }}</strong>{% if proposed_departments %} ({% for d in proposed_departments %}{{ d.name }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}</div>
+              <div>• Mô tả: <span style="color:#64748b;">{{ doc.description|default:"(Trống)"|truncatechars:60 }}</span> → <strong>{{ proposal.proposed_description|default:"(Trống)" }}</strong></div>
+            </div>
+          {% endif %}
         </div>
 
         <!-- Khung Quyết định phê duyệt -->
@@ -122,11 +133,11 @@
           <form method="POST" action="{% url 'document_approve_detail' id=doc.id %}">
             {% csrf_token %}
             <div class="doc-form-group">
-              <textarea class="doc-form-textarea" id="approval-notes" name="rejection_reason" placeholder="Nhập lý do hoặc yêu cầu chỉnh sửa vào đây..."></textarea>
+              <textarea class="doc-form-textarea" id="approval-notes" name="rejection_reason" placeholder="Nhập lý do từ chối (bắt buộc khi bấm Từ chối duyệt) hoặc ghi chú..."></textarea>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-              <button type="submit" name="action" value="reject" class="doc-btn doc-btn-danger">Từ chối duyệt</button>
+              <button type="submit" name="action" value="reject" onclick="return validateRejectReason()" class="doc-btn doc-btn-danger">Từ chối duyệt</button>
               <button type="submit" name="action" value="approve" class="doc-btn doc-btn-success">Phê duyệt tài liệu</button>
             </div>
           </form>
@@ -135,4 +146,16 @@
 
     </div>
   </main>
+
+  <script>
+    function validateRejectReason() {
+      const notes = document.getElementById('approval-notes');
+      if (notes && !notes.value.trim()) {
+        alert('Vui lòng nhập lý do từ chối phê duyệt trước khi xác nhận.');
+        notes.focus();
+        return false;
+      }
+      return true;
+    }
+  </script>
 {% endblock %}

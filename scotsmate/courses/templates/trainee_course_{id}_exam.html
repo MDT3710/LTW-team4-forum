@@ -10,7 +10,7 @@
       <!-- MÀN HÌNH BẢO MẬT: NHẬP PASSCODE ĐỂ MỞ ĐỀ THI                   -->
       <!-- ============================================================ -->
       <div class="max-w-xl mx-auto my-12 w-full">
-        <div class="workspace-card bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col items-center gap-5 text-center">
+        <div class="course-exam-card bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col items-center gap-5 text-center">
           
           <div class="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 text-[#134c81] flex items-center justify-center text-3xl shadow-xs">
             🔐
@@ -112,7 +112,7 @@
           
           {% if questions %}
             {% for q in questions %}
-              <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4" id="question_box_{{ forloop.counter }}">
+              <div class="course-exam-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4" id="question_box_{{ forloop.counter }}">
                 
                 <!-- Header câu hỏi: Số thứ tự + Nút ĐẶT CỜ PHÂN VÂN -->
                 <div class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-3 gap-2">
@@ -172,7 +172,7 @@
 
           {% else %}
             <!-- Thông báo khi chưa có câu hỏi trong ngân hàng đề thi -->
-            <div class="workspace-card bg-white border border-slate-200 rounded-xl p-8 shadow-sm flex flex-col items-center gap-4 text-center">
+            <div class="course-exam-card bg-white border border-slate-200 rounded-xl p-8 shadow-sm flex flex-col items-center gap-4 text-center">
               <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
@@ -190,7 +190,7 @@
 
         <!-- Cột phụ: Bảng theo dõi tiến độ (1/3) -->
         <aside class="flex flex-col gap-6">
-          <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4 sticky top-8">
+          <div class="course-exam-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4 sticky top-8">
             <h3 class="font-bold text-slate-900 text-sm">Danh sách câu hỏi</h3>
             
             <p class="text-xs text-slate-500">
@@ -305,7 +305,7 @@
               const savedVal = sessionStorage.getItem(courseExamKey + qId);
               if (savedVal && radio.value === savedVal) {
                 radio.checked = true;
-                const card = radio.closest('.workspace-card');
+                const card = radio.closest('.course-exam-card');
                 if (card) {
                   const qNumMatch = card.id.match(/^question_box_(\d+)$/);
                   if (qNumMatch) {

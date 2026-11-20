@@ -921,6 +921,22 @@
 
               </div>
 
+            {% elif en.exam_response %}
+
+              <div class="tr-exam-notice" style="background-color: #fff1f2; color: #be123c;">
+
+                ✕ Chưa đạt bài thi ({{ en.exam_response.score|floatformat:0 }}đ)
+
+              </div>
+
+            {% elif en.course.status == 'completed' %}
+
+              <div class="tr-exam-notice" style="background-color: #f1f5f9; color: #475569;">
+
+                🔒 Khóa học đã kết thúc
+
+              </div>
+
             {% elif en.course.exam %}
 
               <div class="tr-exam-notice">

@@ -3927,7 +3927,7 @@ hr {
 }
 
 /* -- Center Column: Chat Workspace Card (group.html / inbox.html) -- */
-.workspace-card {
+.messages-workspace .workspace-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;

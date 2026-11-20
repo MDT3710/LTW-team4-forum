@@ -48,8 +48,8 @@ def get_course_exam(course):
 def get_user_role(user):
     """
     Xác định vai trò phân quyền thực tế trong module Đào tạo nội bộ:
-    - 'admin': Admin hệ thống (full quyền toàn bộ module)
-    - 'trainer': Trainer / Giảng viên đào tạo (theo Group Trainer, CourseAccess hoặc người tạo)
+    - 'admin': Admin hệ thống (toàn quyền toàn bộ module)
+    - 'trainer': Trainer / Giảng viên đào tạo (theo Group Trainer)
     - 'trainee': Học viên / Nhân viên / Cộng tác viên
     """
     if not user or not user.is_authenticated:
@@ -58,11 +58,21 @@ def get_user_role(user):
         return 'admin'
     if is_trainer(user):
         return 'trainer'
-    if CourseAccess.objects.filter(emp=user, role__in=['trainer', 'assistant', 'manager']).exists():
-        return 'trainer'
-    if Course.objects.filter(creator=user).exists():
-        return 'trainer'
     return 'trainee'
+
+
+def _can_manage_course(user, course):
+    if not user or not user.is_authenticated:
+        return False
+    if is_it_admin(user):
+        return True
+    if not is_trainer(user):
+        return False
+    if course.creator_id == user.id:
+        return True
+    return CourseAccess.objects.filter(
+        emp=user, course=course, role__in=['trainer', 'assistant']
+    ).exists()
 
 
 def _require_course_viewer_or_trainer(request):
@@ -77,6 +87,23 @@ def _require_course_viewer_or_trainer(request):
         'Bạn không có quyền truy cập chức năng quản lý đào tạo này.',
         fallback_url='trainee_courses',
     )
+
+
+def _require_course_manage_access(request, course, allow_completed=False):
+    """Kiểm tra quyền sở hữu/phụ trách khóa học và khóa thao tác sửa nếu khóa học đã kết thúc."""
+    if not _can_manage_course(request.user, course):
+        return redirect_back_with_error(
+            request,
+            'Bạn chỉ có quyền quản lý khóa học do mình phụ trách.',
+            fallback_url='trainer_courses',
+        )
+    if not allow_completed and course.status == 'completed':
+        return redirect_back_with_error(
+            request,
+            'Khóa học đã kết thúc, chỉ được phép xem chi tiết và báo cáo kết quả, không thể chỉnh sửa.',
+            fallback_url=f'/courses/trainer/courses/{course.id}/dashboard/',
+        )
+    return None
 
 
 # ============================================================
@@ -121,46 +148,12 @@ def login_view(request):
 
 def register_view(request):
     """
-    Trang đăng ký tài khoản thật của hệ thống ScotsMate:
-    Sử dụng UserRegisterForm (Chương 04 & Chương 07 - Built-in Auth).
-    Mặc định tạo tài khoản Học viên (is_staff=False).
+    Không cho phép tự đăng ký tài khoản ngoài luồng Admin (theo Use Case Tài khoản: Admin tạo tài khoản).
     """
     if request.user.is_authenticated:
         return redirect('courses_home')
-
-    error_msg = None
-    form = UserRegisterForm()
-
-    if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            new_user = form.save()
-
-            # Tự động phân công các khóa học nhập môn cho nhân viên mới
-            default_courses = Course.objects.filter(code__in=['KH-1026', 'KH-1028', 'KH-0925'])
-            if not default_courses.exists():
-                default_courses = Course.objects.all()[:3]
-            for c in default_courses:
-                CourseEnrollment.objects.get_or_create(
-                    course=c,
-                    emp=new_user,
-                    defaults={
-                        'study_process': 10,
-                        'is_completed': False,
-                        'is_pass': False,
-                    }
-                )
-
-            # Tự động đăng nhập người dùng vừa đăng ký và vào thẳng Cổng học viên
-            login(request, new_user)
-            return redirect('trainee_courses')
-        else:
-            for field, err_list in form.errors.items():
-                if err_list:
-                    error_msg = err_list[0]
-                    break
-
-    return render(request, 'register.html', {'form': form, 'error_msg': error_msg})
+    messages.info(request, 'Tài khoản nội bộ do Admin (Phòng IT) cấp phát. Vui lòng liên hệ Phòng IT hoặc đăng nhập bằng tài khoản được cấp.')
+    return redirect('login')
 
 
 def logout_view(request):
@@ -201,7 +194,14 @@ def trainer_courses(request):
     tab = request.GET.get('tab', 'all')
     search_query = request.GET.get('q', '').strip()
 
-    courses = Course.objects.all().select_related('creator').annotate(
+    base_courses = Course.objects.all()
+    if not is_it_admin(request.user):
+        base_courses = base_courses.filter(
+            Q(creator=request.user)
+            | Q(access_list__emp=request.user, access_list__role__in=['trainer', 'assistant'])
+        ).distinct()
+
+    courses = base_courses.select_related('creator').annotate(
         annotated_total_enrolled=Count('enrollments', distinct=True),
         annotated_total_completed=Count('enrollments', filter=Q(enrollments__is_completed=True), distinct=True)
     ).order_by('-date_start', '-id')
@@ -221,14 +221,12 @@ def trainer_courses(request):
             Q(creator__last_name__icontains=search_query)
         )
 
-    # Thống kê tổng số lượng theo trạng thái
-    total_count = Course.objects.count()
-    ongoing_count = Course.objects.filter(status='ongoing').count()
-    draft_count = Course.objects.filter(status='draft').count()
-    completed_count = Course.objects.filter(status='completed').count()
-    trainers = User.objects.filter(
-        Q(groups__name=ROLE_TRAINER) | Q(course_accesses__role='trainer') | Q(created_courses__isnull=False)
-    ).distinct().order_by('first_name')
+    # Thống kê tổng số lượng theo trạng thái trong phạm vi quản lý
+    total_count = base_courses.count()
+    ongoing_count = base_courses.filter(status='ongoing').count()
+    draft_count = base_courses.filter(status='draft').count()
+    completed_count = base_courses.filter(status='completed').count()
+    trainers = User.objects.filter(groups__name=ROLE_TRAINER).distinct().order_by('first_name')
 
     context = {
         'courses': courses,
@@ -243,6 +241,17 @@ def trainer_courses(request):
     return render(request, 'trainer_courses.html', context)
 
 
+def _attach_enrollment_exam_status(enrollments, exam):
+    """Gắn bài nộp mới nhất (CourseExamResponse) vào từng enrollment để đồng nhất trạng thái thi giữa Tổng quan, Ghi danh và Tiến độ."""
+    response_by_user = {}
+    if exam:
+        for r in CourseExamResponse.objects.filter(exam=exam).order_by('submission_date', 'id'):
+            response_by_user[r.emp_id] = r
+    for en in enrollments:
+        en.exam_response = response_by_user.get(en.emp_id)
+    return response_by_user
+
+
 def trainer_course_detail(request, course_id=1):
     """Chi tiết khóa học phía quản trị (Hỗ trợ xem, cập nhật và xuất bản)"""
     denied = _require_course_viewer_or_trainer(request)
@@ -250,6 +259,9 @@ def trainer_course_detail(request, course_id=1):
         return denied
 
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
+    access_denied = _require_course_manage_access(request, course, allow_completed=True)
+    if access_denied:
+        return access_denied
 
     materials = course.materials.all().order_by('order')
     exam = get_course_exam(course)
@@ -257,8 +269,14 @@ def trainer_course_detail(request, course_id=1):
     total_enrolled = len(enrollments)
     total_completed = sum(1 for e in enrollments if e.is_completed)
 
-    # Xử lý các thao tác quản trị học viên từ trang chi tiết
+    # Xử lý các thao tác quản trị học viên từ trang chi tiết (chặn chỉnh sửa nếu khóa học đã kết thúc)
     if request.method == 'POST':
+        if course.status == 'completed':
+            return redirect_back_with_error(
+                request,
+                'Khóa học đã kết thúc, chỉ được xem chi tiết và báo cáo, không thể chỉnh sửa.',
+                fallback_url=f'/courses/trainer/courses/{course.id}/',
+            )
         action = request.POST.get('action', '')
         if action == 'publish':
             course.status = 'ongoing'
@@ -282,6 +300,14 @@ def trainer_course_detail(request, course_id=1):
                     messages.success(request, 'Đã xóa học viên khỏi danh sách khóa học thành công.')
             return redirect('trainer_course_detail', course_id=course.id)
 
+    _attach_enrollment_exam_status(enrollments, exam)
+    passed_count = sum(1 for e in enrollments if e.is_pass)
+    failed_count = sum(1 for e in enrollments if not e.is_pass and e.exam_response)
+    not_tested_count = max(0, total_enrolled - passed_count - failed_count)
+    chart_labels = [e.emp.get_full_name() or e.emp.username for e in enrollments]
+    chart_progress = [e.study_process for e in enrollments]
+    chart_scores = [round(e.exam_response.score, 1) if e.exam_response else 0 for e in enrollments]
+
     form = CourseUpdateForm(instance=course)
     context = {
         'course': course,
@@ -291,6 +317,13 @@ def trainer_course_detail(request, course_id=1):
         'enrollments': enrollments,
         'total_enrolled': total_enrolled,
         'total_completed': total_completed,
+        'passed_count': passed_count,
+        'failed_count': failed_count,
+        'not_tested_count': not_tested_count,
+        'chart_labels_json': json.dumps(chart_labels),
+        'chart_progress_json': json.dumps(chart_progress),
+        'chart_scores_json': json.dumps(chart_scores),
+        'open_edit_on_load': (request.GET.get('edit') == '1' and course.status != 'completed'),
         'form': form,
     }
     return render(request, 'trainer_courses_{id}.html', context)
@@ -308,6 +341,9 @@ def trainer_course_assign(request, course_id=1):
         return denied
 
     course = get_object_or_404(Course.objects.select_related('creator'), id=course_id)
+    access_denied = _require_course_manage_access(request, course, allow_completed=False)
+    if access_denied:
+        return access_denied
     departments = Department.objects.all().order_by('id')
     trainees = User.objects.filter(is_active=True).exclude(
         groups__name=ROLE_ADMIN
@@ -353,6 +389,8 @@ def trainer_course_assign(request, course_id=1):
 
     # Lấy danh sách ghi danh hiện có để đánh dấu checkbox và hiển thị bảng phân loại
     enrollments = list(course.enrollments.select_related('emp', 'emp__employee_info__dep', 'emp__employee_info__branch').all().order_by('-is_assigned', 'emp__last_name'))
+    exam = get_course_exam(course)
+    _attach_enrollment_exam_status(enrollments, exam)
     enrolled_map = {e.emp_id: e for e in enrollments}
     enrolled_ids = list(enrolled_map.keys())
 
@@ -369,7 +407,7 @@ def trainer_course_assign(request, course_id=1):
         'enrolled_ids': enrolled_ids,
         'total_enrolled': len(enrollments),
         'materials_count': course.materials.count(),
-        'exam': get_course_exam(course),
+        'exam': exam,
     }
     return render(request, 'trainer_course_{id}_assign.html', context)
 
@@ -387,6 +425,9 @@ def trainer_course_dashboard(request, course_id=1):
         return denied
 
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
+    access_denied = _require_course_manage_access(request, course, allow_completed=True)
+    if access_denied:
+        return access_denied
     if course.status == 'draft':
         messages.info(request, f'Khóa học "{course.title}" đang ở trạng thái Bản nháp và chưa xuất bản. Báo cáo tiến độ học viên chỉ hiển thị sau khi khóa học được xuất bản.')
         return redirect('trainer_course_detail', course_id=course.id)
@@ -398,6 +439,8 @@ def trainer_course_dashboard(request, course_id=1):
 
     total_enrolled = len(enrollments)
     total_completed = sum(1 for e in enrollments if e.is_completed)
+    total_materials_done = sum(1 for e in enrollments if e.study_process >= 100)
+    total_materials_done_pct = round(total_materials_done / total_enrolled * 100) if total_enrolled > 0 else 0
     total_passed = sum(1 for e in enrollments if e.is_pass)
 
     all_responses = list(
@@ -406,11 +449,11 @@ def trainer_course_dashboard(request, course_id=1):
         .order_by('-submission_date')
     ) if exam else []
 
-    # Phân tách lượt nộp bài của học viên và bài kiểm tra thử nghiệm của Giảng viên (Trainer)
-    trainee_responses = [r for r in all_responses if get_user_role(r.emp) != 'trainer']
-    trainer_response = next((r for r in all_responses if r.emp_id == request.user.id and get_user_role(r.emp) == 'trainer'), None)
+    # Phân tách lượt nộp bài của học viên và bài kiểm tra thử nghiệm của Giảng viên (Trainer / Admin)
+    trainee_responses = [r for r in all_responses if get_user_role(r.emp) not in ('trainer', 'admin')]
+    trainer_response = next((r for r in all_responses if r.emp_id == request.user.id and get_user_role(r.emp) in ('trainer', 'admin')), None)
     if not trainer_response and get_user_role(request.user) in ('trainer', 'admin'):
-        trainer_response = next((r for r in all_responses if get_user_role(r.emp) == 'trainer'), None)
+        trainer_response = next((r for r in all_responses if get_user_role(r.emp) in ('trainer', 'admin')), None)
 
     # Thống kê phổ điểm bài thi
     submitted_count = len(trainee_responses)
@@ -517,6 +560,12 @@ def trainer_course_dashboard(request, course_id=1):
         most_missed_questions = sorted(most_missed_questions, key=lambda x: x['wrong_pct'], reverse=True)
 
     not_submitted_count = max(0, total_enrolled - submitted_count)
+    fail_count = max(0, submitted_count - pass_count)
+    q_chart_labels = [f"Câu {q['question_number']}" for q in questions_analysis]
+    q_chart_correct_pct = [q['correct_pct'] for q in questions_analysis]
+    q_chart_wrong_pct = [q['wrong_pct'] for q in questions_analysis]
+    trainee_chart_labels = [e.emp.get_full_name() or e.emp.username for e in enrollments]
+    trainee_chart_scores = [round(e.exam_response.score, 1) if e.exam_response else 0 for e in enrollments]
 
     context = {
         'course': course,
@@ -525,7 +574,11 @@ def trainer_course_dashboard(request, course_id=1):
         'total_enrolled': total_enrolled,
         'materials_count': course.materials.count(),
         'total_completed': total_completed,
+        'total_materials_done': total_materials_done,
+        'total_materials_done_pct': total_materials_done_pct,
         'total_passed': total_passed,
+        'pass_count': pass_count,
+        'fail_count': fail_count,
         'submitted_count': submitted_count,
         'not_submitted_count': not_submitted_count,
         'avg_score': avg_score,
@@ -538,6 +591,11 @@ def trainer_course_dashboard(request, course_id=1):
         'total_questions': total_questions,
         'questions_analysis': questions_analysis,
         'most_missed_questions': most_missed_questions,
+        'q_chart_labels_json': json.dumps(q_chart_labels),
+        'q_chart_correct_pct_json': json.dumps(q_chart_correct_pct),
+        'q_chart_wrong_pct_json': json.dumps(q_chart_wrong_pct),
+        'trainee_chart_labels_json': json.dumps(trainee_chart_labels),
+        'trainee_chart_scores_json': json.dumps(trainee_chart_scores),
     }
     return render(request, 'trainer_courses_{id}_dashboard.html', context)
 
@@ -554,8 +612,12 @@ def trainer_course_materials(request, course_id=1):
     if denied:
         return denied
 
-    # Bước 3: Lấy đối tượng khóa học tương ứng theo ID, tối ưu truy vấn kết hợp thông tin người tạo (Chương 02)
+    # Bước 3: Lấy đối tượng khóa học tương ứng theo ID, cho phép Trainer xem danh sách bài giảng nếu khóa đã kết thúc
     course = get_object_or_404(Course.objects.select_related('creator'), id=course_id)
+    allow_completed_readonly = (request.method == 'GET' and not request.GET.get('edit'))
+    access_denied = _require_course_manage_access(request, course, allow_completed=allow_completed_readonly)
+    if access_denied:
+        return access_denied
     # Lấy danh sách toàn bộ bài giảng đã tạo trong khóa học theo thứ tự tăng dần
     materials = course.materials.all().order_by('order')
     exam = get_course_exam(course)
@@ -661,6 +723,9 @@ def trainer_course_exam_setup(request, course_id=1):
 
     # Bước 2: Lấy thông tin khóa học và đề thi hiện có (nếu đã tạo trước đó)
     course = get_object_or_404(Course.objects.select_related('creator'), id=course_id)
+    access_denied = _require_course_manage_access(request, course, allow_completed=False)
+    if access_denied:
+        return access_denied
     exam = get_course_exam(course)
     questions = []
     if exam:
@@ -767,7 +832,15 @@ def trainer_courses_dashboard(request):
     if denied:
         return denied
 
-    courses = list(Course.objects.all().select_related('creator').annotate(
+    base_courses = Course.objects.all()
+    if not is_it_admin(request.user):
+        base_courses = base_courses.filter(
+            Q(creator=request.user)
+            | Q(access_list__emp=request.user, access_list__role__in=['trainer', 'assistant'])
+        ).distinct()
+    managed_course_ids = list(base_courses.values_list('id', flat=True))
+
+    courses = list(base_courses.select_related('creator').annotate(
         annotated_total_enrolled=Count('enrollments', distinct=True),
         annotated_total_completed=Count('enrollments', filter=Q(enrollments__is_completed=True), distinct=True)
     ).order_by('-date_start', '-id'))
@@ -777,8 +850,8 @@ def trainer_courses_dashboard(request):
     draft_courses = sum(1 for c in courses if c.status == 'draft')
     completed_courses = sum(1 for c in courses if c.status == 'completed')
 
-    total_enrollments = CourseEnrollment.objects.count()
-    total_completed = CourseEnrollment.objects.filter(is_completed=True).count()
+    total_enrollments = CourseEnrollment.objects.filter(course_id__in=managed_course_ids).count()
+    total_completed = CourseEnrollment.objects.filter(course_id__in=managed_course_ids, is_completed=True).count()
     overall_progress = round((total_completed / total_enrollments * 100), 1) if total_enrollments > 0 else 0
 
     # Dữ liệu cho Biểu đồ 1: Tiến độ hoàn thành theo từng khóa học
@@ -800,8 +873,8 @@ def trainer_courses_dashboard(request):
     dept_stats = []
     for d in departments:
         emp_ids = list(EmployeeInformation.objects.filter(dep=d).values_list('emp_id', flat=True))
-        dept_enr = CourseEnrollment.objects.filter(emp_id__in=emp_ids).count()
-        dept_done = CourseEnrollment.objects.filter(emp_id__in=emp_ids, is_completed=True).count()
+        dept_enr = CourseEnrollment.objects.filter(course_id__in=managed_course_ids, emp_id__in=emp_ids).count()
+        dept_done = CourseEnrollment.objects.filter(course_id__in=managed_course_ids, emp_id__in=emp_ids, is_completed=True).count()
         rate = round(dept_done / dept_enr * 100, 1) if dept_enr > 0 else 0
         dept_stats.append({
             'id': d.id,
@@ -812,12 +885,10 @@ def trainer_courses_dashboard(request):
             'rate': rate,
         })
 
-    trainers = User.objects.filter(
-        Q(groups__name=ROLE_TRAINER) | Q(course_accesses__role='trainer') | Q(created_courses__isnull=False)
-    ).distinct().order_by('first_name')
+    trainers = User.objects.filter(groups__name=ROLE_TRAINER).distinct().order_by('first_name')
 
     # Bóc tách dữ liệu chi tiết từng khóa học kèm phòng ban để lọc động thời gian thực (Reactive Filtering)
-    all_enrs = list(CourseEnrollment.objects.select_related('emp__employee_info__dep').all())
+    all_enrs = list(CourseEnrollment.objects.filter(course_id__in=managed_course_ids).select_related('emp__employee_info__dep').all())
     course_enr_map = {}
     for en in all_enrs:
         course_enr_map.setdefault(en.course_id, []).append(en)
@@ -1041,6 +1112,9 @@ def trainer_course_delete(request, course_id):
         return denied
 
     course = get_object_or_404(Course, id=course_id)
+    access_denied = _require_course_manage_access(request, course, allow_completed=False)
+    if access_denied:
+        return access_denied
     if request.method == 'POST':
         course.status = 'completed'
         course.save()
@@ -1049,12 +1123,17 @@ def trainer_course_delete(request, course_id):
 
 
 def trainer_course_publish(request, course_id):
-    """Xuất bản khóa học từ Bản nháp sang Đang triển khai"""
+    """Xuất bản khóa học từ Bản nháp sang Đang triển khai (chỉ chấp nhận POST)"""
     denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
     course = get_object_or_404(Course, id=course_id)
+    access_denied = _require_course_manage_access(request, course, allow_completed=False)
+    if access_denied:
+        return access_denied
+    if request.method != 'POST':
+        return redirect('trainer_course_detail', course_id=course.id)
     course.status = 'ongoing'
     course.save()
     messages.success(request, f'Khóa học "{course.title}" đã được xuất bản thành công! Học viên đã có thể thấy và tham gia học tập.')
@@ -1075,7 +1154,7 @@ def trainee_courses(request):
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
     role = get_user_role(request.user)
-    if role == 'trainer':
+    if role in ('trainer', 'admin'):
         return redirect('trainer_courses')
 
     # Lấy danh sách khóa học ĐƯỢC PHÂN CÔNG cho chính user đang đăng nhập (loại bỏ bản nháp draft)
@@ -1087,9 +1166,19 @@ def trainee_courses(request):
         'course', 'course__creator', 'course__exam'
     ).prefetch_related('course__materials'))
 
-    studying_count = sum(1 for e in enrollments if not e.is_completed)
-    completed_count = sum(1 for e in enrollments if e.is_completed)
-    upcoming_exam_count = sum(1 for e in enrollments if hasattr(e.course, 'exam') and e.course.exam and not e.is_pass)
+    my_responses_by_exam = {
+        r.exam_id: r for r in CourseExamResponse.objects.filter(emp=request.user).order_by('submission_date', 'id')
+    }
+    for e in enrollments:
+        ex = get_course_exam(e.course)
+        e.exam_response = my_responses_by_exam.get(ex.id) if ex else None
+
+    studying_count = sum(1 for e in enrollments if not e.is_completed and e.course.status == 'ongoing')
+    completed_count = sum(1 for e in enrollments if e.is_completed or e.is_pass)
+    upcoming_exam_count = sum(
+        1 for e in enrollments
+        if e.course.status == 'ongoing' and get_course_exam(e.course) and not e.is_pass and not e.exam_response
+    )
 
     # Lấy danh sách các khóa học Đang triển khai mà học viên CHƯA tham gia để có thể Đăng ký tự chọn
     my_enrolled_ids = [e.course_id for e in enrollments]
@@ -1137,14 +1226,19 @@ def trainee_course_detail(request, course_id=1):
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
 
+    course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
     role = get_user_role(request.user)
-    is_trainer_or_admin = (role in ('trainer', 'admin'))
+    is_trainer_or_admin = (role == 'admin' or _can_manage_course(request.user, course))
     is_preview = (is_trainer_or_admin and request.GET.get('preview') == '1')
 
     if is_trainer_or_admin and not is_preview:
         return redirect('trainer_course_detail', course_id=course_id)
-
-    course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
+    if role in ('trainer', 'admin') and not is_trainer_or_admin:
+        return redirect_back_with_error(
+            request,
+            'Bạn chỉ có quyền xem trước khóa học do mình phụ trách.',
+            fallback_url='trainer_courses',
+        )
 
     # Chương 07 - Lab VI: Lưu trữ danh sách khóa học vừa xem vào session
     if request.user.is_authenticated:
@@ -1234,6 +1328,7 @@ def trainee_course_detail(request, course_id=1):
         'enrollment': enrollment,
         'latest_response': latest_response,
         'is_preview': is_preview,
+        'is_trainer': is_trainer_or_admin,
     }
     return render(request, 'trainee_courses_{id}.html', context)
 
@@ -1247,10 +1342,10 @@ def trainee_course_self_enroll(request, course_id=1):
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
     role = get_user_role(request.user)
-    if role == 'trainer':
+    if role in ('trainer', 'admin'):
         return redirect_back_with_error(
             request,
-            'Giảng viên không thực hiện tự đăng ký học viên.',
+            'Giảng viên và Admin không thực hiện tự đăng ký học viên.',
             fallback_url='trainer_courses',
         )
 
@@ -1279,7 +1374,13 @@ def trainee_course_material(request, course_id=1, materials_id=1):
 
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
     role = get_user_role(request.user)
-    is_preview = (role in ('trainer', 'admin'))
+    if role in ('trainer', 'admin') and not _can_manage_course(request.user, course):
+        return redirect_back_with_error(
+            request,
+            'Bạn chỉ có quyền xem trước bài giảng của khóa học do mình phụ trách.',
+            fallback_url='trainer_courses',
+        )
+    is_preview = _can_manage_course(request.user, course)
 
     # Chặn học viên xem bài giảng của khóa học bản nháp
     if not is_preview and course.status == 'draft':
@@ -1310,25 +1411,38 @@ def trainee_course_material(request, course_id=1, materials_id=1):
 
     # Ghi nhận bài giảng này đã học vào session và cập nhật tiến độ cho học viên
     if not is_preview:
+        total = len(all_materials)
         completed_mats_dict = request.session.get('completed_materials', {})
         course_key = str(course.id)
         learned_ids = set(completed_mats_dict.get(course_key, []))
+
+        # Đồng bộ số bài đã hoàn thành trước đó từ DB (tránh đứng ở 50% khi mở bài cuối ở phiên mới)
+        if enrollment and enrollment.study_process > 0 and total > 0:
+            if enrollment.is_completed or enrollment.is_pass or enrollment.study_process >= 100:
+                learned_ids.update(m.id for m in all_materials)
+            else:
+                prior_done_count = min(total, int(round(enrollment.study_process / 100.0 * total)))
+                learned_ids.update(m.id for m in all_materials[:prior_done_count])
+
         learned_ids.add(material.id)
         completed_mats_dict[course_key] = list(learned_ids)
         request.session['completed_materials'] = completed_mats_dict
         request.session.modified = True
 
-        total = len(all_materials)
         learned_count = len(learned_ids.intersection({m.id for m in all_materials}))
         all_materials_completed = (learned_count >= total) if total > 0 else True
 
-        if total > 0 and enrollment:
-            # Tính phần trăm: đọc đến bài nào thì tính tối thiểu đến bài đó
-            num_done = max(len(learned_ids), current_idx + 1)
+        if total > 0 and enrollment and course.status == 'ongoing':
+            # Tính phần trăm theo đúng số bài thực tế đã mở trong khóa học (không nhảy cóc)
+            num_done = learned_count
             progress = int(round(num_done / total * 100))
             if progress > enrollment.study_process and not enrollment.is_pass:
                 enrollment.study_process = progress
-                enrollment.save(update_fields=['study_process'])
+                if progress >= 100 and (not exam or not exam.is_active):
+                    enrollment.is_completed = True
+                    enrollment.save(update_fields=['study_process', 'is_completed'])
+                else:
+                    enrollment.save(update_fields=['study_process'])
     else:
         learned_count = len(all_materials)
         all_materials_completed = True
@@ -1357,11 +1471,17 @@ def trainee_course_exam(request, course_id=1):
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
     exam = get_course_exam(course)
     role = get_user_role(request.user)
-    is_preview = (role in ('trainer', 'admin'))
+    if role in ('trainer', 'admin') and not _can_manage_course(request.user, course):
+        return redirect_back_with_error(
+            request,
+            'Bạn chỉ có quyền xem trước bài thi của khóa học do mình phụ trách.',
+            fallback_url='trainer_courses',
+        )
+    is_preview = _can_manage_course(request.user, course)
 
-    # Chặn học viên thi khóa học bản nháp
-    if not is_preview and course.status == 'draft':
-        messages.warning(request, f'Khóa học "{course.title}" đang ở trạng thái Bản nháp và chưa được xuất bản.')
+    # Chặn học viên thi khóa học bản nháp hoặc đã kết thúc
+    if not is_preview and course.status != 'ongoing':
+        messages.warning(request, f'Khóa học "{course.title}" hiện không mở kỳ kiểm tra.')
         return redirect('trainee_courses')
 
     unlocked_session_key = f'exam_unlocked_{exam.id}' if exam else None
@@ -1380,6 +1500,17 @@ def trainee_course_exam(request, course_id=1):
         if latest_response or (enrollment and enrollment.is_pass):
             messages.info(request, 'Bạn đã hoàn thành bài thi cho khóa học này. Hệ thống không cho phép làm bài lại, bạn có thể xem lại kết quả và đáp án chi tiết.')
             return redirect('trainee_course_exam_result', course_id=course.id)
+
+        if not enrollment:
+            messages.error(request, 'Bạn chưa được ghi danh vào khóa học này nên không thể tham gia bài kiểm tra.')
+            return redirect('trainee_course_detail', course_id=course.id)
+
+        if course.materials.exists():
+            all_mat_ids = set(course.materials.values_list('id', flat=True))
+            learned_ids = set(request.session.get('completed_materials', {}).get(str(course.id), []))
+            if enrollment.study_process < 100 and not all_mat_ids.issubset(learned_ids):
+                messages.warning(request, 'Vui lòng hoàn thành 100% bài giảng trước khi vào làm bài kiểm tra.')
+                return redirect('trainee_course_detail', course_id=course.id)
 
 
 
@@ -1433,11 +1564,17 @@ def trainee_course_exam(request, course_id=1):
             messages.warning(request, 'Bạn đã hoàn thành bài thi trước đó và không được phép làm bài lại!')
             return redirect('trainee_course_exam_result', course_id=course.id)
 
-        # Bảo mật kiểm tra Passcode khi nộp bài
+        # Bảo mật kiểm tra Passcode khi nộp bài (không phân biệt hoa/thường)
+        expected_passcode = (exam.passcode or '').strip().upper()
         passcode_entered = request.POST.get('passcode', '').strip().upper()
-        if not is_preview and exam.passcode and passcode_entered != exam.passcode:
-            messages.error(request, 'Mã dự thi (Passcode) không chính xác. Vui lòng thử lại!')
-            return redirect('trainee_course_detail', course_id=course.id)
+        if not is_preview and expected_passcode:
+            if passcode_entered:
+                if passcode_entered != expected_passcode:
+                    messages.error(request, 'Mã dự thi (Passcode) không chính xác. Vui lòng thử lại!')
+                    return redirect('trainee_course_detail', course_id=course.id)
+            elif not is_unlocked:
+                messages.error(request, 'Vui lòng xác thực Mã dự thi (Passcode) trước khi nộp bài!')
+                return redirect('trainee_course_detail', course_id=course.id)
 
         # Tính điểm trắc nghiệm tự động
         correct_count = 0
@@ -1578,14 +1715,19 @@ def trainee_course_exam_result(request, course_id=1):
     """
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
+    course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
     role = get_user_role(request.user)
-    is_trainer_or_admin = (role in ('trainer', 'admin'))
+    is_trainer_or_admin = (role == 'admin' or _can_manage_course(request.user, course))
     is_preview = (is_trainer_or_admin and request.GET.get('preview') == '1')
     if is_trainer_or_admin and not is_preview:
         return redirect('trainer_course_dashboard', course_id=course_id)
-
-    course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
-    if course.status == 'draft':
+    if role in ('trainer', 'admin') and not is_trainer_or_admin:
+        return redirect_back_with_error(
+            request,
+            'Bạn chỉ có quyền xem kết quả bài thi của khóa học do mình phụ trách.',
+            fallback_url='trainer_courses',
+        )
+    if course.status == 'draft' and not is_preview:
         messages.warning(request, f'Khóa học "{course.title}" đang ở trạng thái Bản nháp và chưa được xuất bản.')
         return redirect('trainee_courses')
 

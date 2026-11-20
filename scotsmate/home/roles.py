@@ -60,16 +60,11 @@ def is_trainer(user):
     if not user or not user.is_authenticated or is_it_admin(user):
         return False
     from home.models import Department
-    from courses.models import Course, CourseAccess
 
     role_groups = _user_role_group_names(user)
     if ROLE_TRAINER in role_groups:
         return True
     if Department.objects.filter(name='Đào tạo', manager=user).exists():
-        return True
-    if CourseAccess.objects.filter(emp=user, role__in=['trainer', 'assistant', 'manager']).exists():
-        return True
-    if Course.objects.filter(creator=user).exists():
         return True
     return False
 

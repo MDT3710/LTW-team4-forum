@@ -5,16 +5,17 @@ Sử dụng decorator @api_view và lớp Response theo đúng hướng dẫn gi
 """
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Course, CourseMaterial, CourseExam
 from .serializers import CourseSerializer, CourseMaterialSerializer, CourseExamSerializer
+from .views import get_user_role
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def api_courses_list(request):
     """
     API danh sách khóa học (Chương 05 - LO1 & LO2)
@@ -22,6 +23,8 @@ def api_courses_list(request):
     """
     status_filter = request.GET.get('status')
     courses = Course.objects.select_related('creator', 'exam').prefetch_related('materials')
+    if get_user_role(request.user) not in ('trainer', 'admin'):
+        courses = courses.exclude(status='draft')
     if status_filter:
         courses = courses.filter(status=status_filter)
     serializer = CourseSerializer(courses, many=True)
@@ -32,7 +35,7 @@ def api_courses_list(request):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def api_course_detail(request, course_id):
     """
     API chi tiết một khóa học (Chương 05 - LO2)
@@ -41,17 +44,21 @@ def api_course_detail(request, course_id):
         Course.objects.select_related('creator', 'exam').prefetch_related('materials'),
         id=course_id
     )
+    if course.status == 'draft' and get_user_role(request.user) not in ('trainer', 'admin'):
+        return Response({'detail': 'Khóa học đang ở trạng thái bản nháp.'}, status=status.HTTP_403_FORBIDDEN)
     serializer = CourseSerializer(course)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def api_course_materials(request, course_id):
     """
     API danh sách học liệu của khóa học (Chương 05)
     """
     course = get_object_or_404(Course, id=course_id)
+    if course.status == 'draft' and get_user_role(request.user) not in ('trainer', 'admin'):
+        return Response({'detail': 'Khóa học đang ở trạng thái bản nháp.'}, status=status.HTTP_403_FORBIDDEN)
     materials = course.materials.all().order_by('order')
     serializer = CourseMaterialSerializer(materials, many=True)
     return Response({
@@ -63,12 +70,14 @@ def api_course_materials(request, course_id):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def api_course_exam(request, course_id):
     """
     API thông tin cấu hình bài thi của khóa học
     """
     course = get_object_or_404(Course, id=course_id)
+    if course.status == 'draft' and get_user_role(request.user) not in ('trainer', 'admin'):
+        return Response({'detail': 'Khóa học đang ở trạng thái bản nháp.'}, status=status.HTTP_403_FORBIDDEN)
     try:
         exam = course.exam
         serializer = CourseExamSerializer(exam)

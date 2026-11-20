@@ -164,12 +164,13 @@ class CourseMaterialForm(forms.ModelForm):
         return uploaded_file
 
     def clean(self):
-        """Kiểm tra sự tương thích giữa loại bài học đã chọn và phần mở rộng của file đính kèm"""
+        """Kiểm tra sự tương thích giữa loại bài học đã chọn và phần mở rộng của file mới tải lên"""
         cleaned_data = super().clean()
         file_type = cleaned_data.get('file_type')
         uploaded_file = cleaned_data.get('file')
+        has_new_upload = bool(self.files.get('file'))
 
-        if uploaded_file and file_type:
+        if has_new_upload and uploaded_file and file_type:
             file_name = uploaded_file.name.lower()
             ext_map = {
                 'pdf': (['.pdf'], 'Tài liệu PDF (.pdf)'),

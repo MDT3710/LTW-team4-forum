@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from datetime import date, timedelta
+from home.roles import ROLE_ADMIN, ROLE_EMPLOYEE, ROLE_TRAINER, ensure_role_groups
 from .models import (
     Course,
     CourseAccess,
@@ -16,7 +17,8 @@ from .models import (
 
 class CoursesLmsTests(TestCase):
     def setUp(self):
-        # Tạo Trainer (Giảng viên)
+        self.groups = ensure_role_groups()
+        # Tạo Trainer (Giảng viên) thuộc Group Trainer
         self.trainer = User.objects.create_user(
             username='trainer_test',
             password='Password123!',
@@ -24,6 +26,7 @@ class CoursesLmsTests(TestCase):
             last_name='Trần Minh',
             is_staff=True,
         )
+        self.trainer.groups.add(self.groups[ROLE_TRAINER], self.groups[ROLE_EMPLOYEE])
 
         # Tạo Trainee (Học viên)
         self.trainee = User.objects.create_user(
@@ -33,6 +36,7 @@ class CoursesLmsTests(TestCase):
             last_name='Nguyễn Minh',
             is_staff=False,
         )
+        self.trainee.groups.add(self.groups[ROLE_EMPLOYEE])
 
         # Tạo Khóa học thử nghiệm
         self.course = Course.objects.create(
@@ -156,17 +160,29 @@ class CoursesLmsTests(TestCase):
         self.assertEqual(res.url, '/courses/trainer/courses/')
 
     def test_material_view_updates_study_process(self):
-        """Học viên mở bài học -> cập nhật study_process"""
+        """Học viên mở bài học -> cập nhật study_process (kể cả tiếp nối từ tiến độ 50% đã lưu trong DB)"""
         self.client.force_login(self.trainee)
         res = self.client.get(f'/courses/trainee/course/{self.course.id}/{self.mat1.id}/')
         self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'Tóm tắt quy trình chuẩn Scots')
+        self.assertNotContains(res, 'Mô tả nguyên tắc 1')
 
         # Bài 1 / 2 bài -> tiến độ được cập nhật
         self.enrollment.refresh_from_db()
-        self.assertGreater(self.enrollment.study_process, 0)
+        self.assertEqual(self.enrollment.study_process, 50)
+
+        # Phiên mới không còn session cũ nhưng DB đã lưu 50%: mở bài cuối (mat2) phải lên 100%
+        self.client.logout()
+        self.client.force_login(self.trainee)
+        res2 = self.client.get(f'/courses/trainee/course/{self.course.id}/{self.mat2.id}/')
+        self.assertEqual(res2.status_code, 200)
+        self.enrollment.refresh_from_db()
+        self.assertEqual(self.enrollment.study_process, 100)
 
     def test_exam_lockout_logic(self):
         """Khóa phòng thi tuyệt đối khi học viên đã thi đạt"""
+        self.enrollment.study_process = 100
+        self.enrollment.save(update_fields=['study_process'])
         self.client.force_login(self.trainee)
 
         # Khi chưa đạt -> vào phòng thi bình thường (HTTP 200)
@@ -186,6 +202,8 @@ class CoursesLmsTests(TestCase):
 
     def test_exam_submission_and_auto_grading(self):
         """Tự động chấm điểm trắc nghiệm và lưu chi tiết từng câu trả lời"""
+        self.enrollment.study_process = 100
+        self.enrollment.save(update_fields=['study_process'])
         self.client.force_login(self.trainee)
 
         # Nộp bài: chọn đúng cả 2 câu (q1: choice 2, q2: choice 1)
@@ -307,6 +325,22 @@ class CoursesLmsTests(TestCase):
         self.assertEqual(self.mat1.duration_minutes, 45)
         self.assertEqual(self.mat1.content, 'Nội dung lý thuyết cập nhật mới')
 
+        # 3. Đổi tên khi bài giảng đang gắn file .pdf cũ với file_type='slide' và không tải tệp mới vẫn phải lưu được
+        self.mat1.file.name = 'courses/materials/legacy_sample.pdf'
+        self.mat1.file_type = 'slide'
+        self.mat1.save(update_fields=['file', 'file_type'])
+        res_rename = self.client.post(f'/courses/trainer/courses/{self.course.id}/materials/', {
+            'material_id': str(self.mat1.id),
+            'name': 'Bài 1: Chỉ Đổi Tên',
+            'file_type': 'slide',
+            'duration_minutes': 20,
+            'is_required': 'on',
+            'content': '',
+        })
+        self.assertEqual(res_rename.status_code, 302)
+        self.mat1.refresh_from_db()
+        self.assertEqual(self.mat1.name, 'Bài 1: Chỉ Đổi Tên')
+
     def test_enterprise_session_security_settings(self):
         """Đảm bảo thiết lập đóng trình duyệt là kết thúc phiên đăng nhập (SESSION_EXPIRE_AT_BROWSER_CLOSE)"""
         from django.conf import settings
@@ -403,6 +437,8 @@ class CoursesLmsTests(TestCase):
 
     def test_exam_lock_policy_no_retake(self):
         """Học viên sau khi nộp bài (kể cả chưa đạt) thì phòng thi sẽ khóa vĩnh viễn, không được làm bài lại; xem lại bài làm và đối soát đáp án đúng/sai"""
+        self.enrollment.study_process = 100
+        self.enrollment.save(update_fields=['study_process'])
         self.client.force_login(self.trainee)
 
         # 1. Nộp bài nhưng chọn sai cả 2 câu -> 0 điểm
@@ -451,6 +487,8 @@ class CoursesLmsTests(TestCase):
 
     def test_exam_empty_submission(self):
         """Nộp bài trắng không chọn đáp án nào -> 0.0 điểm, không gây lỗi máy chủ"""
+        self.enrollment.study_process = 100
+        self.enrollment.save(update_fields=['study_process'])
         self.client.force_login(self.trainee)
         res = self.client.post(f'/courses/trainee/course/{self.course.id}/exam/', {
             'passcode': 'SCOTS2026',
@@ -556,6 +594,8 @@ class CoursesLmsTests(TestCase):
 
     def test_exam_passcode_validation_security(self):
         """Bảo mật phòng thi: Sai Passcode sẽ bị từ chối truy cập và nộp bài"""
+        self.enrollment.study_process = 100
+        self.enrollment.save(update_fields=['study_process'])
         self.client.force_login(self.trainee)
 
         # 1. Nhập sai passcode trên GET query param -> Bị chuyển về trang chi tiết khóa học
@@ -668,6 +708,11 @@ class CoursesLmsTests(TestCase):
 
     def test_chapter5_rest_api_endpoints(self):
         """Kiểm tra các REST API Endpoints chuẩn Chương 05 (DRF)"""
+        # Chưa đăng nhập -> bị middleware chặn redirect về /login/
+        res_anon = self.client.get('/courses/api/courses/')
+        self.assertEqual(res_anon.status_code, 302)
+
+        self.client.force_login(self.trainee)
         # 1. API danh sách khóa học
         res = self.client.get('/courses/api/courses/')
         self.assertEqual(res.status_code, 200)
@@ -851,7 +896,7 @@ class CoursesLmsTests(TestCase):
         self.assertEqual(result_res.status_code, 200)
         result_content = result_res.content.decode('utf-8')
         self.assertIn('Chế độ xem trước của Giảng viên (Trainer)', result_content)
-        self.assertIn('100.0', result_content)
+        self.assertTrue('100,0' in result_content or '100.0' in result_content)
         self.assertIn('Thi thử nghiệm lại (Trainer)', result_content)
         self.assertIn('/courses/trainer/courses/', result_content)
 
@@ -898,4 +943,120 @@ class CoursesLmsTests(TestCase):
         self.assertIn('dashTrainerFilter', content)
         self.assertIn('dashDeptFilter', content)
         self.assertIn('dashSearchInput', content)
+
+    def test_courses_hardened_rbac_completed_lock_and_exam_guards(self):
+        """Kiểm tra 12 quy tắc phân quyền & logic chặt chẽ của module Đào tạo."""
+        # 1. CourseAccess(manager) không biến nhân viên thành Trainer toàn cục
+        CourseAccess.objects.create(emp=self.trainee, course=self.course, role='manager')
+        self.client.force_login(self.trainee)
+        res_mgr_block = self.client.get('/courses/trainer/courses/')
+        self.assertEqual(res_mgr_block.status_code, 302)
+        self.assertEqual(res_mgr_block.url, '/courses/trainee/courses/')
+
+        # 2. Trainer B không sửa/xem khóa học của Trainer A; Admin toàn quyền
+        other_trainer = User.objects.create_user(
+            username='trainer_other', password='Password123!', is_staff=True
+        )
+        other_trainer.groups.add(self.groups[ROLE_TRAINER], self.groups[ROLE_EMPLOYEE])
+        self.client.force_login(other_trainer)
+        res_cross = self.client.get(
+            f'/courses/trainer/courses/{self.course.id}/',
+            HTTP_REFERER='/courses/trainer/courses/',
+        )
+        self.assertEqual(res_cross.status_code, 302)
+        self.assertEqual(res_cross.url, '/courses/trainer/courses/')
+
+        admin_user = User.objects.create_user(
+            username='admin_courses', password='Password123!', is_staff=True, is_superuser=True
+        )
+        admin_user.groups.add(self.groups[ROLE_ADMIN])
+        self.client.force_login(admin_user)
+        self.assertEqual(self.client.get(f'/courses/trainer/courses/{self.course.id}/').status_code, 200)
+
+        # 3. Nhảy cóc thẳng bài 2/2 không làm study_process lên 100%; chưa học đủ 100% bị chặn thi
+        self.client.force_login(self.trainee)
+        res_mat2 = self.client.get(f'/courses/trainee/course/{self.course.id}/{self.mat2.id}/')
+        self.assertEqual(res_mat2.status_code, 200)
+        self.enrollment.refresh_from_db()
+        self.assertEqual(self.enrollment.study_process, 50)
+
+        res_exam_early = self.client.get(f'/courses/trainee/course/{self.course.id}/exam/')
+        self.assertEqual(res_exam_early.status_code, 302)
+        self.assertEqual(res_exam_early.url, f'/courses/trainee/courses/{self.course.id}/')
+
+        # 4. Học đủ bài 1 -> 100%, passcode chữ thường vẫn nộp bài hợp lệ
+        self.client.get(f'/courses/trainee/course/{self.course.id}/{self.mat1.id}/')
+        self.enrollment.refresh_from_db()
+        self.assertEqual(self.enrollment.study_process, 100)
+        self.exam.passcode = 'scots_lower'
+        self.exam.save(update_fields=['passcode'])
+        res_submit = self.client.post(f'/courses/trainee/course/{self.course.id}/exam/', {
+            'passcode': 'SCOTS_LOWER',
+            f'question_{self.q1.id}': '2',
+            f'question_{self.q2.id}': '1',
+        })
+        self.assertRedirects(res_submit, f'/courses/trainee/course/{self.course.id}/exam/result/')
+
+        # 5. Khóa không có bài thi: học hết bài giảng -> tự đánh dấu is_completed=True
+        no_exam_course = Course.objects.create(
+            creator=self.trainer, code='KH-NOEXAM', title='Khóa không bài thi',
+            date_start=date.today(), date_end=date.today() + timedelta(days=5), status='ongoing',
+        )
+        m_only = CourseMaterial.objects.create(course=no_exam_course, name='Bài duy nhất', order=1)
+        en_no_exam = CourseEnrollment.objects.create(emp=self.trainee, course=no_exam_course, study_process=0)
+        self.client.get(f'/courses/trainee/course/{no_exam_course.id}/{m_only.id}/')
+        en_no_exam.refresh_from_db()
+        self.assertEqual(en_no_exam.study_process, 100)
+        self.assertTrue(en_no_exam.is_completed)
+
+        # 6. Khóa học đã kết thúc (completed): Trainer chỉ xem chi tiết & dashboard, không sửa được
+        # Kèm kiểm tra tính đồng nhất trạng thái bài thi Chưa đạt giữa Tổng quan và Tiến độ học viên
+        failed_trainee = User.objects.create_user(username='trainee_failed_test', password='pw', first_name='Van', last_name='Fail')
+        CourseEnrollment.objects.create(emp=failed_trainee, course=self.course, study_process=100, is_assigned=True, is_completed=False, is_pass=False)
+        CourseExamResponse.objects.create(emp=failed_trainee, exam=self.exam, passcode='SCOTS2026', duration=10, score=25.0, is_passed=False)
+
+        self.course.status = 'completed'
+        self.course.save(update_fields=['status'])
+        self.client.force_login(self.trainer)
+        detail_res = self.client.get(f'/courses/trainer/courses/{self.course.id}/')
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertNotContains(detail_res, 'Sửa thông tin')
+        self.assertContains(detail_res, 'Chưa đạt')
+        self.assertContains(detail_res, 'courseOverviewResultChart')
+        dash_res = self.client.get(f'/courses/trainer/courses/{self.course.id}/dashboard/')
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertContains(dash_res, 'courseDashStatusChart')
+        self.assertContains(dash_res, 'CHƯA ĐẠT')
+
+        res_edit_locked = self.client.post(
+            f'/courses/trainer/courses/{self.course.id}/',
+            {'action': 'update_info', 'title': 'Tên bị sửa lén'},
+        )
+        self.assertEqual(res_edit_locked.status_code, 302)
+        self.course.refresh_from_db()
+        self.assertNotEqual(self.course.title, 'Tên bị sửa lén')
+        readonly_materials_resp = self.client.get(f'/courses/trainer/courses/{self.course.id}/materials/')
+        self.assertEqual(readonly_materials_resp.status_code, 200)
+        self.assertNotContains(readonly_materials_resp, '+ Thêm bài giảng mới')
+        self.assertNotContains(readonly_materials_resp, 'Thiết lập bài thi')
+        self.assertNotContains(readonly_materials_resp, 'Ghi danh học viên')
+        self.assertEqual(
+            self.client.get(f'/courses/trainer/courses/{self.course.id}/materials/?edit={self.mat1.id}').status_code,
+            302,
+        )
+        self.assertEqual(
+            self.client.post(f'/courses/trainer/courses/{self.course.id}/materials/', {'action': 'delete', 'material_id': self.mat1.id}).status_code,
+            302,
+        )
+        preview_resp = self.client.get(f'/courses/trainee/courses/{self.course.id}/?preview=1')
+        self.assertEqual(preview_resp.status_code, 200)
+        self.assertNotContains(preview_resp, 'Đăng ký học ngay (Tự chọn)')
+        self.assertContains(preview_resp, 'Chế độ Xem trước (Trainer)')
+
+        # 7. Đăng ký tự do /register/ bị chuyển về /login/
+        self.client.logout()
+        res_reg = self.client.get('/register/')
+        self.assertEqual(res_reg.status_code, 302)
+        self.assertIn('/login/', res_reg.url)
+
 

@@ -25,6 +25,12 @@
       <a href="{% url 'document_my_docs' %}" class="doc-tab active">Tài liệu của tôi</a>
     </nav>
 
+    {% if error_message %}
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; padding: 14px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-bottom: 16px;">
+        ✕ {{ error_message }}
+      </div>
+    {% endif %}
+
     <!-- Layout 2 cột: Form chỉnh sửa -->
     <form class="doc-two-col" action="{% url 'document_edit' id=doc.id %}" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
@@ -43,6 +49,33 @@
           <div class="doc-form-group">
             <label class="doc-form-label" for="edit-cat">Danh mục tài liệu <span class="required">*</span></label>
             {{ form.category }}
+          </div>
+
+          <div class="doc-form-group">
+            <label class="doc-form-label" for="edit-scope">Phạm vi truy cập</label>
+            {{ form.access_scope }}
+          </div>
+
+          <div class="doc-form-group" id="edit-department-select-group" style="display: none; background: #f8fafc; padding: 14px 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+            <label class="doc-form-label" style="margin-bottom: 10px; display: block;">{{ form.departments.label }} <span class="required">*</span></label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+              {% for checkbox in form.departments %}
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink, #0f172a); cursor: pointer;">
+                  {{ checkbox.tag }}
+                  <span>{{ checkbox.choice_label }}</span>
+                </label>
+              {% empty %}
+                <p style="font-size: 13px; color: #64748b; margin: 0;">Chưa có phòng ban nào trong hệ thống.</p>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="doc-form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="doc-form-label" for="edit-desc">Mô tả tóm tắt nội dung (Tối đa 300 ký tự)</label>
+              <span id="edit-desc-counter" style="font-size: 12px; color: #64748b;">0/300 ký tự</span>
+            </div>
+            {{ form.description }}
           </div>
         </div>
 
@@ -73,7 +106,9 @@
         <!-- Nút hành động -->
         <div style="display: flex; justify-content: flex-end; gap: 14px;">
           <a href="{% url 'document_my_docs' %}" class="doc-btn doc-btn-secondary">Hủy bỏ</a>
-          <button type="submit" class="doc-btn doc-btn-primary">Lưu và gửi phê duyệt</button>
+          <button type="submit" class="doc-btn doc-btn-primary">
+            {% if is_manager %}Lưu thay đổi{% else %}Lưu và gửi phê duyệt{% endif %}
+          </button>
         </div>
 
       </section>
@@ -123,6 +158,30 @@
   </main>
 
   <script>
+      const editScopeSelect = document.getElementById('edit-scope');
+      const editDeptGroup = document.getElementById('edit-department-select-group');
+      function toggleEditDepartmentBox() {
+          if (editScopeSelect && editDeptGroup) {
+              editDeptGroup.style.display = (editScopeSelect.value === 'DEPARTMENT') ? 'block' : 'none';
+          }
+      }
+      if (editScopeSelect) {
+          editScopeSelect.addEventListener('change', toggleEditDepartmentBox);
+          toggleEditDepartmentBox();
+      }
+
+      const editDescInput = document.getElementById('edit-desc');
+      const editDescCounter = document.getElementById('edit-desc-counter');
+      if (editDescInput && editDescCounter) {
+          const syncEditDescCounter = () => {
+              const len = editDescInput.value.length;
+              editDescCounter.textContent = len + '/300 ký tự';
+              editDescCounter.style.color = len >= 300 ? '#e11d48' : '#64748b';
+          };
+          editDescInput.addEventListener('input', syncEditDescCounter);
+          syncEditDescCounter();
+      }
+
       function updateFileName(input) {
           const display = document.getElementById('file-name-display');
           if (input.files && input.files[0]) {

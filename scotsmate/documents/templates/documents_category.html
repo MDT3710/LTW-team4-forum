@@ -17,6 +17,9 @@
       </div>
       <div style="display: flex; gap: 12px;">
         <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Quay lại danh mục</a>
+        {% if can_manage_category %}
+          <a href="{% url 'document_category_edit' cate_id=category.id %}" class="doc-btn doc-btn-secondary">Sửa danh mục</a>
+        {% endif %}
         <a href="{% url 'document_create' %}" class="doc-btn doc-btn-primary">+ Thêm tài liệu mới</a>
       </div>
     </header>
@@ -63,14 +66,31 @@
           {% for doc in documents %}
             <tr>
               <td class="doc-table-title">
-                <strong>{{ doc.title }}</strong>
+                <button type="button"
+                        onclick="openDocDetailModal(this)"
+                        data-code="DOC-{{ doc.id|stringformat:'03d' }}"
+                        data-title="{{ doc.title }}"
+                        data-category="{{ category.name }}"
+                        data-creator="{{ doc.creator.get_full_name|default:doc.creator.username }}"
+                        data-scope="{% if doc.access_scope == 'DEPARTMENT' %}{% for perm in doc.access_permissions.all %}{{ perm.department.name }}{% if not forloop.last %}, {% endif %}{% empty %}Giới hạn phòng ban{% endfor %}{% else %}Toàn hệ thống{% endif %}"
+                        data-date="{{ doc.updated_at|date:'d/m/Y H:i' }}"
+                        data-description="{{ doc.description|default:'Chưa có mô tả chi tiết.' }}"
+                        data-file="{% if doc.file %}{{ doc.file.url }}{% endif %}"
+                        title="Nhấn để xem chi tiết tài liệu"
+                        style="background:none; border:none; padding:0; text-align:left; font-weight:600; color:var(--ink, #0f172a); cursor:pointer; font-size:inherit; text-decoration:none;"
+                        onmouseover="this.style.color='var(--navy, #134c81)'; this.style.textDecoration='underline';"
+                        onmouseout="this.style.color='var(--ink, #0f172a)'; this.style.textDecoration='none';">
+                  {{ doc.title }}
+                </button>
                 {% if not doc.is_visible %}
                   <span class="doc-badge" style="background: #fef3c7; color: #92400e; margin-left: 6px;">Đang ẩn</span>
                 {% endif %}
               </td>
               <td>DOC-{{ doc.id|stringformat:"03d" }}</td>
-              <td style="color: var(--ink-soft); max-width: 320px;">
-                {{ doc.description|default:"Chưa có mô tả chi tiết." }}
+              <td style="color: var(--ink-soft); max-width: 280px;">
+                <span onclick="this.closest('tr').querySelector('.doc-table-title button').click()" title="Nhấn để xem mô tả đầy đủ" style="cursor:pointer;">
+                  {{ doc.description|default:"Chưa có mô tả chi tiết."|truncatechars:70 }}
+                </span>
               </td>
               <td>{{ doc.creator.get_full_name|default:doc.creator.username }}</td>
 
@@ -97,31 +117,33 @@
 
               <td>{{ doc.created_at|date:"d/m/Y" }}</td>
               <td style="text-align: right;">
-                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
                   {% if doc.file %}
                     <a href="{{ doc.file.url }}" download class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
                       Tải về
                     </a>
                   {% endif %}
 
-                  {% if doc.can_manage %}
+                  {% if doc.can_edit_delete %}
                     <a href="{% url 'document_edit' id=doc.id %}" class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
                       Sửa
                     </a>
-
-                    <form method="POST" action="{% url 'document_category' cate_id=category.id %}" style="margin: 0;">
-                      {% csrf_token %}
-                      <input type="hidden" name="toggle_visibility_id" value="{{ doc.id }}">
-                      <button type="submit" class="doc-btn" style="height: 34px; padding: 0 12px; font-size: 13px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 6px; cursor: pointer;">
-                        {% if doc.is_visible %}Ẩn{% else %}Hiện{% endif %}
-                      </button>
-                    </form>
 
                     <form method="POST" action="{% url 'document_category' cate_id=category.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn xoá tài liệu này?');" style="margin: 0;">
                       {% csrf_token %}
                       <input type="hidden" name="delete_doc_id" value="{{ doc.id }}">
                       <button type="submit" class="doc-btn" style="height: 34px; padding: 0 12px; font-size: 13px; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer;">
                         Xoá
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  {% if doc.can_manage %}
+                    <form method="POST" action="{% url 'document_category' cate_id=category.id %}" style="margin: 0;">
+                      {% csrf_token %}
+                      <input type="hidden" name="toggle_visibility_id" value="{{ doc.id }}">
+                      <button type="submit" class="doc-btn" style="height: 34px; padding: 0 12px; font-size: 13px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 6px; cursor: pointer;">
+                        {% if doc.is_visible %}Ẩn{% else %}Hiện{% endif %}
                       </button>
                     </form>
                   {% endif %}
@@ -139,10 +161,37 @@
         </tbody>
       </table>
 
-      <footer class="doc-table-pagination">
-        <div>Tổng số: <strong>{{ documents|length }}</strong> tài liệu</div>
-      </footer>
+      {% if page_obj.has_other_pages %}
+        <footer class="doc-table-pagination">
+          <div>Hiển thị <strong>{{ page_obj.start_index }} - {{ page_obj.end_index }}</strong> trong tổng số <strong>{{ page_obj.paginator.count }}</strong> tài liệu</div>
+          <div class="doc-page-controls">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&lt;</a>
+            {% else %}
+              <span class="doc-page-btn" style="opacity: 0.5; cursor: not-allowed;">&lt;</span>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <span class="doc-page-btn active">{{ num }}</span>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&gt;</a>
+            {% else %}
+              <span class="doc-page-btn" style="opacity: 0.5; cursor: not-allowed;">&gt;</span>
+            {% endif %}
+          </div>
+        </footer>
+      {% else %}
+        <footer class="doc-table-pagination">
+          <div>Tổng số: <strong>{{ page_obj.paginator.count }}</strong> tài liệu</div>
+        </footer>
+      {% endif %}
     </section>
+
+    {% include 'includes/doc_detail_modal.html' %}
 
   </main>
 {% endblock %}

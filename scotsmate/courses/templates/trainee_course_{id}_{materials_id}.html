@@ -8,10 +8,17 @@
     <!-- Thanh điều hướng đầu trang -->
     <header class="page-heading flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
       <div class="flex flex-wrap items-center gap-3">
+        {% if is_preview %}
+        <a href="/courses/trainer/courses/{{ course.id }}/materials/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#134c81] hover:underline" style="text-decoration: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          Quay lại danh sách bài giảng
+        </a>
+        {% else %}
         <a href="/courses/trainee/courses/{{ course.id }}/" class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#134c81] hover:underline" style="text-decoration: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
           Quay lại chi tiết khóa học
         </a>
+        {% endif %}
         <span class="text-slate-300">|</span>
         <h1 class="text-lg md:text-xl font-bold text-slate-900">Bài {{ material.order }}: {{ material.name|default:"Tài liệu bài giảng" }}</h1>
       </div>
@@ -178,23 +185,6 @@
               </div>
             {% endif %}
 
-            <!-- Tóm tắt bài học nếu có -->
-            {% if material.summary %}
-              <p class="text-slate-700 leading-relaxed font-normal text-base">{{ material.summary }}</p>
-            {% endif %}
-
-            <!-- 4 Nguyên tắc cốt lõi (2x2 Grid) -->
-            {% if material.key_points %}
-              <div class="key-points grid grid-cols-1 md:grid-cols-2 gap-4 my-1">
-                {% for point in material.key_points %}
-                  <div class="p-4 rounded-xl bg-[#edf4fb] border border-blue-100 flex flex-col justify-start">
-                    <h3 class="font-bold text-[#134c81] mb-1.5 text-sm">{{ point.title }}</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">{{ point.desc }}</p>
-                  </div>
-                {% endfor %}
-              </div>
-            {% endif %}
-
             <!-- Nội dung chuyên sâu bài học -->
             {% if material.content %}
               <div class="lesson-deep-dive p-5 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs leading-relaxed flex flex-col gap-2">
@@ -316,7 +306,7 @@
 
       <!-- Cột phụ: Danh mục bài học (1 cột) -->
       <aside class="flex flex-col gap-6">
-        <div class="workspace-card bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-slate-900 text-sm">Danh mục bài giảng</h3>
             <span class="text-xs text-slate-400 font-mono">{{ all_materials|length }} bài</span>

@@ -17,12 +17,14 @@
       </div>
 
       <div style="display: flex; gap: 12px;">
-        <a href="{% url 'document_category_create' %}" class="doc-btn doc-btn-secondary">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Tạo danh mục
-        </a>
+        {% if is_manager %}
+          <a href="{% url 'document_category_create' %}" class="doc-btn doc-btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Tạo danh mục
+          </a>
+        {% endif %}
         <a href="{% url 'document_create' %}" class="doc-btn doc-btn-primary">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
@@ -64,6 +66,7 @@
           <tr>
             <th>Tên danh mục</th>
             <th>Mô tả danh mục</th>
+            <th>Số tài liệu</th>
             <th style="text-align: right;">Thao tác</th>
           </tr>
         </thead>
@@ -76,19 +79,37 @@
                 </a>
               </td>
 
-              <td style="color: var(--ink-soft); max-width: 480px;">
-                {{ cat.description|default:"Chưa có mô tả chi tiết." }}
+              <td style="color: var(--ink-soft); max-width: 420px;">
+                {{ cat.description|default:"Chưa có mô tả chi tiết."|truncatechars:90 }}
+              </td>
+
+              <td>
+                <span class="doc-badge" style="background: #f1f5f9; color: #334155;">{{ cat.doc_count|default:0 }} tài liệu</span>
               </td>
 
               <td style="text-align: right;">
-                <a href="{% url 'document_category' cate_id=cat.id %}" class="doc-btn doc-btn-secondary">
-                  Xem chi tiết
-                </a>
+                <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                  <a href="{% url 'document_category' cate_id=cat.id %}" class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
+                    Xem tài liệu
+                  </a>
+                  {% if cat.can_manage %}
+                    <a href="{% url 'document_category_edit' cate_id=cat.id %}" class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
+                      Sửa
+                    </a>
+                    <form method="POST" action="{% url 'documents' %}" onsubmit="return confirm('Xóa danh mục sẽ xóa toàn bộ tài liệu bên trong. Bạn chắc chắn muốn xóa?');" style="margin: 0;">
+                      {% csrf_token %}
+                      <input type="hidden" name="delete_cat_id" value="{{ cat.id }}">
+                      <button type="submit" class="doc-btn" style="height: 34px; padding: 0 12px; font-size: 13px; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer;">
+                        Xoá
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="3" style="text-align: center; color: var(--ink-soft); padding: 48px;">
+              <td colspan="4" style="text-align: center; color: var(--ink-soft); padding: 48px;">
                 Chưa có danh mục nào. Nhấn <strong>"Tạo danh mục"</strong> ở góc trên để thêm mới.
               </td>
             </tr>

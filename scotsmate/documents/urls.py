@@ -5,9 +5,10 @@ urlpatterns = [
     # 1. Trang chủ Thư viện tài liệu -> /documents/
     path('', views.document_list, name='documents'),
 
-    # 2. Tạo mới tài liệu & Tạo mới danh mục
+    # 2. Tạo mới tài liệu & Tạo/Sửa danh mục
     path('create/', views.document_create, name='document_create'),
     path('category/create/', views.document_category_create, name='document_category_create'),
+    path('category/<int:cate_id>/edit/', views.document_category_edit, name='document_category_edit'),
 
     # 3. Tài liệu của tôi & Cập nhật tài liệu -> /documents/my_docs/...
     path('my_docs/', views.document_my_docs, name='document_my_docs'),

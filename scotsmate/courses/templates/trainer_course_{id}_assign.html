@@ -65,13 +65,15 @@
       <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item border-b-2 border-[#134c81] text-[#134c81] font-bold text-sm py-3 px-1" style="text-decoration:none;">
         Ghi danh học viên ({{ total_enrolled }})
       </a>
+      {% if course.status != 'draft' %}
       <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
         Tiến độ học viên ({{ total_enrolled }})
       </a>
+      {% endif %}
     </nav>
 
     <!-- FORM PHÂN CÔNG HỌC VIÊN -->
-    <form method="POST" action="/courses/trainer/courses/{{ course.id }}/assign/" class="workspace-card bg-white border border-slate-200 rounded-xl p-7 shadow-sm flex flex-col gap-6">
+    <form method="POST" action="/courses/trainer/courses/{{ course.id }}/assign/" class="course-panel bg-white border border-slate-200 rounded-xl p-7 shadow-sm flex flex-col gap-6">
       {% csrf_token %}
       <input type="hidden" name="action" value="save_assign">
 
@@ -169,7 +171,7 @@
     </form>
 
     <!-- BẢNG DANH SÁCH HỌC VIÊN ĐÃ GHI DANH HIỆN TẠI -->
-    <section class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+    <section class="course-panel bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 class="text-base font-bold text-slate-900">Danh sách học viên đang ghi danh ({{ enrollments|length }} học viên)</h2>
@@ -222,8 +224,10 @@
                 </td>
                 <td class="py-3 px-4">
                   {% if en.is_pass %}
-                    <span class="text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Đạt</span>
-                  {% elif en.is_completed %}
+                    <span class="text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Đạt{% if en.exam_response %} ({{ en.exam_response.score|floatformat:0 }}đ){% endif %}</span>
+                  {% elif en.exam_response %}
+                    <span class="text-rose-700 font-bold text-[11px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">✕ Chưa đạt ({{ en.exam_response.score|floatformat:0 }}đ)</span>
+                  {% elif en.is_completed or en.study_process >= 100 %}
                     <span class="text-blue-700 font-bold text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Đã học xong</span>
                   {% else %}
                     <span class="text-slate-400 text-[11px]">Chưa thi</span>

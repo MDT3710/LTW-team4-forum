@@ -1,4 +1,6 @@
 from datetime import date, timedelta
+from pathlib import Path
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
@@ -307,204 +309,606 @@ class Command(BaseCommand):
                 Message.objects.create(conversation=convo, sender=sender, content=text)
 
     def _seed_courses(self, pick):
+        admin = pick('admin')
+        hr_mgr = pick('tranminhduc')
+        hr_emp = pick('phamlanchi')
         tr_mgr = pick('lethuha')
         trainer = pick('minhanh')
-        hr_emp = pick('phamlanchi')
         tr_emp = pick('hoangnam')
+        rec_mgr = pick('lanphuong')
         rec_emp = pick('ducanh')
+        rd_mgr = pick('mailinh')
         rd_emp = pick('nguyenvanan')
+        tea_mgr = pick('tranthibich')
         tea_emp = pick('hoangminhduc')
+        ctv_mgr = pick('nguyenthihoa')
         ctv = pick('dangquanghuy')
 
         today = date.today()
+        materials_dir = Path(settings.MEDIA_ROOT) / 'courses' / 'materials'
 
-        # Course 1: Ongoing (with full materials, exam, enrollments, responses)
+        def attach_file(mat, filename):
+            if (materials_dir / filename).is_file():
+                mat.file.name = f'courses/materials/{filename}'
+                mat.save(update_fields=['file'])
+            else:
+                body = b'%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'
+                mat.file.save(filename, ContentFile(body), save=True)
+
+        def build_exam_questions(exam_obj, q_specs):
+            q_objs = []
+            for idx, (caption, correct_idx, choices) in enumerate(q_specs, start=1):
+                q = CourseExamQuestion.objects.create(
+                    exam=exam_obj, question_number=idx, caption=caption, correct_choice=correct_idx
+                )
+                for c_idx, c_text in enumerate(choices, start=1):
+                    CourseQuestionChoice.objects.create(question=q, choice_number=c_idx, content=c_text)
+                q_objs.append((q, correct_idx))
+            return q_objs
+
+        def record_exam_attempt(emp, exam_obj, q_objs, picked_choices, duration=15):
+            correct_cnt = sum(1 for (q, ans), pick_c in zip(q_objs, picked_choices) if pick_c == ans)
+            score = round(correct_cnt / len(q_objs) * 100, 1) if q_objs else 0.0
+            is_passed = score >= exam_obj.passing_score
+            resp = CourseExamResponse.objects.create(
+                emp=emp,
+                exam=exam_obj,
+                passcode=exam_obj.passcode,
+                duration=duration,
+                score=score,
+                is_passed=is_passed,
+            )
+            for (q, ans), pick_c in zip(q_objs, picked_choices):
+                CourseExamResponseDetail.objects.create(
+                    response=resp, question=q, answer=pick_c, is_correct=(pick_c == ans)
+                )
+            return resp
+
+        # =====================================================================
+        # 1. KH-1026 (ONGOING - creator: minhanh, assistant: lethuha)
+        #    Có đủ 4 định dạng (PDF, DOCX, Video MP4), bài thi 5 câu, đủ trạng thái học viên
+        # =====================================================================
         c1 = Course.objects.create(
             creator=trainer,
-            code='KH-SCOTS-01',
-            title='Văn hóa Doanh nghiệp & Quy chuẩn Dịch vụ Scots English',
-            description='Khóa đào tạo bắt buộc giúp CBNV và Cộng tác viên nắm vững giá trị cốt lõi, quy trình phục vụ học viên và chuẩn giao tiếp tại Scots English.',
-            date_start=today - timedelta(days=7),
-            date_end=today + timedelta(days=21),
+            code='KH-1026',
+            title='Văn hóa Doanh nghiệp & Quy chuẩn Dịch vụ 5 Sao Scots English',
+            description='Khóa đào tạo trọng tâm về bộ quy chuẩn đón tiếp phụ huynh/học viên, nguyên tắc giao tiếp nội bộ và xử lý tình huống dịch vụ tại hệ thống Scots English.',
+            date_start=today - timedelta(days=10),
+            date_end=today + timedelta(days=20),
             status='ongoing',
         )
         CourseAccess.objects.create(emp=trainer, course=c1, role='trainer')
-        CourseAccess.objects.create(emp=tr_mgr, course=c1, role='manager')
+        CourseAccess.objects.create(emp=tr_mgr, course=c1, role='assistant')
 
-        CourseMaterial.objects.create(
+        m1_1 = CourseMaterial.objects.create(
             course=c1,
-            name='Bài 1: Tầm nhìn, Sứ mệnh & Giá trị cốt lõi Scots',
+            name='Bài 1: Quy chuẩn tiếp đón & giao tiếp chuyên nghiệp tại cơ sở',
+            file_type='pdf',
+            duration_minutes=25,
+            order=1,
+            summary='Chuẩn hóa tác phong, nụ cười, lời chào và quy trình đón tiếp phụ huynh – học viên khi tới trung tâm.',
+            key_points=[
+                {'title': '3 giây ấn tượng đầu tiên', 'desc': 'Chủ động đứng dậy chào bằng ánh mắt thân thiện ngay khi phụ huynh bước vào sảnh.'},
+                {'title': 'Lắng nghe thấu cảm', 'desc': 'Không ngắt lời phụ huynh; ghi chú đầy đủ thông tin lớp và tên học viên.'},
+                {'title': 'Phản hồi đúng cam kết', 'desc': 'Mọi yêu cầu cần xác minh chuyên môn phải hẹn giờ phản hồi cụ thể trong 2 giờ.'},
+                {'title': 'Đồng bộ bộ phận', 'desc': 'Chuyển tiếp thông tin gọn gàng giữa Tư vấn, QLGV&HV và Giáo viên đứng lớp.'},
+            ],
+            scenario_title='Phụ huynh phản ánh chưa nhận được nhận xét buổi học tuần',
+            scenario_content='Tình huống: Phụ huynh tới quầy lễ tân bày tỏ không hài lòng vì cuối tuần vẫn chưa nhận được báo cáo học tập của bé.\nCách xử lý: Xin lỗi chân thành vì sự bất tiện, kiểm tra ngay trên hệ thống và liên hệ chuyên viên QLGV&HV phụ trách lớp gửi bản cập nhật trong vòng 2 giờ kèm lời nhắn xác nhận.',
+            content='<p>Tài liệu PDF đính kèm hướng dẫn chi tiết từng điểm chạm dịch vụ tại quầy lễ tân và phòng tư vấn.</p>',
+        )
+        attach_file(m1_1, 'Quy_chuan_tiep_don_va_giao_tiep.pdf')
+
+        m1_2 = CourseMaterial.objects.create(
+            course=c1,
+            name='Bài 2: Nguyên tắc vàng trong giao tiếp sư phạm & nội bộ',
             file_type='pdf',
             duration_minutes=30,
-            order=1,
-            summary='Giới thiệu hệ giá trị Scots English và tiêu chuẩn ứng xử nội bộ.',
-            key_points=['Tận tâm với học viên', 'Chuẩn mực sư phạm quốc tế', 'Minh bạch và hợp tác'],
-            scenario_title='Xử lý thắc mắc phụ huynh giờ cao điểm',
-            scenario_content='Tình huống: Phụ huynh phản hồi chưa nhận được báo cáo học tập tuần.\nCách xử lý: Lắng nghe, ghi nhận thông tin và phối hợp chuyên viên QLGV&HV phản hồi trong 2 giờ.',
-            content='Nội dung chi tiết về văn hóa dịch vụ 5 sao tại hệ thống Scots English Australia.',
-        )
-        CourseMaterial.objects.create(
-            course=c1,
-            name='Bài 2: Quy trình phối hợp giữa Giáo viên, CTV và Tư vấn',
-            file_type='slide',
-            duration_minutes=40,
             order=2,
-            summary='Chuẩn hóa luồng thông tin giữa bộ phận học thuật, QLGV&HV và CTV.',
-            key_points=['Cập nhật sĩ số đúng giờ', 'Bàn giao nhận xét sau mỗi buổi học'],
-            scenario_title='Bàn giao lớp khi có giáo viên thay ca',
-            scenario_content='Tình huống: Giáo viên chính đột xuất bận.\nCách xử lý: CTV nhận giáo án và điểm danh qua cổng nội bộ trước giờ vào lớp 30 phút.',
-            content='Hướng dẫn chi tiết quy trình bàn giao giáo án và báo cáo buổi dạy.',
+            summary='Hệ thống hóa các nguyên tắc giao tiếp tích cực giữa nhân sự vận hành, giáo viên và cộng tác viên.',
+            key_points=[
+                {'title': 'Ngôn từ tích cực', 'desc': 'Ưu tiên cách diễn đạt mang tính giải pháp thay vì đổ lỗi khi phối hợp ca dạy.'},
+                {'title': 'Tôn trọng sự khác biệt', 'desc': 'Giao tiếp cởi mở, lịch sự với cả giáo viên nước ngoài, giáo viên Việt Nam và CTV.'},
+            ],
+            scenario_title='Bất đồng lịch phân công dạy bù vào giờ cao điểm',
+            scenario_content='Tình huống: Giáo viên và điều phối viên hiểu nhầm khung giờ dạy bù cuối tuần.\nCách xử lý: Trao đổi trực tiếp trên nhóm điều phối chính thức, đối chiếu lịch xác nhận bằng văn bản và chốt phương án dự phòng sớm nhất.',
+            content='<p>Học viên đọc kỹ tài liệu PDF để nắm 6 nguyên tắc cốt lõi khi giao tiếp trong môi trường giáo dục.</p>',
         )
+        attach_file(m1_2, 'Nguyen_tac_vang_giao_tiep.pdf')
+
+        m1_3 = CourseMaterial.objects.create(
+            course=c1,
+            name='Bài 3: Biểu mẫu & Checklist bàn giao tác nghiệp hằng ngày (Word)',
+            file_type='doc',
+            duration_minutes=20,
+            order=3,
+            summary='Tải về tài liệu Word hướng dẫn quy trình kiểm tra sĩ số, tài sản lớp học và bàn giao ca.',
+            key_points=[
+                {'title': 'Checklist đầu ca', 'desc': 'Kiểm tra thiết bị trình chiếu, loa, danh sách học viên trước giờ học 15 phút.'},
+                {'title': 'Báo cáo cuối ca', 'desc': 'Cập nhật ngay học viên vắng mặt để bộ phận chăm sóc phụ huynh liên hệ kịp thời.'},
+            ],
+            content='<p>Nhân viên tải file DOCX đính kèm để dùng trực tiếp tại cơ sở.</p>',
+        )
+        attach_file(m1_3, 'Tai_lieu_nghiep_vu_mau.docx')
+
+        m1_4 = CourseMaterial.objects.create(
+            course=c1,
+            name='Bài 4: Video minh họa xử lý tình huống dịch vụ thực tế',
+            file_type='video',
+            duration_minutes=35,
+            order=4,
+            summary='Video tình huống thực tế về cách tiếp nhận góp ý phụ huynh và phối hợp đa phòng ban.',
+            key_points=[
+                {'title': 'Quan sát ngôn ngữ cơ thể', 'desc': 'Giữ tư thế cởi mở, ghi chép nghiêm túc khi tiếp nhận phản hồi.'},
+                {'title': 'Chốt hành động rõ ràng', 'desc': 'Luôn tóm tắt lại hướng giải quyết trước khi kết thúc cuộc trò chuyện.'},
+            ],
+            content='<p>Xem hết video bài giảng để hoàn tất 100% giáo trình trước khi mở phòng thi.</p>',
+        )
+        attach_file(m1_4, 'video_bai_giang_mau.mp4')
 
         exam1 = CourseExam.objects.create(
             course=c1,
-            title='Bài kiểm tra Quy chuẩn Dịch vụ & Văn hóa Scots',
+            title='Kiểm tra Năng lực Quy chuẩn Dịch vụ 5 Sao Scots',
             passcode='SCOTS2026',
             duration=30,
-            passing_score=60.0,
+            passing_score=80.0,
             is_active=True,
         )
-        q1_data = [
-            ('Giá trị cốt lõi ưu tiên hàng đầu trong dịch vụ học viên tại Scots English là gì?', 1, [
-                'Tận tâm, minh bạch và lấy học viên làm trung tâm',
-                'Chỉ xử lý khi có văn bản khiếu nại',
-                'Từ chối hỗ trợ ngoài giờ hành chính',
-                'Không cần ghi nhận phản hồi',
+        q1_objs = build_exam_questions(exam1, [
+            ('Khi phụ huynh bước vào sảnh cơ sở Scots English, nhân sự cần phản ứng đầu tiên như thế nào?', 1, [
+                'Chủ động đứng dậy, giao tiếp bằng ánh mắt và chào đón niềm nở',
+                'Đợi phụ huynh lại gần bàn mới ngẩng lên hỏi',
+                'Tiếp tục xử lý việc trên máy tính rồi vẫy tay ra hiệu chờ',
+                'Chỉ mỉm cười mà không cần chào hỏi',
             ]),
-            ('Khi có sự cố lớp học, thời hạn tối đa để phản hồi bước đầu cho phụ huynh là bao lâu?', 2, [
+            ('Thời hạn cam kết tối đa để phản hồi bước đầu khi phụ huynh cần xác minh thông tin lớp học là bao lâu?', 2, [
                 'Trong vòng 7 ngày làm việc',
-                'Trong vòng 2 giờ kể từ lúc tiếp nhận',
-                'Đợi đến cuối khóa học',
-                'Không cần phản hồi lại',
+                'Trong vòng 2 giờ kể từ khi tiếp nhận thông tin',
+                'Cuối tháng khi tổng kết sĩ số',
+                'Không cần phản hồi nếu chưa có kết quả cuối cùng',
             ]),
-            ('Tài khoản Cộng tác viên (CTV part-time) trên ScotsMate được phân quyền như thế nào ở phân hệ Đào tạo?', 3, [
-                'Truy cập trang tạo khóa học của Trainer',
-                'Truy cập trang Quản trị /admin/',
-                'Tham gia học tập và làm bài kiểm tra với vai trò Trainee',
-                'Phê duyệt khảo sát toàn công ty',
+            ('Trong giao tiếp nội bộ giữa Giáo viên, CTV và Điều phối viên, điều nào sau đây được ưu tiên nhất?', 3, [
+                'Trao đổi truyền miệng không cần xác nhận',
+                'Giữ thông tin riêng không chia sẻ cho ca sau',
+                'Dùng ngôn từ xây dựng và xác nhận rõ trên kênh điều phối chính thức',
+                'Chờ hết tuần mới báo cáo lịch thay đổi',
             ]),
-            ('Mã passcode để mở bài kiểm tra đánh giá của khóa học KH-SCOTS-01 được thiết lập bởi ai?', 1, [
-                'Trainer phụ trách khóa học / Admin',
-                'Bất kỳ học viên nào',
-                'Hệ thống tự sinh ngẫu nhiên mỗi giây',
-                'Khách bên ngoài hệ thống',
+            ('Trước giờ vào lớp học bao nhiêu phút nhân sự cơ sở cần hoàn tất kiểm tra thiết bị phòng học?', 2, [
+                'Đúng lúc chuông reo vào lớp',
+                'Trước giờ học tối thiểu 15 phút',
+                'Sau khi học viên vào lớp 10 phút',
+                'Chỉ kiểm tra khi giáo viên yêu cầu',
             ]),
-        ]
-        q1_objs = []
-        for idx, (caption, correct_idx, choices) in enumerate(q1_data, start=1):
-            q = CourseExamQuestion.objects.create(
-                exam=exam1, question_number=idx, caption=caption, correct_choice=correct_idx
-            )
-            for c_idx, c_text in enumerate(choices, start=1):
-                CourseQuestionChoice.objects.create(question=q, choice_number=c_idx, content=c_text)
-            q1_objs.append((q, correct_idx))
+            ('Bộ checklist tác nghiệp hằng ngày tại cơ sở cần đảm bảo những nội dung nào? (Chọn đáp án đầy đủ nhất)', 5, [
+                'Kiểm tra thiết bị máy chiếu/âm thanh',
+                'Cập nhật danh sách sĩ số & học viên vắng',
+                'Bàn giao đầy đủ ghi chú ca trực cho ca sau',
+                'Phối hợp QLGV&HV phản hồi phụ huynh',
+                'Tất cả các phương án trên đều đúng',
+            ]),
+        ])
 
-        # Enrollments for C1
+        # Enrollments đa dạng trạng thái cho KH-1026
         CourseEnrollment.objects.create(
             emp=hr_emp, course=c1, exam=exam1, study_process=100, is_pass=True, is_completed=True, is_assigned=True
         )
-        resp1 = CourseExamResponse.objects.create(
-            emp=hr_emp, exam=exam1, passcode='SCOTS2026', duration=12, score=100.0, is_passed=True
-        )
-        for q, correct_idx in q1_objs:
-            CourseExamResponseDetail.objects.create(
-                response=resp1, question=q, answer=correct_idx, is_correct=True
-            )
+        record_exam_attempt(hr_emp, exam1, q1_objs, [1, 2, 3, 2, 5], duration=11)
 
         CourseEnrollment.objects.create(
-            emp=ctv, course=c1, exam=exam1, study_process=50, is_pass=False, is_completed=False, is_assigned=True
+            emp=tea_emp, course=c1, exam=exam1, study_process=100, is_pass=False, is_completed=False, is_assigned=True
         )
+        record_exam_attempt(tea_emp, exam1, q1_objs, [1, 1, 1, 2, 1], duration=18)  # 40 điểm (Trượt -> đã khóa thi lại)
+
+        # hoangnam đã học 100% bài giảng và SẴN SÀNG nhập passcode SCOTS2026 để thi thử ngay
         CourseEnrollment.objects.create(
             emp=tr_emp, course=c1, exam=exam1, study_process=100, is_pass=False, is_completed=False, is_assigned=True
         )
+        # dangquanghuy (CTV) mới học 50% (2/4 bài) -> đang học dở, chưa mở khóa thi
         CourseEnrollment.objects.create(
-            emp=rec_emp, course=c1, exam=exam1, study_process=0, is_pass=False, is_completed=False, is_assigned=False
+            emp=ctv, course=c1, exam=exam1, study_process=50, is_pass=False, is_completed=False, is_assigned=True
         )
+        # ducanh tự chọn 25%
+        CourseEnrollment.objects.create(
+            emp=rec_emp, course=c1, exam=exam1, study_process=25, is_pass=False, is_completed=False, is_assigned=False
+        )
+        # Lưu ý: nguyenvanan CHƯA ghi danh vào KH-1026 để test luồng "Đăng ký tự chọn"!
 
-        # Course 2: Ongoing (Academic & Teaching methodology)
+        # =====================================================================
+        # 2. KH-1027 (ONGOING - creator: minhanh)
+        #    Kỹ năng Tư vấn Tuyển sinh & Đàm phán Tái tục
+        # =====================================================================
         c2 = Course.objects.create(
-            creator=tr_mgr,
-            code='KH-SCOTS-02',
-            title='Phương pháp Giảng dạy Tương tác & Quản lý Lớp học Hiện đại',
-            description='Trang bị kỹ năng điều phối lớp học tiếng Anh tương tác cao dành cho Trainer, nhân viên Đào tạo và Cộng tác viên giảng dạy.',
-            date_start=today - timedelta(days=3),
-            date_end=today + timedelta(days=30),
+            creator=trainer,
+            code='KH-1027',
+            title='Kỹ năng Tư vấn Tuyển sinh & Chăm sóc Tái tục Học viên',
+            description='Trang bị kịch bản tư vấn lộ trình học tập chuẩn Cambridge/IELTS và kỹ năng đàm phán giữ chân học viên tái tục.',
+            date_start=today - timedelta(days=5),
+            date_end=today + timedelta(days=25),
             status='ongoing',
         )
-        CourseAccess.objects.create(emp=tr_mgr, course=c2, role='trainer')
-        CourseAccess.objects.create(emp=trainer, course=c2, role='assistant')
-        CourseMaterial.objects.create(
+        CourseAccess.objects.create(emp=trainer, course=c2, role='trainer')
+
+        m2_1 = CourseMaterial.objects.create(
             course=c2,
-            name='Bài 1: Kỹ thuật dẫn dắt Warm-up & Classroom Management',
-            file_type='video',
-            duration_minutes=45,
+            name='Bài 1: Kịch bản tư vấn tái tục theo giai đoạn học tập',
+            file_type='pdf',
+            duration_minutes=30,
             order=1,
-            summary='Tổ chức hoạt động khởi động 5 phút đầu giờ hiệu quả.',
-            key_points=['Tạo tâm lý thoải mái', 'Khuyến khích học viên giao tiếp ngay từ phút đầu'],
-            content='Hướng dẫn 5 mẫu hoạt động warm-up theo từng nhóm tuổi.',
+            summary='Xây dựng lộ trình tư vấn tái tục từ mốc 70% khóa học hiện tại.',
+            key_points=[
+                {'title': 'Bám sát kết quả học tập', 'desc': 'Dùng báo cáo tiến độ thực tế của học viên làm cơ sở thuyết phục.'},
+                {'title': 'Tư vấn lộ trình tiếp nối', 'desc': 'Chỉ rõ mục tiêu đầu ra ở cấp độ kế tiếp phù hợp năng lực của bé.'},
+            ],
+            content='<p>Tài liệu PDF đính kèm kịch bản gọi điện và gặp trực tiếp phụ huynh tái tục.</p>',
         )
+        attach_file(m2_1, 'Kich_ban_tu_van_tai_tuc.pdf')
+
+        m2_2 = CourseMaterial.objects.create(
+            course=c2,
+            name='Bài 2: Nghệ thuật đàm phán & xử lý từ chối học phí',
+            file_type='pdf',
+            duration_minutes=35,
+            order=2,
+            summary='Kỹ thuật lắng nghe, đồng cảm và giải tỏa băn khoăn về học phí hoặc lịch học.',
+            key_points=[
+                {'title': 'Cô lập đúng rào cản', 'desc': 'Xác định phụ huynh đang băn khoăn về hiệu quả học, thời gian hay chi phí.'},
+                {'title': 'Quy đổi giá trị', 'desc': 'So sánh giá trị tiến bộ thực tế của học viên với mức đầu tư khóa mới.'},
+            ],
+            content='<p>Đọc kỹ tài liệu PDF để nắm 5 mẫu câu xử lý từ chối phổ biến.</p>',
+        )
+        attach_file(m2_2, 'Nghe_thuat_dam_phan.pdf')
+
+        m2_3 = CourseMaterial.objects.create(
+            course=c2,
+            name='Bài 3: Thực hành mô phỏng cuộc gọi tư vấn',
+            file_type='video',
+            duration_minutes=25,
+            order=3,
+            summary='Video tình huống mô phỏng cuộc gọi hẹn gặp tư vấn tái tục.',
+            key_points=[
+                {'title': 'Mở đầu thu hút', 'desc': 'Chia sẻ ngay 1 điểm tiến bộ cụ thể của học viên trong tháng.'},
+            ],
+        )
+        attach_file(m2_3, 'video_bai_giang_mau.mp4')
+
         exam2 = CourseExam.objects.create(
             course=c2,
-            title='Kiểm tra Phương pháp Giảng dạy Tương tác',
-            passcode='TEACH2026',
+            title='Đánh giá Kỹ năng Tư vấn & Tái tục',
+            passcode='SALES26',
             duration=25,
-            passing_score=70.0,
+            passing_score=75.0,
             is_active=True,
         )
-        q2 = CourseExamQuestion.objects.create(
-            exam=exam2,
-            question_number=1,
-            caption='Mục tiêu chính của hoạt động Warm-up đầu buổi học là gì?',
-            correct_choice=2,
-        )
-        for c_idx, c_text in enumerate([
-            'Kiểm tra bài cũ gây áp lực cho học viên',
-            'Tạo không khí tích cực, kích hoạt ngôn ngữ tự nhiên',
-            'Thay thế toàn bộ nội dung ngữ pháp',
-            'Kéo dài thời gian nghỉ giải lao',
-        ], start=1):
-            CourseQuestionChoice.objects.create(question=q2, choice_number=c_idx, content=c_text)
+        q2_objs = build_exam_questions(exam2, [
+            ('Thời điểm vàng để bắt đầu lộ trình trao đổi tái tục với phụ huynh là khi nào?', 2, [
+                'Sau khi khóa học kết thúc 2 tuần',
+                'Khi học viên hoàn thành khoảng 70% thời lượng khóa hiện tại',
+                'Ngay buổi học đầu tiên của khóa',
+                'Chỉ khi phụ huynh chủ động hỏi',
+            ]),
+            ('Đúng hay Sai: Khi phụ huynh băn khoăn học phí, tư vấn viên nên lắng nghe cô lập nguyên nhân trước khi đề xuất gói ưu đãi.', 1, [
+                'Đúng, phải lắng nghe và xác định đúng rào cản trước',
+                'Sai, chỉ cần gửi bảng giá ưu đãi ngay lập tức',
+            ]),
+            ('Cơ sở thuyết phục cao nhất khi tư vấn học viên lên cấp độ tiếp theo là gì?', 3, [
+                'Chỉ nhắc tên giáo viên nổi tiếng',
+                'Tạo áp lực sắp hết chỗ',
+                'Kết quả kiểm tra & báo cáo tiến bộ thực tế của chính học viên',
+                'Giảm giá sâu hơn đối thủ',
+            ]),
+            ('Mục tiêu của bước mở đầu cuộc gọi tư vấn tái tục là gì?', 1, [
+                'Chia sẻ điểm tiến bộ nổi bật của học viên và đặt lịch trao đổi cụ thể',
+                'Đọc thuộc lòng chương trình khuyến mãi',
+                'Yêu cầu đóng tiền qua điện thoại ngay',
+                'Hỏi thăm chung chung không có mục tiêu',
+            ]),
+        ])
 
         CourseEnrollment.objects.create(
-            emp=ctv, course=c2, exam=exam2, study_process=50, is_pass=False, is_completed=False, is_assigned=True
+            emp=rec_mgr, course=c2, exam=exam2, study_process=100, is_pass=True, is_completed=True, is_assigned=True
+        )
+        record_exam_attempt(rec_mgr, exam2, q2_objs, [2, 1, 3, 1], duration=9)
+
+        CourseEnrollment.objects.create(
+            emp=rec_emp, course=c2, exam=exam2, study_process=100, is_pass=False, is_completed=False, is_assigned=True
         )
         CourseEnrollment.objects.create(
-            emp=tea_emp, course=c2, exam=exam2, study_process=100, is_pass=True, is_completed=True, is_assigned=True
+            emp=tea_mgr, course=c2, exam=exam2, study_process=0, is_pass=False, is_completed=False, is_assigned=True
+        )
+        CourseEnrollment.objects.create(
+            emp=ctv, course=c2, exam=exam2, study_process=33, is_pass=False, is_completed=False, is_assigned=False
         )
 
-        # Course 3: Completed course + Course 4: Draft
+        # =====================================================================
+        # 3. KH-1028 (ONGOING, KHÔNG CÓ BÀI THI - creator: lethuha)
+        #    Dùng để test luồng học hết 100% bài giảng tự hoàn thành khóa học (is_completed=True)
+        # =====================================================================
         c3 = Course.objects.create(
-            creator=trainer,
-            code='KH-SCOTS-03',
-            title='An toàn Thông tin & Bảo mật Dữ liệu Học viên',
-            description='Khóa đào tạo định kỳ về nguyên tắc bảo mật tài khoản, dữ liệu cá nhân và phòng tránh rủi ro an ninh mạng.',
-            date_start=today - timedelta(days=45),
-            date_end=today - timedelta(days=10),
-            status='completed',
+            creator=tr_mgr,
+            code='KH-1028',
+            title='Quy chế Phối hợp Liên phòng ban & Theo dõi Tiến độ Vận hành',
+            description='Khóa học tự nghiên cứu (không yêu cầu bài thi cuối khóa) về quy chế phối hợp giữa Khối Học thuật, HR, Tuyển dụng GV và Bộ phận Cộng tác viên.',
+            date_start=today - timedelta(days=2),
+            date_end=today + timedelta(days=35),
+            status='ongoing',
         )
-        CourseAccess.objects.create(emp=trainer, course=c3, role='trainer')
-        CourseMaterial.objects.create(
+        CourseAccess.objects.create(emp=tr_mgr, course=c3, role='trainer')
+
+        m3_1 = CourseMaterial.objects.create(
             course=c3,
-            name='Bài 1: Nguyên tắc đặt mật khẩu và tự khôi phục qua email',
+            name='Bài 1: Quy chế phối hợp giữa Phòng Đào tạo, QLGV&HV và HR',
             file_type='pdf',
             duration_minutes=20,
             order=1,
-            summary='Hướng dẫn sử dụng chức năng Quên mật khẩu an toàn trên ScotsMate.',
+            summary='Phân rõ đầu mối chịu trách nhiệm trong từng khâu vận hành lớp học và nhân sự.',
+            key_points=[
+                {'title': 'Rõ vai – Đúng người', 'desc': 'Mỗi yêu cầu đều có phòng ban chủ trì và phòng ban phối hợp cụ thể.'},
+                {'title': 'SLA phản hồi nội bộ', 'desc': 'Cam kết phản hồi yêu cầu liên phòng ban trong 4 giờ làm việc.'},
+            ],
         )
-        CourseEnrollment.objects.create(
-            emp=rd_emp, course=c3, study_process=100, is_pass=True, is_completed=True, is_assigned=True
-        )
+        attach_file(m3_1, 'Quy_che_phoi_hop.pdf')
 
+        m3_2 = CourseMaterial.objects.create(
+            course=c3,
+            name='Bài 2: Quy trình theo dõi tiến độ & báo cáo chất lượng định kỳ',
+            file_type='pdf',
+            duration_minutes=25,
+            order=2,
+            summary='Hướng dẫn cập nhật chỉ số tiến độ tuần và cảnh báo sớm nguy cơ trễ hạn.',
+            key_points=[
+                {'title': 'Cập nhật mỗi thứ 6', 'desc': 'Tổng hợp dữ liệu học tập, khảo sát và tài liệu đúng lịch.'},
+            ],
+        )
+        attach_file(m3_2, 'Quy_trinh_theo_doi_tien_do.pdf')
+
+        CourseEnrollment.objects.create(emp=hr_emp, course=c3, study_process=50, is_assigned=True)
+        CourseEnrollment.objects.create(emp=ctv, course=c3, study_process=0, is_assigned=True)
+        CourseEnrollment.objects.create(emp=rd_emp, course=c3, study_process=100, is_completed=True, is_assigned=False)
+
+        # =====================================================================
+        # 4. KH-1029 (ONGOING - creator: admin, assistant: minhanh)
+        #    Phân loại Dữ liệu & An toàn Thiết bị Tại Cơ sở
+        # =====================================================================
         c4 = Course.objects.create(
+            creator=admin,
+            code='KH-1029',
+            title='An toàn Dữ liệu Học viên & Bảo mật Tài khoản ScotsMate',
+            description='Đào tạo chuẩn bảo mật thông tin học viên, phân loại tài liệu nội bộ và sử dụng tính năng tự khôi phục mật khẩu an toàn.',
+            date_start=today - timedelta(days=4),
+            date_end=today + timedelta(days=28),
+            status='ongoing',
+        )
+        CourseAccess.objects.create(emp=admin, course=c4, role='trainer')
+        CourseAccess.objects.create(emp=trainer, course=c4, role='assistant')
+
+        m4_1 = CourseMaterial.objects.create(
+            course=c4,
+            name='Bài 1: Quy định phân loại dữ liệu & quyền truy cập theo phòng ban',
+            file_type='pdf',
+            duration_minutes=20,
+            order=1,
+            summary='Phân biệt dữ liệu Công khai nội bộ và dữ liệu Giới hạn theo phòng ban.',
+            key_points=[
+                {'title': 'Nguyên tắc tối thiểu', 'desc': 'Chỉ cấp quyền truy cập tài liệu cho đúng phòng ban liên quan.'},
+            ],
+        )
+        attach_file(m4_1, 'Quy_dinh_phan_loai_du_lieu.pdf')
+
+        m4_2 = CourseMaterial.objects.create(
+            course=c4,
+            name='Bài 2: Tiêu chuẩn an toàn thiết bị & tài khoản đăng nhập',
+            file_type='pdf',
+            duration_minutes=20,
+            order=2,
+        )
+        attach_file(m4_2, 'Tieu_chuan_an_toan_thiet_bi.pdf')
+
+        exam4 = CourseExam.objects.create(
+            course=c4,
+            title='Kiểm tra Nhận thức An toàn Dữ liệu',
+            passcode='SEC2026',
+            duration=20,
+            passing_score=66.0,
+            is_active=True,
+        )
+        q4_objs = build_exam_questions(exam4, [
+            ('Khi nhân viên quên mật khẩu tài khoản ScotsMate, cần xử lý theo luồng nào?', 2, [
+                'Mượn tài khoản đồng nghiệp để làm việc tạm',
+                'Sử dụng chức năng Quên mật khẩu để hệ thống gửi liên kết đặt lại qua email',
+                'Nhờ bạn cùng phòng gửi mật khẩu của họ',
+                'Tự đăng ký một tài khoản mới ngoài hệ thống',
+            ]),
+            ('Tài liệu có phạm vi DEPARTMENT trên ScotsMate cho phép đối tượng nào xem?', 1, [
+                'Nhân sự thuộc các phòng ban được cấp quyền, người tạo, Trưởng phòng quản lý và Admin',
+                'Tất cả người dùng kể cả phòng ban không liên quan',
+                'Khách bên ngoài không cần đăng nhập',
+                'Chỉ duy nhất người tạo xem được',
+            ]),
+            ('Khi rời khỏi bàn làm việc ở trung tâm, nhân sự cần làm gì?', 1, [
+                'Khóa màn hình máy tính và đăng xuất các phiên quan trọng khi hết ca',
+                'Giữ nguyên màn hình mở trang quản trị',
+                'Ghi mật khẩu ra giấy dán cạnh màn hình',
+                'Tắt màn hình nhưng không khóa Windows',
+            ]),
+        ])
+        CourseEnrollment.objects.create(emp=rd_emp, course=c4, exam=exam4, study_process=100, is_assigned=True)
+        CourseEnrollment.objects.create(emp=hr_mgr, course=c4, exam=exam4, study_process=50, is_assigned=True)
+
+        # =====================================================================
+        # 5. KH-0925 (COMPLETED - creator: minhanh)
+        #    Khóa học đã kết thúc -> Test Trainer CHỈ ĐƯỢC XEM chi tiết & báo cáo, KHÔNG được sửa!
+        # =====================================================================
+        c5 = Course.objects.create(
             creator=trainer,
-            code='KH-SCOTS-04',
-            title='Chuẩn bị Khóa Hội nhập Nhân sự Mới (Tháng 12)',
-            description='Khóa đào tạo bản nháp đang biên soạn giáo trình cho đợt tuyển dụng cuối năm.',
-            date_start=today + timedelta(days=10),
-            date_end=today + timedelta(days=40),
+            code='KH-0925',
+            title='Đào tạo Hội nhập Văn hóa & Nghiệp vụ Cơ sở Quý III/2026',
+            description='Đợt đào tạo hội nhập tập trung Quý III/2026 đã hoàn tất tổng kết và lưu trữ hồ sơ đánh giá toàn hệ thống.',
+            date_start=today - timedelta(days=60),
+            date_end=today - timedelta(days=15),
+            status='completed',
+        )
+        CourseAccess.objects.create(emp=trainer, course=c5, role='trainer')
+
+        m5_1 = CourseMaterial.objects.create(
+            course=c5,
+            name='Bài 1: Tổng quan mô hình tổ chức Scots English Australia',
+            file_type='pdf',
+            duration_minutes=30,
+            order=1,
+            summary='Giới thiệu cơ cấu 7 khối và vai trò các phòng ban hỗ trợ cơ sở.',
+        )
+        attach_file(m5_1, 'Quy_chuan_tiep_don_va_giao_tiep.pdf')
+
+        m5_2 = CourseMaterial.objects.create(
+            course=c5,
+            name='Bài 2: Quy trình thực hành báo cáo cuối khóa & nghiệm thu',
+            file_type='pdf',
+            duration_minutes=25,
+            order=2,
+            summary='Hướng dẫn tổng hợp kết quả đánh giá sau đào tạo.',
+        )
+        attach_file(m5_2, 'Bai_thuc_hanh_-_Chuong_7.pdf')
+
+        exam5 = CourseExam.objects.create(
+            course=c5,
+            title='Kiểm tra Tổng kết Hội nhập Q3/2026',
+            passcode='Q3DONE',
+            duration=30,
+            passing_score=75.0,
+            is_active=True,
+        )
+        q5_objs = build_exam_questions(exam5, [
+            ('Khối Học thuật tại Scots English gồm những phòng ban trọng tâm nào?', 1, [
+                'Phòng R&D và Phòng Quản lý Giáo viên & Học viên',
+                'Phòng Tài chính và Phòng Kế toán',
+                'Phòng Hạ tầng và An toàn thông tin',
+                'Phòng Marketing và Truyền thông',
+            ]),
+            ('Bộ phận Cộng tác viên (Giáo viên part-time) thuộc sự phụ trách điều phối trực tiếp của ai trong bảng phân công?', 2, [
+                'Phòng Tài chính',
+                'Nhân sự phụ trách bộ phận Cộng tác viên (nguyenthihoa)',
+                'Phòng Pháp chế',
+                'Phòng Sáng tạo & Sản xuất',
+            ]),
+            ('Sau khi khóa đào tạo chuyển sang trạng thái Đã kết thúc (completed), Trainer có thể thực hiện thao tác nào?', 3, [
+                'Sửa tên khóa học và thêm học viên mới',
+                'Đổi đề thi và xóa học viên đã thi',
+                'Xem lại thông tin khóa học và báo cáo thống kê kết quả học viên',
+                'Xuất bản lại thành bản nháp',
+            ]),
+            ('Tài khoản Admin trên ScotsMate có vai trò như thế nào đối với 7 module hệ thống?', 4, [
+                'Chỉ xem bài đăng',
+                'Không vào được module nào',
+                'Chỉ quản lý sự kiện',
+                'Quản trị tài khoản qua /admin/ và có toàn quyền hỗ trợ 7 phân hệ',
+            ]),
+        ])
+
+        for emp_u, passed, picks, dur in [
+            (hr_emp, True, [1, 2, 3, 4], 10),
+            (tr_emp, True, [1, 2, 3, 4], 14),
+            (rec_emp, True, [1, 2, 3, 1], 19),   # 75.0 (Đạt vừa đủ)
+            (rd_emp, False, [1, 1, 3, 1], 22),   # 50.0 (Chưa đạt)
+            (tea_emp, True, [1, 2, 3, 4], 13),
+            (ctv, False, [2, 2, 1, 1], 24),      # 25.0 (Chưa đạt)
+        ]:
+            CourseEnrollment.objects.create(
+                emp=emp_u, course=c5, exam=exam5, study_process=100, is_pass=passed, is_completed=passed, is_assigned=True
+            )
+            record_exam_attempt(emp_u, exam5, q5_objs, picks, duration=dur)
+
+        # =====================================================================
+        # 6. KH-0924 (COMPLETED - creator: lethuha)
+        # =====================================================================
+        c6 = Course.objects.create(
+            creator=tr_mgr,
+            code='KH-0924',
+            title='Chuẩn hóa Giáo án Tương tác Khối Học thuật Q3/2026',
+            description='Khóa bồi dưỡng phương pháp thiết kế giáo án số hóa đã hoàn thành trong Quý III/2026.',
+            date_start=today - timedelta(days=75),
+            date_end=today - timedelta(days=30),
+            status='completed',
+        )
+        CourseAccess.objects.create(emp=tr_mgr, course=c6, role='trainer')
+
+        m6_1 = CourseMaterial.objects.create(
+            course=c6,
+            name='Bài 1: Cấu trúc giáo án tương tác chuẩn',
+            file_type='pdf',
+            duration_minutes=30,
+            order=1,
+            summary='Tài liệu chuẩn hóa khung giáo án tương tác 4 bước.',
+        )
+        attach_file(m6_1, 'MIS3010_Lap_trinh_web_-_Chuong_04.pdf')
+
+        exam6 = CourseExam.objects.create(
+            course=c6,
+            title='Kiểm tra Chuẩn hóa Giáo án Q3/2026',
+            passcode='ACADQ3',
+            duration=20,
+            passing_score=80.0,
+            is_active=True,
+        )
+        q6_objs = build_exam_questions(exam6, [
+            ('Bước quan trọng nhất giúp học viên chủ động nói ngay đầu tiết học là gì?', 1, [
+                'Hoạt động Warm-up gắn ngữ cảnh giao tiếp thực tế',
+                'Cho học viên chép từ vựng 15 phút đầu giờ',
+                'Kiểm tra bài cũ bằng bài viết dài',
+                'Bỏ qua bước giới thiệu mục tiêu bài học',
+            ]),
+        ])
+        for emp_u, passed, picks in [
+            (tea_mgr, True, [1]),
+            (rd_mgr, True, [1]),
+            (ctv_mgr, True, [1]),
+            (ctv, False, [2]),
+        ]:
+            CourseEnrollment.objects.create(
+                emp=emp_u, course=c6, exam=exam6, study_process=100, is_pass=passed, is_completed=passed, is_assigned=True
+            )
+            record_exam_attempt(emp_u, exam6, q6_objs, picks, duration=8)
+
+        # =====================================================================
+        # 7 & 8. KH-1130 & KH-1131 (DRAFT - minhanh & lethuha)
+        #        Test cô lập khóa nháp với Trainee & test nút Xuất bản / Soạn thảo
+        # =====================================================================
+        c7 = Course.objects.create(
+            creator=trainer,
+            code='KH-1130',
+            title='Chiến dịch Chăm sóc Học viên Dịp Cuối năm 2026 (Bản nháp)',
+            description='Khóa đào tạo bản nháp đang biên soạn bài giảng và đề thi trước khi phát hành cho toàn bộ cơ sở.',
+            date_start=today + timedelta(days=7),
+            date_end=today + timedelta(days=37),
             status='draft',
         )
-        CourseAccess.objects.create(emp=trainer, course=c4, role='trainer')
+        CourseAccess.objects.create(emp=trainer, course=c7, role='trainer')
+        m7_1 = CourseMaterial.objects.create(
+            course=c7,
+            name='Bài 1 (Nháp): Kế hoạch tương tác phụ huynh cuối năm',
+            file_type='pdf',
+            duration_minutes=20,
+            order=1,
+        )
+        attach_file(m7_1, 'Kich_ban_tu_van_tai_tuc.pdf')
+
+        c8 = Course.objects.create(
+            creator=tr_mgr,
+            code='KH-1131',
+            title='Workshop Nâng cao Năng lực Giảng viên Nguồn (Bản nháp)',
+            description='Khóa đào tạo nội bộ dành cho đội ngũ Giảng viên & Quản lý học thuật (đang ở trạng thái bản nháp).',
+            date_start=today + timedelta(days=14),
+            date_end=today + timedelta(days=44),
+            status='draft',
+        )
+        CourseAccess.objects.create(emp=tr_mgr, course=c8, role='trainer')
+        CourseMaterial.objects.create(
+            course=c8,
+            name='Bài 1 (Nháp): Khung đánh giá năng lực sư phạm',
+            file_type='doc',
+            duration_minutes=25,
+            order=1,
+            summary='Đề cương nháp đang hoàn thiện.',
+        )
 
     def _seed_documents(self, pick):
         admin = pick('admin')

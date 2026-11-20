@@ -92,13 +92,22 @@
   <!-- Left Sidebar (Khớp 100% với trang danh sách) -->
   <aside class="tr-sidebar">
     <div class="tr-identity">
-      <h2>Đào tạo</h2>
+      <h2>{% if is_preview %}Xem trước{% else %}Đào tạo{% endif %}</h2>
     </div>
     <hr class="tr-sidebar-hr">
     <nav class="tr-nav-links">
-      <a href="/courses/trainee/courses/" class="tr-nav-link active">
-        Khóa học của tôi
-      </a>
+      {% if is_preview %}
+        <a href="/courses/trainer/courses/{{ course.id }}/" class="tr-nav-link active">
+          ← Chi tiết khóa học
+        </a>
+        <a href="/courses/trainer/courses/" class="tr-nav-link">
+          Quản lý đào tạo
+        </a>
+      {% else %}
+        <a href="/courses/trainee/courses/" class="tr-nav-link active">
+          Khóa học của tôi
+        </a>
+      {% endif %}
     </nav>
   </aside>
 
@@ -107,10 +116,17 @@
     
     <!-- Breadcrumb -->
     <div class="flex items-center gap-2 text-xs text-slate-500">
-      <a href="/courses/trainee/courses/" class="hover:underline text-[#134c81] font-semibold flex items-center gap-1">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        Khóa học của tôi
-      </a>
+      {% if is_preview %}
+        <a href="/courses/trainer/courses/{{ course.id }}/" class="hover:underline text-[#134c81] font-semibold flex items-center gap-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Quay lại quản lý khóa học
+        </a>
+      {% else %}
+        <a href="/courses/trainee/courses/" class="hover:underline text-[#134c81] font-semibold flex items-center gap-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Khóa học của tôi
+        </a>
+      {% endif %}
       <span class="text-slate-300">/</span>
       <span class="text-slate-800 font-bold">{{ course.title }}</span>
     </div>
@@ -120,7 +136,11 @@
       <div>
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-tight">{{ course.title }}</h1>
-          {% if enrollment.is_completed or enrollment.is_pass %}
+          {% if is_preview %}
+            <span class="px-3.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#134c81] border border-blue-200 flex items-center gap-1.5">
+              Chế độ Xem trước (Trainer)
+            </span>
+          {% elif enrollment.is_completed or enrollment.is_pass %}
             <span class="px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               Đã hoàn thành khóa học
@@ -163,7 +183,7 @@
       </div>
     </header>
 
-    {% if not enrollment and not is_trainer %}
+    {% if not enrollment and not is_trainer and not is_preview %}
       <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <span class="text-2xl">🎓</span>
@@ -181,6 +201,7 @@
       </div>
     {% endif %}
 
+    {% if not is_preview %}
     <!-- THANH TRACKING TIẾN ĐỘ HỌC TẬP KHÓA HỌC (TRỰC QUAN & CHUYÊN NGHIỆP) -->
     <div class="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col gap-3.5 mb-6">
       <div class="flex items-center justify-between">
@@ -226,6 +247,7 @@
         {% endif %}
       </div>
     </div>
+    {% endif %}
 
     <!-- Two-column: Left Lessons (2/3) & Right Exam Card (1/3) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -417,7 +439,19 @@
                 </p>
               </div>
 
-              {% if all_materials_completed %}
+              {% if is_preview %}
+                <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-[11px] text-[#134c81] font-medium">
+                  Giảng viên đang ở chế độ Xem trước. Bạn có thể mở thử đề thi mà không ảnh hưởng dữ liệu học viên.
+                </div>
+                <a href="/courses/trainee/course/{{ course.id }}/exam/?preview=1" class="w-full py-3 rounded-xl bg-[#134c81] hover:bg-[#0c375f] text-white font-bold text-xs transition shadow-md flex items-center justify-center gap-1.5" style="text-decoration:none;">
+                  <span>Xem trước & Thi thử đề thi →</span>
+                </a>
+              {% elif course.status == 'completed' %}
+                <div class="p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 flex flex-col gap-1.5">
+                  <span class="font-bold text-slate-800">🔒 Khóa học đã kết thúc</span>
+                  <span class="text-[11px] leading-relaxed">Kỳ thi đánh giá năng lực của khóa học này đã đóng và không tiếp nhận thêm bài nộp mới.</span>
+                </div>
+              {% elif all_materials_completed %}
                 <!-- ĐÃ HOÀN THÀNH TẤT CẢ BÀI GIẢNG: MỞ KHÓA NHẬP PASSCODE VÀ LÀM BÀI -->
                 <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 font-medium flex items-center gap-2">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>

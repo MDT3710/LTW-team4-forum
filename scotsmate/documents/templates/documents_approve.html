@@ -5,7 +5,7 @@
   <main class="doc-workspace">
     <!-- Hiển thị message -->
     {% for message in messages %}
-      <p style="background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 16px;">
+      <p style="background: {% if 'error' in message.tags %}#fee2e2; color: #991b1b; border: 1px solid #fecaca;{% else %}#dcfce7; color: #166534; border: 1px solid #bbf7d0;{% endif %} padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;">
         <em>{{ message.level_tag|title }}:</em> {{ message }}
       </p>
     {% endfor %}
@@ -51,6 +51,7 @@
           <tr>
             <th>Tên tài liệu</th>
             <th>Danh mục</th>
+            <th>Mô tả tóm tắt</th>
             <th>Người gửi</th>
             <th>Ngày gửi</th>
             <th>Loại yêu cầu</th>
@@ -62,9 +63,29 @@
           {% for doc in pending_docs %}
             <tr>
               <td class="doc-table-title">
-                <strong>{{ doc.title }}</strong>
+                <button type="button"
+                        onclick="openDocDetailModal(this)"
+                        data-code="DOC-{{ doc.id|stringformat:'03d' }}"
+                        data-title="{{ doc.title }}"
+                        data-category="{{ doc.category.name|default:'--' }}"
+                        data-creator="{{ doc.creator.get_full_name|default:doc.creator.username }}"
+                        data-scope="{% if doc.access_scope == 'DEPARTMENT' %}{% for perm in doc.access_permissions.all %}{{ perm.department.name }}{% if not forloop.last %}, {% endif %}{% empty %}Giới hạn phòng ban{% endfor %}{% else %}Toàn hệ thống{% endif %}"
+                        data-date="{{ doc.created_at|date:'d/m/Y H:i' }}"
+                        data-description="{{ doc.description|default:'Chưa có mô tả chi tiết.' }}"
+                        data-file="{% if doc.file %}{{ doc.file.url }}{% endif %}"
+                        title="Nhấn để xem chi tiết tài liệu"
+                        style="background:none; border:none; padding:0; text-align:left; font-weight:600; color:var(--ink, #0f172a); cursor:pointer; font-size:inherit;"
+                        onmouseover="this.style.color='var(--navy, #134c81)'; this.style.textDecoration='underline';"
+                        onmouseout="this.style.color='var(--ink, #0f172a)'; this.style.textDecoration='none';">
+                  {{ doc.title }}
+                </button>
               </td>
               <td>{{ doc.category.name|default:"--" }}</td>
+              <td style="color: var(--ink-soft); max-width: 240px;">
+                <span onclick="this.closest('tr').querySelector('.doc-table-title button').click()" title="Nhấn để xem mô tả đầy đủ" style="cursor:pointer;">
+                  {{ doc.description|default:"Chưa có mô tả chi tiết."|truncatechars:65 }}
+                </span>
+              </td>
               <td>{{ doc.creator.get_full_name|default:doc.creator.username }}</td>
               <td>{{ doc.created_at|date:"d/m/Y H:i" }}</td>
               <td>
@@ -78,7 +99,6 @@
                 <span class="doc-badge" style="background: #fef3c7; color: #b45309;">Chờ duyệt</span>
               </td>
               <td style="text-align: right;">
-
                 <a href="{% url 'document_approve_detail' id=doc.id %}" class="doc-btn doc-btn-primary" style="height: 34px; padding: 0 14px; font-size: 13px;">
                   Duyệt ngay
                 </a>
@@ -86,7 +106,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="7" style="text-align: center; color: var(--ink-soft); padding: 48px;">
+              <td colspan="8" style="text-align: center; color: var(--ink-soft); padding: 48px;">
                 Hiện tại không có tài liệu nào đang chờ phê duyệt.
               </td>
             </tr>
@@ -94,10 +114,37 @@
         </tbody>
       </table>
 
-      <footer class="doc-table-pagination">
-        <div>Tổng số: <strong>{{ pending_count|default:0 }}</strong> yêu cầu chờ duyệt</div>
-      </footer>
+      {% if page_obj.has_other_pages %}
+        <footer class="doc-table-pagination">
+          <div>Hiển thị <strong>{{ page_obj.start_index }} - {{ page_obj.end_index }}</strong> trong tổng số <strong>{{ page_obj.paginator.count }}</strong> yêu cầu</div>
+          <div class="doc-page-controls">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&lt;</a>
+            {% else %}
+              <span class="doc-page-btn" style="opacity: 0.5; cursor: not-allowed;">&lt;</span>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <span class="doc-page-btn active">{{ num }}</span>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="doc-page-btn">&gt;</a>
+            {% else %}
+              <span class="doc-page-btn" style="opacity: 0.5; cursor: not-allowed;">&gt;</span>
+            {% endif %}
+          </div>
+        </footer>
+      {% else %}
+        <footer class="doc-table-pagination">
+          <div>Tổng số: <strong>{{ page_obj.paginator.count }}</strong> yêu cầu chờ duyệt</div>
+        </footer>
+      {% endif %}
     </section>
+
+    {% include 'includes/doc_detail_modal.html' %}
 
   </main>
 {% endblock %}

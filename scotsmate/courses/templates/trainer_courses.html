@@ -816,11 +816,11 @@
 
             {% if course.status == 'completed' %}
 
-              <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tf-action-link">Xem báo cáo</a>
+              <a href="/courses/trainer/courses/{{ course.id }}/" class="tf-action-link">Xem chi tiết</a>
 
               <span class="tf-divider">|</span>
 
-              <form method="POST" action="/courses/trainer/courses/{{ course.id }}/delete/" style="display:inline;" onsubmit="return confirm('Xác nhận kết thúc khóa học này?')">{% csrf_token %}<button type="submit" class="tf-action-delete" style="background:none;border:none;padding:0;cursor:pointer;font-size:13px;font-family:inherit;color:#e53e3e;">Xóa</button></form>
+              <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tf-action-link">Xem báo cáo</a>
 
             {% elif course.status == 'draft' %}
 
@@ -840,7 +840,7 @@
 
               <span class="tf-divider">|</span>
 
-              <a href="/courses/trainer/courses/{{ course.id }}/" class="tf-action-edit">Chỉnh sửa</a>
+              <a href="/courses/trainer/courses/{{ course.id }}/?edit=1#editCourseSection" class="tf-action-edit">Chỉnh sửa</a>
 
               <span class="tf-divider">|</span>
 
@@ -852,25 +852,16 @@
 
         </tr>
 
-        {% empty %}
-
-        <!-- Hàng thông báo trống khi không có dữ liệu -->
-
-        <tr id="noCourseRow">
-
-          <td colspan="5" style="text-align: center; padding: 48px 16px; color: #64748b;">
-
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin: 0 auto 12px auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-
-            <p style="font-size: 15px; font-weight: 600; color: #19334b; margin: 0 0 4px 0;">Không tìm thấy khóa học phù hợp</p>
-
-            <p style="font-size: 13px; margin: 0;">Vui lòng thử chọn trạng thái khác hoặc thay đổi từ khóa tìm kiếm.</p>
-
-          </td>
-
-        </tr>
-
         {% endfor %}
+
+        <!-- Hàng thông báo trống khi lọc/tìm kiếm không có kết quả -->
+        <tr id="noCourseRow" {% if courses %}style="display: none;"{% endif %}>
+          <td colspan="5" style="text-align: center; padding: 48px 16px; color: #64748b;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin: 0 auto 12px auto;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <p style="font-size: 15px; font-weight: 600; color: #19334b; margin: 0 0 4px 0;">Không tìm thấy khóa học phù hợp</p>
+            <p style="font-size: 13px; margin: 0;">Vui lòng thử chọn trạng thái khác hoặc thay đổi từ khóa tìm kiếm.</p>
+          </td>
+        </tr>
 
       </tbody>
 
@@ -878,25 +869,11 @@
 
 
 
-    <!-- Phân trang chuẩn Figma -->
+    <!-- Thanh tổng hợp số lượng hiển thị -->
 
     <div class="tf-pagination">
 
       <span class="tf-result-count">Hiển thị {{ courses|length }} trong {{ total_count }} khóa học</span>
-
-      <div class="tf-page-controls">
-
-        <button type="button" class="tf-page-btn" aria-label="Trang trước">←</button>
-
-        <button type="button" class="tf-page-btn active">1</button>
-
-        <button type="button" class="tf-page-btn">2</button>
-
-        <button type="button" class="tf-page-btn">3</button>
-
-        <button type="button" class="tf-page-btn" aria-label="Trang sau">→</button>
-
-      </div>
 
     </div>
 

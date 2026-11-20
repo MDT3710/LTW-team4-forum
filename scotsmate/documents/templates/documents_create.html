@@ -8,7 +8,13 @@
     <header class="doc-header">
       <div>
         <h1 class="doc-header-title">Tải lên tài liệu mới</h1>
-        <p class="doc-header-subtitle">Điền thông tin và tải lên tệp văn bản để đưa vào quy trình phê duyệt</p>
+        <p class="doc-header-subtitle">
+          {% if is_manager %}
+            Điền thông tin và tải lên tệp văn bản để đăng tải trực tiếp lên thư viện tài liệu
+          {% else %}
+            Điền thông tin và tải lên tệp văn bản để đưa vào quy trình phê duyệt
+          {% endif %}
+        </p>
       </div>
       <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Quay lại danh mục</a>
     </header>
@@ -62,7 +68,10 @@
           </div>
 
           <div class="doc-form-group">
-            <label class="doc-form-label" for="{{ form.description.id_for_label }}">Mô tả tóm tắt nội dung</label>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="doc-form-label" for="{{ form.description.id_for_label }}">Mô tả tóm tắt nội dung (Tối đa 300 ký tự)</label>
+              <span id="doc-desc-counter" style="font-size: 12px; color: #64748b;">0/300 ký tự</span>
+            </div>
             {{ form.description }}
           </div>
         </div>
@@ -174,6 +183,18 @@
             }
           });
 
+          const descInput = document.getElementById('doc-desc');
+          const descCounter = document.getElementById('doc-desc-counter');
+          if (descInput && descCounter) {
+            const syncDescCounter = () => {
+              const len = descInput.value.length;
+              descCounter.textContent = len + '/300 ký tự';
+              descCounter.style.color = len >= 300 ? '#e11d48' : '#64748b';
+            };
+            descInput.addEventListener('input', syncDescCounter);
+            syncDescCounter();
+          }
+
           dropzoneArea.addEventListener('drop', function(e) {
             e.preventDefault();
             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -186,7 +207,9 @@
         <!-- Nút hành động -->
         <div style="display: flex; justify-content: flex-end; gap: 14px;">
           <a href="{% url 'documents' %}" class="doc-btn doc-btn-secondary">Hủy bỏ</a>
-          <button type="submit" class="doc-btn doc-btn-primary">Gửi phê duyệt</button>
+          <button type="submit" class="doc-btn doc-btn-primary">
+            {% if is_manager %}Đăng tải tài liệu ngay{% else %}Gửi phê duyệt{% endif %}
+          </button>
         </div>
 
       </section>
@@ -198,7 +221,11 @@
           <h3 class="doc-card-title">Thông tin khởi tạo</h3>
 
           <div style="margin-bottom: 16px;">
-            <span class="doc-badge doc-badge-draft">Bản nháp mới</span>
+            {% if is_manager %}
+              <span class="doc-badge doc-badge-approved">Đăng tải trực tiếp</span>
+            {% else %}
+              <span class="doc-badge doc-badge-draft">Gửi chờ phê duyệt</span>
+            {% endif %}
           </div>
 
           <div class="doc-meta-list">
@@ -228,8 +255,14 @@
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
           <div class="doc-notice-content">
-            <h4>Quy trình kiểm duyệt</h4>
-            <p>Tài liệu sau khi nhấn "Gửi phê duyệt" sẽ được chuyển tới quản lý phân hệ kiểm tra nội dung trước khi xuất bản rộng rãi.</p>
+            <h4>Quy trình xuất bản</h4>
+            <p>
+              {% if is_manager %}
+                Tài khoản Trưởng phòng/Admin được đăng tải trực tiếp tài liệu lên thư viện mà không cần qua bước chờ duyệt.
+              {% else %}
+                Tài liệu sau khi nhấn "Gửi phê duyệt" sẽ được chuyển tới Trưởng phòng/Admin kiểm duyệt trước khi xuất bản rộng rãi.
+              {% endif %}
+            </p>
           </div>
         </div>
 

@@ -34,9 +34,11 @@
       <a href="/courses/trainer/courses/{{ course.id }}/assign/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
         Ghi danh học viên ({{ total_enrolled }})
       </a>
+      {% if course.status != 'draft' %}
       <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tab-item text-slate-500 hover:text-slate-800 font-medium text-sm py-3 px-1" style="text-decoration:none;">
         Tiến độ học viên ({{ total_enrolled }})
       </a>
+      {% endif %}
     </nav>
 
     <!-- Thông báo kết quả xử lý từ Django messages -->
@@ -52,7 +54,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       <!-- Cột chính: Form cài đặt quy chuẩn bài thi & Quản lý ngân hàng câu hỏi trắc nghiệm -->
-      <form method="POST" action="/courses/trainer/courses/{{ course.id }}/exam/setup/" id="examForm" class="lg:col-span-2 workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-6">
+      <form method="POST" action="/courses/trainer/courses/{{ course.id }}/exam/setup/" id="examForm" class="lg:col-span-2 course-panel bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-6">
         {% csrf_token %}
 
         <!-- Phần 1: Cấu hình quy chuẩn bài thi (thời lượng, điểm chuẩn, passcode bảo mật) -->
@@ -215,7 +217,7 @@
       </form>
 
       <!-- Cột phụ: Bảng tóm tắt ngân hàng câu hỏi & Thao tác nhanh -->
-      <div class="workspace-card bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4 self-start sticky top-6">
+      <div class="course-panel bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4 self-start sticky top-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-2">
           <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Ngân hàng câu hỏi</h2>
           <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#134c81]" id="statBadgeCount">{{ questions|length|default:0 }} câu</span>

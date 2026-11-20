@@ -10,7 +10,15 @@ class DocumentCategory(models.Model):
     name = models.CharField("Tên danh mục", max_length=150)
     code = models.CharField("Mã danh mục", max_length=150, unique=True, blank=True)
     icon_name = models.CharField("Tên biểu tượng (Icon)", max_length=100, default='folder', blank=True)
-    description = models.TextField("Mô tả ngắn", max_length=500, blank=True)
+    description = models.TextField("Mô tả ngắn", max_length=300, blank=True)
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_document_categories',
+        verbose_name="Người tạo",
+    )
     display_order = models.PositiveIntegerField("Thứ tự hiển thị", default=0)
     created_time = models.DateTimeField("Thời gian tạo", default=timezone.now, blank=True)
 
@@ -57,7 +65,7 @@ class Document(models.Model):
         related_name='documents',
         verbose_name="Danh mục"
     )
-    description = models.TextField("Mô tả nội dung", blank=True)
+    description = models.TextField("Mô tả nội dung", max_length=300, blank=True)
     file = models.FileField("Tệp tài liệu (PDF/DOCX/PPTX)", upload_to='documents/%Y/%m/')
     access_scope = models.CharField(
         "Phạm vi truy cập",
@@ -136,6 +144,8 @@ class DocumentUpdateProposal(models.Model):
         choices=Document.SCOPE_CHOICES,
         default='ALL'
     )
+    proposed_description = models.TextField("Mô tả đề xuất", max_length=300, blank=True)
+    proposed_department_ids = models.JSONField("Phòng ban đề xuất", default=list, blank=True)
     submitted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
