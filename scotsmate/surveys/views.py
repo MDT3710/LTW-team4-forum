@@ -18,7 +18,6 @@ from .models import *
 from home.models import *
 from home.roles import (
     is_department_manager,
-    is_director,
     is_it_admin,
     redirect_back_with_error,
 )
