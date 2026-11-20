@@ -25,14 +25,9 @@ from .forms import *
 
 
 # ── Hàm kiểm tra vai trò dùng cho decorator @user_passes_test ──────────────
-def _is_not_it_admin(user):
-    """Kiểm tra người dùng KHÔNG phải Admin phòng IT (Admin IT không tham gia nghiệp vụ Khảo sát)."""
-    return not is_it_admin(user)
-
-
 def _is_manager_user(user):
-    """Kiểm tra người dùng có quyền Trưởng phòng (phê duyệt khảo sát)."""
-    return is_department_manager(user)
+    """Kiểm tra người dùng có quyền Trưởng phòng hoặc Admin (phê duyệt khảo sát)."""
+    return is_it_admin(user) or is_department_manager(user)
 
 
 def _survey_question_content_types():
@@ -50,14 +45,14 @@ def _require_survey_access(request, allow_director=True, require_manager=False):
     """
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
-    if is_it_admin(request.user):
-        raise PermissionDenied('Tài khoản Admin phòng IT không tham gia nghiệp vụ Khảo sát.')
-    if require_manager and not is_department_manager(request.user):
-        raise PermissionDenied('Chỉ Trưởng phòng mới có quyền truy cập chức năng phê duyệt khảo sát.')
+    if require_manager and not (is_it_admin(request.user) or is_department_manager(request.user)):
+        raise PermissionDenied('Chỉ Trưởng phòng hoặc Admin mới có quyền truy cập chức năng phê duyệt khảo sát.')
     return None
 
 
 def _can_view_survey_responses(user, survey):
+    if is_it_admin(user):
+        return True
     if survey.creator_id == user.id:
         return True
     if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
@@ -66,6 +61,8 @@ def _can_view_survey_responses(user, survey):
 
 
 def _can_manage_survey(user, survey):
+    if is_it_admin(user):
+        return True
     if survey.creator_id == user.id:
         return True
     if is_department_manager(user) and user.managed_departments.filter(id=survey.department_id).exists():
@@ -184,11 +181,13 @@ def SurveyTake(request, survey_pk):
     current_user = request.user
     survey = get_object_or_404(Survey, pk=survey_pk)
 
-    # Kiểm tra quyền truy cập: phải có SurveyAccess hoặc là creator / Trưởng phòng phụ trách
+    # Kiểm tra quyền truy cập: phải có SurveyAccess hoặc là creator / Trưởng phòng phụ trách / Admin
     has_access = SurveyAccess.objects.filter(survey=survey, emp=current_user, can_respond=True).exists()
     is_creator = (survey.creator_id == current_user.id)
-    is_manager = is_department_manager(current_user) and bool(
-        survey.department and survey.department.manager_id == current_user.id
+    is_manager = is_it_admin(current_user) or (
+        is_department_manager(current_user) and bool(
+            survey.department and survey.department.manager_id == current_user.id
+        )
     )
 
     if not (has_access or is_creator or is_manager):
@@ -584,11 +583,14 @@ def SurveyApproveList(request):
 
     query = request.GET.get('q', '').strip()
 
-    # Lọc khảo sát thuộc các phòng ban do Trưởng phòng phụ trách, chưa duyệt và chưa quá hạn
-    surveys_qs = Survey.objects.filter(
-        department__in=managed_departments,
-        is_approved=False
-    )
+    # Admin xem tất cả khảo sát chưa duyệt; Trưởng phòng chỉ xem khảo sát thuộc phòng ban phụ trách
+    if is_it_admin(user):
+        surveys_qs = Survey.objects.filter(is_approved=False)
+    else:
+        surveys_qs = Survey.objects.filter(
+            department__in=managed_departments,
+            is_approved=False
+        )
 
     surveys_qs = surveys_qs.filter(
         Q(response_deadline__isnull=True) | Q(response_deadline__gt=timezone.now())
@@ -628,8 +630,8 @@ def SurveyApproveDetail(request, survey_pk=None):
         pk=survey_pk
     )
 
-    # Kiểm tra quyền: phải là Trưởng phòng của phòng ban khảo sát
-    is_manager = current_user.managed_departments.filter(id=survey.department_id).exists()
+    # Kiểm tra quyền: Admin hoặc Trưởng phòng của phòng ban khảo sát
+    is_manager = is_it_admin(current_user) or current_user.managed_departments.filter(id=survey.department_id).exists()
 
     if not is_manager:
         raise PermissionDenied('Bạn chỉ có quyền thẩm định khảo sát thuộc phòng ban mình phụ trách.')
@@ -759,10 +761,14 @@ def SurveyPublished(request):
         return denied
 
     current_user = request.user
+    is_admin = is_it_admin(current_user)
     is_mgr = is_department_manager(current_user)
 
+    # Admin xem tất cả khảo sát đã duyệt; Trưởng phòng xem phòng ban mình + được gán quyền + tự tạo;
     # Nhân viên chỉ xem khảo sát được gán quyền can_view_responses=True hoặc tự tạo
-    if is_mgr:
+    if is_admin:
+        surveys_qs = Survey.objects.filter(is_approved=True)
+    elif is_mgr:
         managed_depts = current_user.managed_departments.all()
         surveys_qs = Survey.objects.filter(is_approved=True).filter(
             Q(department__in=managed_depts) |
