@@ -5,14 +5,12 @@ from django.shortcuts import redirect
 from django.utils.http import url_has_allowed_host_and_scheme
 
 ROLE_ADMIN = 'Admin'
-ROLE_DIRECTOR = 'Giám đốc'
 ROLE_MANAGER = 'Trưởng phòng'
 ROLE_TRAINER = 'Trainer'
 ROLE_EMPLOYEE = 'Nhân viên'
 
 ALL_ROLE_GROUPS = (
     ROLE_ADMIN,
-    ROLE_DIRECTOR,
     ROLE_MANAGER,
     ROLE_TRAINER,
     ROLE_EMPLOYEE,
@@ -34,7 +32,7 @@ def _user_role_group_names(user):
 
 
 def is_it_admin(user):
-    """Phòng Phát triển & vận hành ứng dụng (Admin IT) - quản lý tài khoản và xóa bài đăng vi phạm."""
+    """Admin hệ thống (Phòng Phát triển & vận hành ứng dụng) - full quyền toàn bộ 7 module và /admin/."""
     if not user or not user.is_authenticated:
         return False
     if user.is_superuser:
@@ -46,34 +44,20 @@ def is_it_admin(user):
     return bool(dep and dep.name == 'Phát triển & vận hành ứng dụng')
 
 
-def is_director(user):
-    """Giám đốc - chỉ được xem tất cả khảo sát, khóa học, tài liệu và dashboard liên quan."""
-    if not user or not user.is_authenticated or is_it_admin(user):
-        return False
-    role_groups = _user_role_group_names(user)
-    if role_groups:
-        return ROLE_DIRECTOR in role_groups
-    dep = _get_emp_dep(user)
-    return bool(dep and dep.block == 'DIRECTOR')
-
-
 def is_department_manager(user):
-    """Trưởng phòng - duyệt tài liệu/khảo sát, quản lý sự kiện, quản lý nhóm chat."""
-    if not user or not user.is_authenticated or is_it_admin(user) or is_director(user):
+    """Trưởng phòng - quản lý tài liệu, khảo sát, sự kiện và nhóm chat."""
+    if not user or not user.is_authenticated or is_it_admin(user):
         return False
     from home.models import Department
     role_groups = _user_role_group_names(user)
     if ROLE_MANAGER in role_groups:
         return True
-    if role_groups and ROLE_MANAGER not in role_groups:
-        # Nếu đã phân group nhưng vẫn là manager chính thức trong bảng Department thì giữ tương thích
-        return Department.objects.filter(manager=user).exists()
     return Department.objects.filter(manager=user).exists()
 
 
 def is_trainer(user):
-    """Trainer - giảng viên phụ trách đào tạo nội bộ (KHÔNG dựa vào is_staff)."""
-    if not user or not user.is_authenticated or is_it_admin(user) or is_director(user):
+    """Trainer - giảng viên phụ trách đào tạo nhân sự (KHÔNG dựa vào is_staff)."""
+    if not user or not user.is_authenticated or is_it_admin(user):
         return False
     from home.models import Department
     from courses.models import Course, CourseAccess
@@ -100,8 +84,6 @@ def get_primary_role_label(user):
         return 'Khách'
     if is_it_admin(user):
         return 'Admin'
-    if is_director(user):
-        return 'Giám đốc'
     mgr = is_department_manager(user)
     trn = is_trainer(user)
     if mgr and trn:
@@ -119,7 +101,6 @@ def get_user_roles_context(user):
     if not user or not user.is_authenticated:
         return {
             'is_it_admin': False,
-            'is_director': False,
             'is_department_manager': False,
             'is_trainer': False,
             'is_official_staff': False,
@@ -127,7 +108,6 @@ def get_user_roles_context(user):
         }
     return {
         'is_it_admin': is_it_admin(user),
-        'is_director': is_director(user),
         'is_department_manager': is_department_manager(user),
         'is_trainer': is_trainer(user),
         'is_official_staff': is_official_staff(user),

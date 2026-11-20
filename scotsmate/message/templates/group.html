@@ -68,20 +68,74 @@
       <!-- Thành viên nhóm -->
       <div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
         <h4 class="text-xs font-bold text-slate-900 m-0 pt-2">Thành viên nhóm ({{ members|length }})</h4>
-        <div class="sidebar-members-list flex flex-col gap-2 text-xs text-slate-700">
+        <div class="sidebar-members-list flex flex-col gap-2 text-xs text-slate-700 max-h-56 overflow-y-auto">
           {% for member in members %}
-            <div class="py-0.5">{{ member.display_info.display_name }}</div>
+            <div class="flex items-center justify-between gap-2 py-1 border-b border-slate-50">
+              <div class="min-w-0 truncate">
+                <span class="font-medium">{{ member.display_info.display_name }}</span>
+                {% if member.is_group_admin %}
+                  <span class="ml-1 px-1.5 py-0.5 rounded bg-blue-50 text-[#134c81] text-[10px] font-bold">QTV</span>
+                {% endif %}
+              </div>
+              {% if can_manage_group and member.id != current_user.id %}
+                <div class="flex items-center gap-1 shrink-0">
+                  {% if not member.is_group_admin %}
+                    <form method="POST" action="{% url 'group_grant_admin' current_group.id member.id %}" class="m-0">
+                      {% csrf_token %}
+                      <button type="submit" title="Trao quyền quản trị viên" class="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-[10px] font-semibold border-0 cursor-pointer">
+                        Trao QTV
+                      </button>
+                    </form>
+                  {% endif %}
+                  <form method="POST" action="{% url 'group_remove_member' current_group.id member.id %}" onsubmit="return confirm('Xóa thành viên này khỏi nhóm?');" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" title="Xóa khỏi nhóm" class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 hover:bg-rose-100 text-[10px] font-semibold border-0 cursor-pointer">
+                      Xóa
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
           {% empty %}
             <div class="py-0.5 text-slate-400">Chưa có thành viên</div>
           {% endfor %}
         </div>
       </div>
 
-      <!-- Nút Thêm thành viên -->
-      <div class="mt-auto pt-2">
-        <a href="{% url 'group_create' %}" class="block text-center w-full py-2.5 px-4 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 hover:border-slate-300 transition no-underline">
-          Thêm thành viên
-        </a>
+      <!-- Thao tác quản lý nhóm & Rời nhóm -->
+      <div class="mt-auto pt-2 flex flex-col gap-2 border-t border-slate-100">
+        {% if can_manage_group and available_users_to_add %}
+          <form method="POST" action="{% url 'group_add_member' current_group.id %}" class="flex flex-col gap-1.5 m-0">
+            {% csrf_token %}
+            <select name="user_id" required class="w-full h-9 px-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white">
+              <option value="">-- Chọn nhân sự thêm vào nhóm --</option>
+              {% for u in available_users_to_add %}
+                <option value="{{ u.id }}">{{ u.display_info.display_name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="w-full py-2 px-3 rounded-xl border border-[#134c81] bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition cursor-pointer">
+              + Thêm thành viên
+            </button>
+          </form>
+        {% endif %}
+
+        {% if is_member %}
+          <form method="POST" action="{% url 'group_leave' current_group.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn rời khỏi nhóm chat này?');" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="w-full py-2 px-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs font-semibold hover:bg-amber-100 transition cursor-pointer">
+              Rời nhóm chat
+            </button>
+          </form>
+        {% endif %}
+
+        {% if can_manage_group %}
+          <form method="POST" action="{% url 'group_delete' current_group.id %}" onsubmit="return confirm('Xóa vĩnh viễn nhóm chat này và toàn bộ tin nhắn?');" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition cursor-pointer">
+              Xóa nhóm chat
+            </button>
+          </form>
+        {% endif %}
       </div>
 
     </aside>

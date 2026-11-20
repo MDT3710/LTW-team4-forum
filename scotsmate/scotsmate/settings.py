@@ -56,8 +56,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'scotsmate.middleware.ScotsmateAuthRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'scotsmate.middleware.ScotsmateAuthRequiredMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 

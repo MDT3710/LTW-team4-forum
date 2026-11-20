@@ -20,9 +20,7 @@ from .models import (
 from home.models import Department, EmployeeInformation
 from home.roles import (
     ROLE_ADMIN,
-    ROLE_DIRECTOR,
     ROLE_TRAINER,
-    is_director,
     is_it_admin,
     is_trainer,
     redirect_back_with_error,
@@ -50,8 +48,7 @@ def get_course_exam(course):
 def get_user_role(user):
     """
     Xác định vai trò phân quyền thực tế trong module Đào tạo nội bộ:
-    - 'admin': Admin phòng IT (không tham gia nghiệp vụ đào tạo)
-    - 'director': Giám đốc (chỉ xem khóa học và dashboard kết quả)
+    - 'admin': Admin hệ thống (full quyền toàn bộ module)
     - 'trainer': Trainer / Giảng viên đào tạo (theo Group Trainer, CourseAccess hoặc người tạo)
     - 'trainee': Học viên / Nhân viên / Cộng tác viên
     """
@@ -59,8 +56,6 @@ def get_user_role(user):
         return None
     if is_it_admin(user):
         return 'admin'
-    if is_director(user):
-        return 'director'
     if is_trainer(user):
         return 'trainer'
     if CourseAccess.objects.filter(emp=user, role__in=['trainer', 'assistant', 'manager']).exists():
@@ -70,26 +65,17 @@ def get_user_role(user):
     return 'trainee'
 
 
-def _require_course_viewer_or_trainer(request, allow_director=False):
-    """Kiểm tra đăng nhập và phân quyền Trainer (tùy chọn cho Giám đốc xem chỉ đọc)."""
+def _require_course_viewer_or_trainer(request):
+    """Kiểm tra đăng nhập và phân quyền Trainer / Admin (chặn Trainee vào đường link quản trị)."""
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
     role = get_user_role(request.user)
-    if role == 'trainer':
+    if role in ('trainer', 'admin'):
         return None
-    if allow_director and role == 'director':
-        if request.method != 'GET':
-            return redirect_back_with_error(
-                request,
-                'Giám đốc chỉ có quyền xem khóa học và báo cáo, không thực hiện thao tác chỉnh sửa.',
-                fallback_url='trainer_courses',
-            )
-        return None
-    fallback = 'home' if role == 'admin' else ('trainer_courses' if role == 'director' else 'trainee_courses')
     return redirect_back_with_error(
         request,
         'Bạn không có quyền truy cập chức năng quản lý đào tạo này.',
-        fallback_url=fallback,
+        fallback_url='trainee_courses',
     )
 
 
@@ -187,35 +173,28 @@ def courses_home(request):
     """
     Cửa ngõ /courses/ tự động phân quyền theo tài khoản đăng nhập thật:
     - Nếu chưa đăng nhập: Chuyển hướng tới /login/?next=/courses/
-    - Nếu là Admin IT: Không tác động nghiệp vụ đào tạo -> quay về trang chủ
-    - Nếu là Giám đốc / Trainer: Chuyển vào /courses/trainer/courses/ (Giám đốc chỉ xem)
+    - Nếu là Trainer hoặc Admin: Chuyển vào /courses/trainer/courses/
     - Nếu là Trainee: Chuyển vào /courses/trainee/courses/
     """
     if not request.user.is_authenticated:
         return redirect('/login/?next=/courses/')
 
     role = get_user_role(request.user)
-    if role == 'admin':
-        return redirect_back_with_error(
-            request,
-            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Đào tạo nội bộ.',
-            fallback_url='home',
-        )
-    if role in ('trainer', 'director'):
+    if role in ('trainer', 'admin'):
         return redirect('trainer_courses')
     return redirect('trainee_courses')
 
 
 # ============================================================
 # PHÂN HỆ GIẢNG VIÊN / QUẢN LÝ (TRAINER VIEWS)
-# Bảo vệ nghiêm ngặt: Chỉ tài khoản Trainer mới được quản trị, Giám đốc chỉ xem
+# Bảo vệ nghiêm ngặt: Chỉ tài khoản Trainer hoặc Admin mới được truy cập
 # ============================================================
 
 def trainer_courses(request):
     """
     Quản lý danh sách khóa học nội bộ
     """
-    denied = _require_course_viewer_or_trainer(request, allow_director=True)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -260,14 +239,13 @@ def trainer_courses(request):
         'draft_count': draft_count,
         'completed_count': completed_count,
         'trainers': trainers,
-        'is_readonly_director': is_director(request.user),
     }
     return render(request, 'trainer_courses.html', context)
 
 
 def trainer_course_detail(request, course_id=1):
     """Chi tiết khóa học phía quản trị (Hỗ trợ xem, cập nhật và xuất bản)"""
-    denied = _require_course_viewer_or_trainer(request, allow_director=True)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -314,7 +292,6 @@ def trainer_course_detail(request, course_id=1):
         'total_enrolled': total_enrolled,
         'total_completed': total_completed,
         'form': form,
-        'is_readonly_director': is_director(request.user),
     }
     return render(request, 'trainer_courses_{id}.html', context)
 
@@ -326,14 +303,14 @@ def trainer_course_assign(request, course_id=1):
     - Học viên do Trainer phân công sẽ được đánh dấu is_assigned=True (BẮT BUỘC).
     - Hỗ trợ thêm hàng loạt (save_assign) và hủy ghi danh (remove_trainee).
     """
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
     course = get_object_or_404(Course.objects.select_related('creator'), id=course_id)
     departments = Department.objects.all().order_by('id')
     trainees = User.objects.filter(is_active=True).exclude(
-        groups__name__in=[ROLE_ADMIN, ROLE_DIRECTOR]
+        groups__name=ROLE_ADMIN
     ).exclude(
         username='admin'
     ).select_related('employee_info__dep', 'employee_info__branch').order_by('last_name', 'first_name')
@@ -405,7 +382,7 @@ def trainer_course_dashboard(request, course_id=1):
     - Phân tích chi tiết từng câu hỏi (Item Analysis): câu nào học viên hay sai nhất, thống kê phương án chọn A/B/C/D.
     - Xem chi tiết từng câu trả lời bài làm của từng học viên.
     """
-    denied = _require_course_viewer_or_trainer(request, allow_director=True)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -432,7 +409,7 @@ def trainer_course_dashboard(request, course_id=1):
     # Phân tách lượt nộp bài của học viên và bài kiểm tra thử nghiệm của Giảng viên (Trainer)
     trainee_responses = [r for r in all_responses if get_user_role(r.emp) != 'trainer']
     trainer_response = next((r for r in all_responses if r.emp_id == request.user.id and get_user_role(r.emp) == 'trainer'), None)
-    if not trainer_response and get_user_role(request.user) in ('trainer', 'director'):
+    if not trainer_response and get_user_role(request.user) in ('trainer', 'admin'):
         trainer_response = next((r for r in all_responses if get_user_role(r.emp) == 'trainer'), None)
 
     # Thống kê phổ điểm bài thi
@@ -573,7 +550,7 @@ def trainer_course_materials(request, course_id=1):
     - Xử lý tải lên tập tin đính kèm (FileField) thông qua request.FILES và lưu trữ trong media/courses/materials/.
     """
     # Bước 1 & 2: Kiểm tra đăng nhập và phân quyền Trainer (chỉ Trainer mới được quản lý bài giảng)
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -678,7 +655,7 @@ def trainer_course_exam_setup(request, course_id=1):
     - Áp dụng transaction.atomic() đảm bảo tính toàn vẹn dữ liệu (ACID) khi lưu đồng thời bài thi, câu hỏi và đáp án.
     """
     # Bước 1: Kiểm tra đăng nhập và phân quyền Giảng viên (chặn Trainee / Giám đốc / Admin vào link thiết lập bài thi)
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -786,7 +763,7 @@ def trainer_courses_dashboard(request):
     - Phân tích hiệu suất đào tạo theo từng Phòng ban.
     - Cung cấp dữ liệu JSON sẵn sàng để vẽ biểu đồ tương tác thời gian thực.
     """
-    denied = _require_course_viewer_or_trainer(request, allow_director=True)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -906,7 +883,7 @@ def trainer_courses_dashboard(request):
 
 def trainer_courses_create_info(request):
     """Tạo khóa học mới - Bước 1: Thông tin cơ bản"""
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -946,7 +923,7 @@ def trainer_courses_create_info(request):
 
 def trainer_courses_create_assign(request):
     """Tạo khóa học mới - Bước 2: Phân công học viên"""
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -957,7 +934,7 @@ def trainer_courses_create_assign(request):
     # Lấy danh sách phòng ban và nhân viên kèm thông tin phòng ban, chi nhánh
     departments = Department.objects.all().order_by('id')
     trainees = User.objects.filter(is_active=True).exclude(
-        groups__name__in=[ROLE_ADMIN, ROLE_DIRECTOR]
+        groups__name=ROLE_ADMIN
     ).exclude(
         username='admin'
     ).select_related('employee_info__dep', 'employee_info__branch').order_by('last_name', 'first_name')
@@ -980,7 +957,7 @@ def trainer_courses_create_assign(request):
 
 def trainer_courses_create_review(request):
     """Tạo khóa học mới - Bước 3: Xem lại & Xuất bản"""
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -1059,7 +1036,7 @@ def trainer_courses_create_review(request):
 
 def trainer_course_delete(request, course_id):
     """Soft delete khóa học (đổi status thành completed)"""
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -1073,7 +1050,7 @@ def trainer_course_delete(request, course_id):
 
 def trainer_course_publish(request, course_id):
     """Xuất bản khóa học từ Bản nháp sang Đang triển khai"""
-    denied = _require_course_viewer_or_trainer(request, allow_director=False)
+    denied = _require_course_viewer_or_trainer(request)
     if denied:
         return denied
 
@@ -1098,13 +1075,7 @@ def trainee_courses(request):
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
     role = get_user_role(request.user)
-    if role == 'admin':
-        return redirect_back_with_error(
-            request,
-            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Đào tạo nội bộ.',
-            fallback_url='home',
-        )
-    if role in ('trainer', 'director'):
+    if role == 'trainer':
         return redirect('trainer_courses')
 
     # Lấy danh sách khóa học ĐƯỢC PHÂN CÔNG cho chính user đang đăng nhập (loại bỏ bản nháp draft)
@@ -1167,16 +1138,10 @@ def trainee_course_detail(request, course_id=1):
         return redirect('/login/?next=' + request.path)
 
     role = get_user_role(request.user)
-    if role == 'admin':
-        return redirect_back_with_error(
-            request,
-            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Đào tạo nội bộ.',
-            fallback_url='home',
-        )
-    is_trainer_or_director = (role in ('trainer', 'director'))
-    is_preview = (is_trainer_or_director and request.GET.get('preview') == '1')
+    is_trainer_or_admin = (role in ('trainer', 'admin'))
+    is_preview = (is_trainer_or_admin and request.GET.get('preview') == '1')
 
-    if is_trainer_or_director and not is_preview:
+    if is_trainer_or_admin and not is_preview:
         return redirect('trainer_course_detail', course_id=course_id)
 
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
@@ -1191,7 +1156,7 @@ def trainee_course_detail(request, course_id=1):
         request.session['viewed_courses'] = viewed_courses[:10]
 
     # Chặn học viên xem khóa học bản nháp
-    if not is_trainer_or_director and course.status == 'draft':
+    if not is_trainer_or_admin and course.status == 'draft':
         messages.warning(request, f'Khóa học "{course.title}" đang ở trạng thái Bản nháp và chưa được xuất bản.')
         return redirect('trainee_courses')
 
@@ -1282,12 +1247,11 @@ def trainee_course_self_enroll(request, course_id=1):
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
     role = get_user_role(request.user)
-    if role in ('trainer', 'director', 'admin'):
-        fallback = 'home' if role == 'admin' else 'trainer_courses'
+    if role == 'trainer':
         return redirect_back_with_error(
             request,
-            'Vai trò hiện tại không thực hiện tự đăng ký học viên.',
-            fallback_url=fallback,
+            'Giảng viên không thực hiện tự đăng ký học viên.',
+            fallback_url='trainer_courses',
         )
 
     course = get_object_or_404(Course, id=course_id)
@@ -1315,13 +1279,7 @@ def trainee_course_material(request, course_id=1, materials_id=1):
 
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
     role = get_user_role(request.user)
-    if role == 'admin':
-        return redirect_back_with_error(
-            request,
-            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Đào tạo nội bộ.',
-            fallback_url='home',
-        )
-    is_preview = (role in ('trainer', 'director'))
+    is_preview = (role in ('trainer', 'admin'))
 
     # Chặn học viên xem bài giảng của khóa học bản nháp
     if not is_preview and course.status == 'draft':
@@ -1399,14 +1357,7 @@ def trainee_course_exam(request, course_id=1):
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)
     exam = get_course_exam(course)
     role = get_user_role(request.user)
-    if role in ('admin', 'director'):
-        fallback = 'home' if role == 'admin' else 'trainer_courses'
-        return redirect_back_with_error(
-            request,
-            'Vai trò hiện tại không thực hiện làm bài thi đào tạo.',
-            fallback_url=fallback,
-        )
-    is_preview = (role == 'trainer')
+    is_preview = (role in ('trainer', 'admin'))
 
     # Chặn học viên thi khóa học bản nháp
     if not is_preview and course.status == 'draft':
@@ -1628,15 +1579,9 @@ def trainee_course_exam_result(request, course_id=1):
     if not request.user.is_authenticated:
         return redirect('/login/?next=' + request.path)
     role = get_user_role(request.user)
-    if role == 'admin':
-        return redirect_back_with_error(
-            request,
-            'Tài khoản Admin phòng IT không tham gia nghiệp vụ Đào tạo nội bộ.',
-            fallback_url='home',
-        )
-    is_trainer_or_director = (role in ('trainer', 'director'))
-    is_preview = (is_trainer_or_director and request.GET.get('preview') == '1')
-    if is_trainer_or_director and not is_preview:
+    is_trainer_or_admin = (role in ('trainer', 'admin'))
+    is_preview = (is_trainer_or_admin and request.GET.get('preview') == '1')
+    if is_trainer_or_admin and not is_preview:
         return redirect('trainer_course_dashboard', course_id=course_id)
 
     course = get_object_or_404(Course.objects.select_related('creator', 'exam'), id=course_id)

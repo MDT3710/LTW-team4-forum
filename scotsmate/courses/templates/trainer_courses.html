@@ -613,7 +613,7 @@
 
   <header class="tf-heading">
 
-    <h1 class="tf-title">{% if is_readonly_director %}Danh sách Khóa học (Giám đốc chỉ xem){% else %}Quản lý đào tạo{% endif %}</h1>
+    <h1 class="tf-title">Quản lý đào tạo</h1>
 
     <div class="tf-actions">
 
@@ -624,7 +624,6 @@
 
       </a>
 
-      {% if not is_readonly_director %}
       <a href="/courses/trainer/courses/create/info/" class="tf-btn-create">
 
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -632,7 +631,6 @@
         Tạo khóa học mới
 
       </a>
-      {% endif %}
 
     </div>
 
@@ -816,15 +814,7 @@
 
           <td class="tf-actions-cell">
 
-            {% if is_readonly_director %}
-
-              <a href="/courses/trainer/courses/{{ course.id }}/" class="tf-action-link">Xem chi tiết</a>
-              {% if course.status != 'draft' %}
-                <span class="tf-divider">|</span>
-                <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tf-action-link">Xem báo cáo</a>
-              {% endif %}
-
-            {% elif course.status == 'completed' %}
+            {% if course.status == 'completed' %}
 
               <a href="/courses/trainer/courses/{{ course.id }}/dashboard/" class="tf-action-link">Xem báo cáo</a>
 

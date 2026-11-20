@@ -23,8 +23,6 @@
           </svg>
           Tạo danh mục
         </a>
-
-
         <a href="{% url 'document_create' %}" class="doc-btn doc-btn-primary">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
@@ -43,7 +41,8 @@
           Tài liệu chờ duyệt ({{ pending_count|default:0 }})
         </a>
       {% endif %}
-        <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
+
+      <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
     </nav>
 
     <!-- Thanh tìm kiếm -->
