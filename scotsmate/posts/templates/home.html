@@ -187,7 +187,7 @@
                   </svg>
                 </button>
                 <div class="post-dropdown-menu" id="menu-post-{{ post.id }}" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); min-width: 160px; z-index: 100; overflow: hidden; padding: 4px 0;">
-                  {% if current_user.id == post.author_id %}
+                  {% if current_user.id == post.author_id or user_roles.is_it_admin %}
                   <button type="button" onclick="openEditPostModal({{ post.id }})" style="width: 100%; border: none; background: none; text-align: left; padding: 10px 16px; font-size: 14px; font-weight: 500; color: #134c81; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 20h9"></path>
@@ -1272,7 +1272,9 @@
           }
         })
         .catch(function(err) {
-          window.location.href = `/events/${eventId}/`;
+          alert('Không thể xử lý yêu cầu lúc này. Vui lòng thử lại.');
+          btn.disabled = false;
+          btn.innerHTML = originalText;
         });
       }
     </script>

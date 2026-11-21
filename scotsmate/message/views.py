@@ -1,13 +1,17 @@
 import os
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .models import Attachment, Conversation, ConversationMember, Message
+from .models import Attachment, Conversation, ConversationMember, Message, StaffProfile
+from home.models import Branch
 from home.roles import get_primary_role_label, is_department_manager, is_it_admin, redirect_back_with_error
+
+MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024  # 20 MB
 
 try:
     from posts.colleagues import COLLEAGUES_DATA
@@ -33,11 +37,28 @@ def _can_manage_group(user, group):
         return False
     if is_it_admin(user):
         return True
-    if ConversationMember.objects.filter(
+    return ConversationMember.objects.filter(
         conversation=group, user=user, role=ConversationMember.ROLE_ADMIN
-    ).exists():
-        return True
-    return is_department_manager(user) and group.members.filter(id=user.id).exists()
+    ).exists()
+
+
+def _get_branch_choices():
+    """Lấy danh sách chi nhánh động từ bảng Branch (kèm StaffProfile nếu có)."""
+    names = list(Branch.objects.order_by('name').values_list('name', flat=True))
+    extra = [
+        b for b in StaffProfile.objects.exclude(branch='').values_list('branch', flat=True).distinct()
+        if b and b not in names
+    ]
+    combined = names + sorted(extra)
+    return combined or ['Chi nhánh Cầu Giấy', 'Chi nhánh Hà Đông', 'Chi nhánh Đống Đa']
+
+
+def _mark_conversation_read(convo, user):
+    """Đánh dấu đã xem tin nhắn của người khác và cập nhật last_read_at cho thành viên."""
+    if not convo or not user or not user.is_authenticated:
+        return
+    Message.objects.filter(conversation=convo, is_read=False).exclude(sender=user).update(is_read=True)
+    ConversationMember.objects.filter(conversation=convo, user=user).update(last_read_at=timezone.now())
 
 
 def _compute_initials(text, fallback='SC'):
@@ -52,17 +73,8 @@ def _compute_initials(text, fallback='SC'):
 
 
 def get_current_user(request):
-    """Trả về request.user nếu đã đăng nhập; fallback nhân viên thật đầu tiên hoặc tạo admin_demo."""
-    if request.user.is_authenticated:
-        return request.user
-    user = User.objects.filter(is_superuser=False).order_by('id').first() or User.objects.first()
-    if user is None:
-        user = User.objects.create_user(
-            username='admin_demo',
-            first_name='Quân',
-            last_name='Nguyễn',
-        )
-    return user
+    """Trả về user đang đăng nhập (không fallback ẩn danh)."""
+    return request.user if getattr(request, 'user', None) and request.user.is_authenticated else None
 
 
 def _get_user_display_info(user):
@@ -72,11 +84,12 @@ def _get_user_display_info(user):
             'display_name': 'Người dùng',
             'initials': 'SC',
             'position': 'Nhân viên',
-            'branch': 'Cầu Giấy, Hà Nội',
+            'branch': 'Chi nhánh Cầu Giấy',
             'avatar_color': 'bg-blue-100 text-[#134c81]',
         }
 
     profile = getattr(user, 'profile', None)
+    emp_info = getattr(user, 'employee_info', None)
     colleague_meta = COLLEAGUES_DATA.get(getattr(user, 'username', ''), {})
     full_name = (user.get_full_name() or '').strip()
 
@@ -94,13 +107,14 @@ def _get_user_display_info(user):
     else:
         default_role = get_primary_role_label(user) or colleague_meta.get('job_title') or 'Nhân viên'
 
-    default_branch = colleague_meta.get('branch') or 'Cầu Giấy, Hà Nội'
+    emp_branch_name = emp_info.branch.name if (emp_info and getattr(emp_info, 'branch', None)) else ''
+    default_branch = emp_branch_name or colleague_meta.get('branch') or 'Chi nhánh Cầu Giấy'
     default_color = DEFAULT_AVATAR_PALETTE[(user.id or 0) % len(DEFAULT_AVATAR_PALETTE)]
 
     if profile:
         initials = profile.get_initials() if full_name else _compute_initials(display_name)
         position = profile.position or profile.department or default_role
-        branch = profile.branch or default_branch
+        branch = emp_branch_name or profile.branch or default_branch
         avatar_color = profile.avatar_color or default_color
     else:
         initials = _compute_initials(display_name)
@@ -118,27 +132,26 @@ def _get_user_display_info(user):
 
 
 def _resolve_direct_conversation_display(convo, target_user):
-    """Lấy tên & chữ viết tắt hiển thị cho chat 1-1 (ưu tiên biệt danh convo.title nếu có)."""
+    """Lấy tên & chữ viết tắt hiển thị thực tế của đối phương cho chat 1-1."""
     target_info = _get_user_display_info(target_user)
-    custom_nickname = (convo.title or '').strip()
-    if custom_nickname:
-        words = custom_nickname.split()
-        initials = f"{words[0][0]}{words[1][0]}".upper() if len(words) >= 2 else custom_nickname[:2].upper()
-        return custom_nickname, initials, target_info
     return target_info['display_name'], target_info['initials'], target_info
 
 
 def get_sidebar_conversations(user):
     """Lấy danh sách cuộc trò chuyện cho cột Hộp thư, sắp xếp theo -updated_at."""
-    if user.is_authenticated:
-        qs = Conversation.objects.filter(members=user).order_by('-updated_at')
-        viewer = user
+    if not user or not user.is_authenticated:
+        return []
+
+    if is_it_admin(user):
+        qs = Conversation.objects.filter(
+            Q(members=user) | Q(conversation_type=Conversation.TYPE_GROUP)
+        ).order_by('-updated_at')
     else:
-        qs = Conversation.objects.all().order_by('-updated_at')
-        viewer = User.objects.filter(is_superuser=False).order_by('id').first() or User.objects.first()
+        qs = Conversation.objects.filter(members=user).order_by('-updated_at')
+    viewer = user
 
     raw_conversations = list(
-        qs.distinct().prefetch_related('members__profile', 'memberships', 'messages')
+        qs.distinct().prefetch_related('members__profile', 'members__employee_info__branch', 'memberships', 'messages')
     )
 
     conversations = []
@@ -148,9 +161,17 @@ def get_sidebar_conversations(user):
         messages_list = list(convo.messages.all())
         convo.member_count = len(members_list)
         convo.last_msg = messages_list[-1] if messages_list else None
-        convo.is_muted = bool(
-            viewer and any(m.user_id == viewer.id and m.is_muted for m in memberships_list)
-        )
+        viewer_ms = next((m for m in memberships_list if m.user_id == viewer.id), None)
+        convo.is_muted = bool(viewer_ms and viewer_ms.is_muted)
+
+        if viewer_ms:
+            last_read = viewer_ms.last_read_at
+            convo.unread_count = sum(
+                1 for m in messages_list
+                if m.sender_id != viewer.id and (last_read is None or m.created_at > last_read)
+            )
+        else:
+            convo.unread_count = 0
 
         if convo.conversation_type == Conversation.TYPE_GROUP:
             convo.display_name = convo.title or f"Nhóm #{convo.id}"
@@ -158,16 +179,14 @@ def get_sidebar_conversations(user):
             convo.target_user_id = None
             conversations.append(convo)
         else:
-            other_user = None
-            if viewer:
-                other_user = next((m for m in members_list if m.id != viewer.id), None)
+            other_user = next((m for m in members_list if m.id != viewer.id), None)
             if other_user is None:
-                other_user = members_list[0] if members_list else viewer
+                continue
 
             display_name, display_initials, _ = _resolve_direct_conversation_display(convo, other_user)
             convo.display_name = display_name
             convo.display_initials = display_initials
-            convo.target_user_id = other_user.id if other_user else 1
+            convo.target_user_id = other_user.id
             conversations.append(convo)
 
     return conversations
@@ -180,6 +199,9 @@ def _handle_message_post(request, conversation, sender):
 
     content = (request.POST.get('content') or '').strip()
     attachment = request.FILES.get('attachment')
+    if attachment and attachment.size > MAX_ATTACHMENT_BYTES:
+        messages.error(request, 'Tệp đính kèm vượt quá giới hạn tối đa 20 MB.')
+        return False
 
     if content or attachment:
         ConversationMember.objects.get_or_create(
@@ -198,6 +220,7 @@ def _handle_message_post(request, conversation, sender):
                 file=attachment,
                 file_name=attachment.name,
             )
+        _mark_conversation_read(conversation, sender)
         conversation.save()
         return True
     return False
@@ -299,11 +322,12 @@ def _branch_matches(branch_filter, display_branch):
 
 
 def _get_colleague_users(current_user, query='', branch=''):
-    """Lấy danh sách nhân sự thực tế (loại trừ current_user), hỗ trợ lọc."""
+    """Lấy danh sách nhân sự đang hoạt động (loại trừ current_user), hỗ trợ lọc."""
     users_qs = (
-        User.objects.exclude(id=current_user.id)
+        User.objects.filter(is_active=True)
+        .exclude(id=current_user.id)
         .exclude(is_superuser=True, first_name='', last_name='')
-        .select_related('profile')
+        .select_related('profile', 'employee_info__branch', 'employee_info__dep')
         .order_by('id')
     )
 
@@ -319,28 +343,27 @@ def _get_colleague_users(current_user, query='', branch=''):
     for u in users_qs:
         info = _get_user_display_info(u)
         if branch and branch != 'ALL':
-            profile = getattr(u, 'profile', None)
-            if profile:
-                if profile.branch != branch:
-                    continue
-            elif not _branch_matches(branch, info['branch']):
+            user_branch = (info.get('branch') or '').strip()
+            if user_branch != branch and not _branch_matches(branch, user_branch):
                 continue
         u.display_info = info
         users.append(u)
     return users
 
 
+@login_required
 def messages_list(request):
-    current_user = get_current_user(request)
-    conversations = get_sidebar_conversations(request.user)
+    current_user = request.user
+    conversations = get_sidebar_conversations(current_user)
     return render(request, 'messages.html', {
         'conversations': conversations,
         'current_user': current_user,
     })
 
 
+@login_required
 def group_detail(request, group_id=1):
-    current_user = get_current_user(request)
+    current_user = request.user
     current_group = Conversation.objects.filter(
         id=group_id,
         conversation_type=Conversation.TYPE_GROUP,
@@ -365,15 +388,16 @@ def group_detail(request, group_id=1):
         _handle_message_post(request, current_group, current_user)
         return redirect('group_detail', group_id=group_id)
 
-    conversations = get_sidebar_conversations(request.user)
+    _mark_conversation_read(current_group, current_user)
+    conversations = get_sidebar_conversations(current_user)
     messages_list_qs = _annotate_messages_for_display(
         current_group.messages.all()
-        .select_related('sender', 'sender__profile')
+        .select_related('sender', 'sender__profile', 'sender__employee_info__branch')
         .prefetch_related('attachments')
     )
     memberships = list(
         ConversationMember.objects.filter(conversation=current_group)
-        .select_related('user', 'user__profile')
+        .select_related('user', 'user__profile', 'user__employee_info__branch')
         .order_by('-role', 'joined_at')
     )
     members = []
@@ -408,6 +432,7 @@ def group_detail(request, group_id=1):
         'active_convo': None,
         'current_user': current_user,
         'messages': messages_list_qs,
+        'flash_messages': list(messages.get_messages(request)),
         'members': members,
         'admin_name': admin_name,
         'can_manage_group': can_manage_group,
@@ -417,9 +442,10 @@ def group_detail(request, group_id=1):
     })
 
 
+@login_required
 def group_leave(request, group_id):
     """Cho phép thành viên (Nhân viên/Trưởng phòng/Admin) rời khỏi nhóm chat."""
-    current_user = get_current_user(request)
+    current_user = request.user
     group = get_object_or_404(Conversation, id=group_id, conversation_type=Conversation.TYPE_GROUP)
     if request.method != 'POST':
         return redirect('group_detail', group_id=group.id)
@@ -443,20 +469,21 @@ def group_leave(request, group_id):
     return redirect('messages_list')
 
 
+@login_required
 def group_add_member(request, group_id):
-    """Thêm thành viên vào nhóm chat (Trưởng phòng/QTV nhóm/Admin)."""
-    current_user = get_current_user(request)
+    """Thêm thành viên vào nhóm chat (Chỉ Quản trị viên nhóm / Admin hệ thống)."""
+    current_user = request.user
     group = get_object_or_404(Conversation, id=group_id, conversation_type=Conversation.TYPE_GROUP)
     if not _can_manage_group(current_user, group):
         return redirect_back_with_error(
             request,
-            'Chỉ Trưởng phòng hoặc Quản trị viên nhóm mới có quyền thêm thành viên.',
+            'Chỉ Quản trị viên nhóm hoặc Admin mới có quyền thêm thành viên.',
             fallback_url='messages_list',
         )
     if request.method == 'POST':
         user_id = request.POST.get('user_id', '').strip()
         if user_id.isdigit():
-            target_user = get_object_or_404(User, id=int(user_id))
+            target_user = get_object_or_404(User, id=int(user_id), is_active=True)
             _, created = ConversationMember.objects.get_or_create(
                 conversation=group,
                 user=target_user,
@@ -470,14 +497,15 @@ def group_add_member(request, group_id):
     return redirect('group_detail', group_id=group.id)
 
 
+@login_required
 def group_remove_member(request, group_id, user_id):
-    """Xóa thành viên khỏi nhóm chat (Trưởng phòng/QTV nhóm/Admin)."""
-    current_user = get_current_user(request)
+    """Xóa thành viên khỏi nhóm chat (Chỉ QTV nhóm / Admin hệ thống; không xóa người tạo nhóm)."""
+    current_user = request.user
     group = get_object_or_404(Conversation, id=group_id, conversation_type=Conversation.TYPE_GROUP)
     if not _can_manage_group(current_user, group):
         return redirect_back_with_error(
             request,
-            'Chỉ Trưởng phòng hoặc Quản trị viên nhóm mới có quyền xóa thành viên.',
+            'Chỉ Quản trị viên nhóm hoặc Admin mới có quyền xóa thành viên.',
             fallback_url='messages_list',
         )
     if request.method == 'POST':
@@ -487,22 +515,36 @@ def group_remove_member(request, group_id, user_id):
                 'Hãy dùng nút "Rời nhóm chat" nếu bạn muốn rời nhóm.',
                 fallback_url=f'/message/group/{group.id}/',
             )
+        if group.created_by_id and user_id == group.created_by_id:
+            return redirect_back_with_error(
+                request,
+                'Không thể xóa người tạo nhóm khỏi nhóm chat.',
+                fallback_url=f'/message/group/{group.id}/',
+            )
         target_ms = ConversationMember.objects.filter(conversation=group, user_id=user_id).select_related('user').first()
         if target_ms:
+            was_admin = (target_ms.role == ConversationMember.ROLE_ADMIN)
             target_name = _get_user_display_info(target_ms.user)['display_name']
             target_ms.delete()
+            if was_admin:
+                remaining = ConversationMember.objects.filter(conversation=group).order_by('joined_at')
+                if remaining.exists() and not remaining.filter(role=ConversationMember.ROLE_ADMIN).exists():
+                    next_admin = remaining.first()
+                    next_admin.role = ConversationMember.ROLE_ADMIN
+                    next_admin.save(update_fields=['role'])
             messages.success(request, f'Đã xóa {target_name} khỏi nhóm.')
     return redirect('group_detail', group_id=group.id)
 
 
+@login_required
 def group_grant_admin(request, group_id, user_id):
-    """Trao quyền quản trị viên nhóm chat cho thành viên (Trưởng phòng/QTV nhóm/Admin)."""
-    current_user = get_current_user(request)
+    """Trao quyền quản trị viên nhóm chat cho thành viên (Chỉ QTV nhóm / Admin hệ thống)."""
+    current_user = request.user
     group = get_object_or_404(Conversation, id=group_id, conversation_type=Conversation.TYPE_GROUP)
     if not _can_manage_group(current_user, group):
         return redirect_back_with_error(
             request,
-            'Chỉ Trưởng phòng hoặc Quản trị viên nhóm mới có quyền trao quyền quản trị viên.',
+            'Chỉ Quản trị viên nhóm hoặc Admin mới có quyền trao quyền quản trị viên.',
             fallback_url='messages_list',
         )
     if request.method == 'POST':
@@ -514,14 +556,15 @@ def group_grant_admin(request, group_id, user_id):
     return redirect('group_detail', group_id=group.id)
 
 
+@login_required
 def group_delete(request, group_id):
-    """Xóa nhóm chat (Trưởng phòng/QTV nhóm/Admin)."""
-    current_user = get_current_user(request)
+    """Xóa nhóm chat (Chỉ QTV nhóm / Admin hệ thống)."""
+    current_user = request.user
     group = get_object_or_404(Conversation, id=group_id, conversation_type=Conversation.TYPE_GROUP)
     if not _can_manage_group(current_user, group):
         return redirect_back_with_error(
             request,
-            'Chỉ Trưởng phòng hoặc Quản trị viên nhóm mới có quyền xóa nhóm chat.',
+            'Chỉ Quản trị viên nhóm hoặc Admin mới có quyền xóa nhóm chat.',
             fallback_url='messages_list',
         )
     if request.method == 'POST':
@@ -532,9 +575,16 @@ def group_delete(request, group_id):
     return redirect('group_detail', group_id=group.id)
 
 
+@login_required
 def inbox_detail(request, user_id=1):
-    current_user = get_current_user(request)
-    target_user = get_object_or_404(User, id=user_id)
+    current_user = request.user
+    target_user = get_object_or_404(User, id=user_id, is_active=True)
+    if target_user.id == current_user.id:
+        return redirect_back_with_error(
+            request,
+            'Không thể tự nhắn tin với chính mình.',
+            fallback_url='messages_list',
+        )
 
     convo = _get_or_create_direct_conversation(current_user, target_user)
 
@@ -542,10 +592,11 @@ def inbox_detail(request, user_id=1):
         _handle_message_post(request, convo, current_user)
         return redirect('inbox_detail', user_id=user_id)
 
-    conversations = get_sidebar_conversations(request.user)
+    _mark_conversation_read(convo, current_user)
+    conversations = get_sidebar_conversations(current_user)
     messages_list_qs = _annotate_messages_for_display(
         convo.messages.all()
-        .select_related('sender', 'sender__profile')
+        .select_related('sender', 'sender__profile', 'sender__employee_info__branch')
         .prefetch_related('attachments')
     )
     convo_display_name, convo_display_initials, target_info = _resolve_direct_conversation_display(
@@ -565,51 +616,76 @@ def inbox_detail(request, user_id=1):
         'current_group': None,
         'current_user': current_user,
         'messages': messages_list_qs,
+        'flash_messages': list(messages.get_messages(request)),
         **extras,
     })
 
 
+@login_required
 def toggle_mute(request, convo_id):
-    """Đảo trạng thái tắt/bật thông báo (is_muted) cho người dùng hiện tại trong cuộc trò chuyện."""
-    current_user = get_current_user(request)
+    """Đảo trạng thái tắt/bật thông báo (is_muted) cho thành viên hiện tại trong cuộc trò chuyện."""
+    current_user = request.user
     convo = get_object_or_404(Conversation, id=convo_id)
 
+    membership = ConversationMember.objects.filter(conversation=convo, user=current_user).first()
+    if not membership:
+        if convo.conversation_type == Conversation.TYPE_GROUP and is_it_admin(current_user):
+            if request.method == 'POST':
+                membership, _ = ConversationMember.objects.get_or_create(
+                    conversation=convo,
+                    user=current_user,
+                    defaults={'role': ConversationMember.ROLE_MEMBER},
+                )
+            else:
+                return _redirect_to_conversation(convo, current_user)
+        else:
+            return redirect_back_with_error(
+                request,
+                'Bạn không phải thành viên của cuộc trò chuyện này.',
+                fallback_url='messages_list',
+            )
+
     if request.method == 'POST':
-        membership, _ = ConversationMember.objects.get_or_create(
-            conversation=convo,
-            user=current_user,
-            defaults={'role': ConversationMember.ROLE_MEMBER},
-        )
         membership.is_muted = not membership.is_muted
         membership.save(update_fields=['is_muted'])
 
     return _redirect_to_conversation(convo, current_user)
 
 
+@login_required
 def rename_conversation(request, convo_id):
-    """Đổi tên nhóm hoặc đặt/khôi phục biệt danh hiển thị cho cuộc trò chuyện cá nhân 1-1."""
-    current_user = get_current_user(request)
+    """Đổi tên nhóm chat (Chỉ hỗ trợ nhóm và chỉ QTV nhóm / Admin hệ thống được đổi)."""
+    current_user = request.user
     convo = get_object_or_404(Conversation, id=convo_id)
 
+    if convo.conversation_type != Conversation.TYPE_GROUP:
+        return redirect_back_with_error(
+            request,
+            'Cuộc trò chuyện cá nhân 1-1 không hỗ trợ đổi tên.',
+            fallback_url='messages_list',
+        )
+
+    if not _can_manage_group(current_user, convo):
+        return redirect_back_with_error(
+            request,
+            'Chỉ Quản trị viên nhóm mới có quyền đổi tên nhóm.',
+            fallback_url=f'/message/group/{convo.id}/',
+        )
+
     if request.method == 'POST':
-        if request.POST.get('reset') == '1':
-            if convo.conversation_type == Conversation.TYPE_DIRECT:
-                convo.title = None
-                convo.save(update_fields=['title', 'updated_at'])
+        new_name = (request.POST.get('nickname') or request.POST.get('title') or '').strip()[:255]
+        if not new_name:
+            messages.error(request, 'Tên nhóm không được để trống.')
         else:
-            new_name = (request.POST.get('nickname') or '').strip()[:255]
-            if convo.conversation_type == Conversation.TYPE_DIRECT:
-                convo.title = new_name or None
-                convo.save(update_fields=['title', 'updated_at'])
-            elif new_name:
-                convo.title = new_name
-                convo.save(update_fields=['title', 'updated_at'])
+            convo.title = new_name
+            convo.save(update_fields=['title', 'updated_at'])
 
     return _redirect_to_conversation(convo, current_user)
 
 
+@login_required
 def group_create(request):
-    current_user = get_current_user(request)
+    current_user = request.user
     if not _can_create_group(current_user):
         return redirect_back_with_error(
             request,
@@ -617,15 +693,30 @@ def group_create(request):
             fallback_url='messages_list',
         )
 
+    branches = _get_branch_choices()
+    default_branch = _get_user_display_info(current_user).get('branch') or (branches[0] if branches else 'Chi nhánh Cầu Giấy')
+
     if request.method == 'POST':
-        title = request.POST.get('title', '').strip() or 'Nhóm trò chuyện mới'
-        branch = request.POST.get('branch', '').strip() or 'Chi nhánh Cầu Giấy'
+        title = request.POST.get('title', '').strip()
+        branch = request.POST.get('branch', '').strip() or default_branch
         member_ids = [
             int(mid) for mid in request.POST.getlist('members') if str(mid).isdigit()
         ]
 
+        if not title:
+            messages.error(request, 'Vui lòng nhập tên nhóm.')
+            users = _get_colleague_users(current_user)
+            conversations = get_sidebar_conversations(current_user)
+            return render(request, 'group-create.html', {
+                'users': users,
+                'branches': branches,
+                'default_branch': branch,
+                'conversations': conversations,
+                'current_user': current_user,
+            })
+
         group = Conversation.objects.create(
-            title=title,
+            title=title[:255],
             conversation_type=Conversation.TYPE_GROUP,
             branch=branch,
             created_by=current_user,
@@ -636,7 +727,7 @@ def group_create(request):
             defaults={'role': ConversationMember.ROLE_ADMIN},
         )
         if member_ids:
-            selected_users = User.objects.filter(id__in=member_ids).exclude(id=current_user.id)
+            selected_users = User.objects.filter(id__in=member_ids, is_active=True).exclude(id=current_user.id)
             for member in selected_users:
                 ConversationMember.objects.get_or_create(
                     conversation=group,
@@ -648,22 +739,31 @@ def group_create(request):
 
     query = request.GET.get('q', '').strip()
     users = _get_colleague_users(current_user, query=query)
-    conversations = get_sidebar_conversations(request.user)
+    conversations = get_sidebar_conversations(current_user)
     return render(request, 'group-create.html', {
         'users': users,
+        'branches': branches,
+        'default_branch': default_branch,
         'conversations': conversations,
         'current_user': current_user,
     })
 
 
+@login_required
 def inbox_create(request):
     """Trang chọn đồng nghiệp để tạo hoặc mở cuộc trò chuyện cá nhân 1-1."""
-    current_user = get_current_user(request)
+    current_user = request.user
 
     if request.method == 'POST':
         target_user_id = request.POST.get('user_id', '').strip()
         if target_user_id.isdigit():
-            target_user = get_object_or_404(User, id=int(target_user_id))
+            target_user = get_object_or_404(User, id=int(target_user_id), is_active=True)
+            if target_user.id == current_user.id:
+                return redirect_back_with_error(
+                    request,
+                    'Không thể tự nhắn tin với chính mình.',
+                    fallback_url='inbox_create',
+                )
             _get_or_create_direct_conversation(current_user, target_user)
             return redirect('inbox_detail', user_id=target_user.id)
         return redirect('inbox_create')
@@ -671,9 +771,11 @@ def inbox_create(request):
     query = request.GET.get('q', '').strip()
     branch = request.GET.get('branch', '').strip()
     users = _get_colleague_users(current_user, query=query, branch=branch)
-    conversations = get_sidebar_conversations(request.user)
+    branches = _get_branch_choices()
+    conversations = get_sidebar_conversations(current_user)
     return render(request, 'inbox-create.html', {
         'users': users,
+        'branches': branches,
         'query': query,
         'selected_branch': branch,
         'conversations': conversations,
@@ -692,31 +794,36 @@ def api_send_message(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Phương thức không được hỗ trợ.'}, status=405)
 
-    convo_id = request.POST.get('conversation_id')
+    convo_id = (request.POST.get('conversation_id') or '').strip()
     content = (request.POST.get('content') or '').strip()
     attachment = request.FILES.get('attachment')
 
-    if not convo_id:
-        return JsonResponse({'success': False, 'error': 'Thiếu mã cuộc trò chuyện.'}, status=400)
+    if not convo_id or not convo_id.isdigit():
+        return JsonResponse({'success': False, 'error': 'Thiếu hoặc sai mã cuộc trò chuyện.'}, status=400)
 
-    convo = get_object_or_404(Conversation, id=convo_id)
+    convo = get_object_or_404(Conversation, id=int(convo_id))
     current_user = request.user
+    is_member = convo.members.filter(id=current_user.id).exists()
 
-    if (
-        convo.conversation_type == Conversation.TYPE_GROUP
-        and not is_it_admin(current_user)
-        and not convo.members.filter(id=current_user.id).exists()
-    ):
-        return JsonResponse({'success': False, 'error': 'Bạn không phải thành viên của nhóm này.'}, status=403)
+    if convo.conversation_type == Conversation.TYPE_GROUP:
+        if not is_member and not is_it_admin(current_user):
+            return JsonResponse({'success': False, 'error': 'Bạn không phải thành viên của nhóm này.'}, status=403)
+    else:
+        if not is_member:
+            return JsonResponse({'success': False, 'error': 'Bạn không có quyền gửi tin vào cuộc trò chuyện này.'}, status=403)
 
     if not content and not attachment:
         return JsonResponse({'success': False, 'error': 'Nội dung tin nhắn không thể để trống.'}, status=400)
 
-    ConversationMember.objects.get_or_create(
-        conversation=convo,
-        user=current_user,
-        defaults={'role': ConversationMember.ROLE_MEMBER}
-    )
+    if attachment and attachment.size > MAX_ATTACHMENT_BYTES:
+        return JsonResponse({'success': False, 'error': 'Tệp đính kèm vượt quá giới hạn tối đa 20 MB.'}, status=400)
+
+    if not is_member and convo.conversation_type == Conversation.TYPE_GROUP and is_it_admin(current_user):
+        ConversationMember.objects.get_or_create(
+            conversation=convo,
+            user=current_user,
+            defaults={'role': ConversationMember.ROLE_MEMBER}
+        )
 
     new_msg = Message.objects.create(
         conversation=convo,
@@ -738,6 +845,7 @@ def api_send_message(request):
             'is_media': att.attachment_type == Attachment.TYPE_MEDIA,
         }
 
+    _mark_conversation_read(convo, current_user)
     convo.save()
 
     sender_info = _get_user_display_info(current_user)
@@ -765,10 +873,14 @@ def api_get_messages(request, convo_id):
     convo = get_object_or_404(Conversation, id=convo_id)
     current_user = request.user
 
-    # Phân quyền truy cập hội thoại
     is_member = convo.members.filter(id=current_user.id).exists()
-    if not is_member:
+    can_access = is_member or (
+        convo.conversation_type == Conversation.TYPE_GROUP and is_it_admin(current_user)
+    )
+    if not can_access:
         return JsonResponse({'success': False, 'error': 'Bạn không có quyền truy cập.'}, status=403)
+
+    _mark_conversation_read(convo, current_user)
 
     after_id = request.GET.get('after_id', '0')
     try:

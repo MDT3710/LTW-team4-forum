@@ -21,9 +21,7 @@
 
     background-color: #f8fafc;
 
-    min-height: 844px;
-
-    padding: 32px 48px;
+    padding: 28px 48px 36px;
 
     width: 100%;
 
@@ -662,32 +660,20 @@
 
 
 
-  <!-- Thanh tìm kiếm & Bộ lọc chuẩn Figma -->
-
-  <section class="tf-toolbar">
-
-    <div class="tf-search-box">
-
-      <svg class="tf-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
+  <!-- Thanh tìm kiếm & Bộ lọc (Đồng bộ chuẩn .doc-toolbar) -->
+  <section class="doc-toolbar">
+    <div class="doc-search-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink: 0;">
         <circle cx="11" cy="11" r="8"></circle>
-
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-
+        <path d="m21 21-4.35-4.35"></path>
       </svg>
-
-      <input type="text" placeholder="Tìm theo mã hoặc tên khóa học..." class="tf-search-input">
-
+      <input type="text" placeholder="Tìm theo mã hoặc tên khóa học..." class="tf-search-input" style="height: auto; padding: 0; border: none; border-radius: 0; background: transparent;">
     </div>
 
-    <button type="button" class="tf-filter-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
-
+    <button type="button" class="doc-filter-btn" id="filterToggleBtn" onclick="toggleFilterPanel()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
         <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path>
-
       </svg>
-
       Bộ lọc
 
     </button>

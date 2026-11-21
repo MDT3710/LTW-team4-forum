@@ -831,11 +831,6 @@ def get_profile_details(user):
 
         if custom_data.get('bio'):
             data['bio'] = custom_data['bio']
-        if custom_data.get('job_title'):
-            data['job_title'] = custom_data['job_title']
-            data['role'] = custom_data['job_title']
-        if custom_data.get('branch'):
-            data['branch'] = custom_data['branch']
         if custom_data.get('join_date'):
             data['join_date'] = custom_data['join_date']
         if custom_data.get('email') is not None:

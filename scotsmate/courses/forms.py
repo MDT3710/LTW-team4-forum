@@ -98,8 +98,19 @@ class CourseUpdateForm(forms.ModelForm):
         cleaned_data = super().clean()
         date_start = cleaned_data.get('date_start')
         date_end = cleaned_data.get('date_end')
+        status = cleaned_data.get('status')
         if date_start and date_end and date_end < date_start:
             self.add_error('date_end', 'Ngày kết thúc khóa học phải diễn ra sau hoặc bằng ngày bắt đầu.')
+        if status in ('ongoing', 'completed') and self.instance and self.instance.pk:
+            try:
+                exam = self.instance.exam
+            except CourseExam.DoesNotExist:
+                exam = None
+            if not exam or not exam.is_active or not exam.questions.exists():
+                self.add_error(
+                    'status',
+                    'Khóa học bắt buộc phải thiết lập bài thi (tối thiểu 1 câu hỏi) trước khi xuất bản hoặc kích hoạt.'
+                )
         return cleaned_data
 
 

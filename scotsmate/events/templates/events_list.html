@@ -4,103 +4,97 @@
 {% block title %}Sự kiện & Hoạt động nội bộ | ScotsMate{% endblock %}
 
 {% block content %}
-<main class="w-full max-w-[1440px] mx-auto px-4 sm:px-6 py-8">
+<main class="doc-workspace">
 
   {% if messages %}
-    <div class="mb-6">
+    <div style="margin-bottom: 4px;">
       {% for msg in messages %}
-        <div class="p-3.5 rounded-xl text-xs font-medium {% if msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif 'error' in msg.tags %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} mb-2">
+        <div class="p-3.5 rounded-xl text-xs font-medium {% if 'success' in msg.tags %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif 'error' in msg.tags %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} mb-2">
           {{ msg }}
         </div>
       {% endfor %}
     </div>
   {% endif %}
 
-  <!-- Header Banner -->
-  <div class="relative bg-gradient-to-r from-[#134c81] via-[#103e68] to-[#0c3053] rounded-2xl p-6 sm:p-8 text-white shadow-lg overflow-hidden mb-8">
-    <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-    <div class="absolute right-20 -top-10 w-48 h-48 bg-[#1bc1a0]/15 rounded-full blur-xl pointer-events-none"></div>
-
-    <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 text-xs font-semibold backdrop-blur-sm mb-3">
-          <span class="w-2 h-2 rounded-full bg-[#1bc1a0] animate-pulse"></span>
-          Cộng đồng kết nối Scots English
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight m-0">Sự kiện & Hoạt động nội bộ</h1>
-        <p class="text-sm text-slate-200 mt-2 max-w-2xl leading-relaxed">
-          Tham gia các buổi đào tạo chuyên môn, hội thảo học thuật, ngày hội thể thao và hoạt động gắn kết văn hóa doanh nghiệp cùng đại gia đình Scots English.
-        </p>
-      </div>
-
-      {% if user_roles.is_department_manager or user_roles.is_it_admin %}
-        <div class="shrink-0">
-          <a href="{% url 'event_create' %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#1bc1a0] hover:bg-[#159a80] text-white text-sm font-bold shadow-md transition-all active:scale-[0.98]" style="text-decoration: none;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Tạo sự kiện mới
-          </a>
-        </div>
-      {% endif %}
+  <!-- Tiêu đề trang & Nút hành động (Đồng bộ giao diện ScotsMate) -->
+  <header class="doc-header">
+    <div>
+      <h1 class="doc-header-title">Sự kiện & Hoạt động nội bộ</h1>
+      <p class="doc-header-subtitle">Theo dõi và đăng ký tham gia các buổi đào tạo, hội thảo và hoạt động gắn kết tại Scots English</p>
     </div>
 
-    <!-- Quick Tab Navigation -->
-    <div class="flex items-center gap-2 mt-8 pt-6 border-t border-white/10 overflow-x-auto text-xs font-semibold">
-      <a href="?tab=all{% if selected_category %}&category={{ selected_category }}{% endif %}" class="px-4 py-2 rounded-lg transition {% if current_tab == 'all' %}bg-white text-[#134c81] shadow-sm font-bold{% else %}text-white/80 hover:bg-white/10{% endif %}" style="text-decoration: none;">
-        Tất cả sự kiện ({{ counts.all }})
+    {% if user_roles.is_department_manager or user_roles.is_it_admin %}
+      <a href="{% url 'event_create' %}" class="doc-btn doc-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3.333v9.334M3.333 8h9.334" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Tạo sự kiện mới
       </a>
-      <a href="?tab=upcoming{% if selected_category %}&category={{ selected_category }}{% endif %}" class="px-4 py-2 rounded-lg transition {% if current_tab == 'upcoming' %}bg-white text-[#134c81] shadow-sm font-bold{% else %}text-white/80 hover:bg-white/10{% endif %}" style="text-decoration: none;">
-        Sắp diễn ra ({{ counts.upcoming }})
-      </a>
-      <a href="?tab=my{% if selected_category %}&category={{ selected_category }}{% endif %}" class="px-4 py-2 rounded-lg transition {% if current_tab == 'my' %}bg-white text-[#134c81] shadow-sm font-bold{% else %}text-white/80 hover:bg-white/10{% endif %}" style="text-decoration: none;">
-        Sự kiện của tôi ({{ counts.my }})
-      </a>
-      <a href="?tab=past{% if selected_category %}&category={{ selected_category }}{% endif %}" class="px-4 py-2 rounded-lg transition {% if current_tab == 'past' %}bg-white text-[#134c81] shadow-sm font-bold{% else %}text-white/80 hover:bg-white/10{% endif %}" style="text-decoration: none;">
-        Đã kết thúc ({{ counts.past }})
-      </a>
-    </div>
-  </div>
+    {% endif %}
+  </header>
 
-  <!-- Filter & Search Toolbar -->
-  <form method="GET" action="{% url 'events_list' %}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between mb-8">
+  <!-- Điều hướng phân hệ (Tabs) -->
+  <nav class="doc-tabs">
+    <a href="?tab=all{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_branch %}&branch={{ selected_branch }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="doc-tab {% if current_tab == 'all' %}active{% endif %}">
+      Tất cả sự kiện ({{ counts.all }})
+    </a>
+    <a href="?tab=upcoming{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_branch %}&branch={{ selected_branch }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="doc-tab {% if current_tab == 'upcoming' %}active{% endif %}">
+      Sắp diễn ra ({{ counts.upcoming }})
+    </a>
+    <a href="?tab=my{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_branch %}&branch={{ selected_branch }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="doc-tab {% if current_tab == 'my' %}active{% endif %}">
+      Sự kiện của tôi (<span id="tab-count-my">{{ counts.my }}</span>)
+    </a>
+    <a href="?tab=past{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_branch %}&branch={{ selected_branch }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="doc-tab {% if current_tab == 'past' %}active{% endif %}">
+      Đã kết thúc ({{ counts.past }})
+    </a>
+  </nav>
+
+  <!-- Thanh tìm kiếm & bộ lọc (Đồng bộ chuẩn .doc-toolbar) -->
+  <form method="GET" action="{% url 'events_list' %}" class="doc-toolbar">
     <input type="hidden" name="tab" value="{{ current_tab }}">
 
-    <div class="relative w-full md:w-96">
-      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm theo tên sự kiện, địa điểm..." class="w-full pl-10 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-[#134c81] focus:ring-1 focus:ring-[#134c81]" />
+    <div class="doc-search-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink: 0;">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm theo tên sự kiện, địa điểm..." />
     </div>
 
-    <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto">
-      <select name="category" onchange="this.form.submit()" class="text-xs py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:border-[#134c81]">
-        <option value="">Tất cả phân loại</option>
-        {% for code, label in category_choices %}
-          <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
+    <select name="category" onchange="this.form.submit()" class="doc-select">
+      <option value="">Tất cả phân loại</option>
+      {% for code, label in category_choices %}
+        <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
 
-      <select name="branch" onchange="this.form.submit()" class="text-xs py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:border-[#134c81]">
-        <option value="">Tất cả chi nhánh</option>
-        {% for b in branches %}
-          <option value="{{ b.id }}" {% if selected_branch == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
-        {% endfor %}
-      </select>
+    <select name="branch" onchange="this.form.submit()" class="doc-select">
+      <option value="">Tất cả chi nhánh</option>
+      {% for b in branches %}
+        <option value="{{ b.id }}" {% if selected_branch == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+      {% endfor %}
+    </select>
 
-      <button type="submit" class="px-4 py-2 rounded-lg bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0c375f] transition shadow-sm">
-        Lọc
-      </button>
+    {% if search_query or selected_category or selected_branch %}
+      <a href="{% url 'events_list' %}?tab={{ current_tab }}" class="doc-filter-btn" style="text-decoration: none; color: var(--ink-soft);">
+        Bỏ lọc
+      </a>
+    {% endif %}
 
-      {% if search_query or selected_category or selected_branch %}
-        <a href="{% url 'events_list' %}?tab={{ current_tab }}" class="text-xs text-rose-600 hover:underline font-medium whitespace-nowrap">
-          Đặt lại
-        </a>
-      {% endif %}
-    </div>
+    <button type="submit" class="doc-filter-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      Tìm kiếm
+    </button>
   </form>
 
   <!-- Events Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for ev in events %}
       <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
-        
+
         <!-- Card Top Bar: Date Badge + Category Badge -->
         <div class="p-5 pb-3 flex items-start justify-between gap-3 border-b border-slate-100">
           <div class="flex items-center gap-3">
@@ -116,24 +110,32 @@
               </span>
               <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                {{ ev.date_start|date:"H:i" }} - {{ ev.date_end|date:"H:i" }}
+                {% if ev.date_start|date:"Y-m-d" == ev.date_end|date:"Y-m-d" %}
+                  {{ ev.date_start|date:"H:i" }} - {{ ev.date_end|date:"H:i" }}
+                {% else %}
+                  {{ ev.date_start|date:"d/m H:i" }} → {{ ev.date_end|date:"d/m H:i" }}
+                {% endif %}
               </div>
             </div>
           </div>
 
-          <!-- Status badge -->
-          <div>
-            {% if ev.status == 'upcoming' %}
+          <!-- Real-time Status badge -->
+          <div class="shrink-0">
+            {% if ev.effective_status == 'upcoming' %}
               <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Sắp tới
+                Sắp diễn ra
               </span>
-            {% elif ev.status == 'ongoing' %}
+            {% elif ev.effective_status == 'ongoing' %}
               <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 animate-pulse">
                 Đang diễn ra
               </span>
+            {% elif ev.effective_status == 'cancelled' %}
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
+                Đã hủy
+              </span>
             {% else %}
               <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500">
-                Đã qua
+                Đã kết thúc
               </span>
             {% endif %}
           </div>
@@ -164,7 +166,7 @@
           <div class="pt-4 mt-4 border-t border-slate-100">
             <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1.5 font-medium">
               <span>Đã đăng ký: <strong class="text-slate-800" id="reg-count-{{ ev.id }}">{{ ev.total_registered }}</strong>/{{ ev.max_participants }}</span>
-              <span>
+              <span id="avail-slots-{{ ev.id }}">
                 {% if ev.is_full %}
                   <span class="text-rose-600 font-bold">Hết chỗ</span>
                 {% else %}
@@ -175,7 +177,7 @@
 
             <!-- Progress bar -->
             <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mb-4">
-              <div class="bg-gradient-to-r from-[#134c81] to-[#1bc1a0] h-1.5 rounded-full" style="width: {% widthratio ev.total_registered ev.max_participants 100 %}%;"></div>
+              <div id="reg-progress-{{ ev.id }}" class="bg-gradient-to-r from-[#134c81] to-[#1bc1a0] h-1.5 rounded-full transition-all" style="width: {% widthratio ev.total_registered ev.max_participants 100 %}%;"></div>
             </div>
 
             <div class="flex items-center gap-2">
@@ -183,18 +185,37 @@
                 Xem chi tiết
               </a>
 
-              {% if ev.status == 'upcoming' or ev.status == 'ongoing' %}
-                <button 
-                  type="button" 
-                  onclick="toggleEventRegistration({{ ev.id }}, this)"
-                  class="flex-1 py-2 text-center rounded-xl text-xs font-bold transition shadow-sm cursor-pointer {% if ev.is_user_registered %}bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300{% else %}bg-[#134c81] text-white hover:bg-[#0c375f]{% endif %}"
-                  data-registered="{% if ev.is_user_registered %}1{% else %}0{% endif %}"
-                >
-                  {% if ev.is_user_registered %}
+              {% if ev.can_register %}
+                {% if ev.is_user_registered %}
+                  <button
+                    type="button"
+                    onclick="toggleEventRegistration({{ ev.id }}, this)"
+                    class="flex-1 py-2 text-center rounded-xl text-xs font-bold transition shadow-sm cursor-pointer bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300"
+                    data-registered="1"
+                  >
                     <span class="btn-text">Đã đăng ký ✓</span>
-                  {% else %}
+                  </button>
+                {% elif ev.is_full %}
+                  <button disabled class="flex-1 py-2 text-center rounded-xl text-xs font-bold bg-rose-50 text-rose-500 border border-rose-200 cursor-not-allowed">
+                    Đã hết chỗ
+                  </button>
+                {% else %}
+                  <button
+                    type="button"
+                    onclick="toggleEventRegistration({{ ev.id }}, this)"
+                    class="flex-1 py-2 text-center rounded-xl text-xs font-bold transition shadow-sm cursor-pointer bg-[#134c81] text-white hover:bg-[#0c375f]"
+                    data-registered="0"
+                  >
                     <span class="btn-text">Đăng ký ngay</span>
-                  {% endif %}
+                  </button>
+                {% endif %}
+              {% elif ev.effective_status == 'ongoing' %}
+                <button disabled class="flex-1 py-2 text-center rounded-xl text-xs font-bold bg-blue-50 text-blue-600 cursor-not-allowed">
+                  Đang diễn ra
+                </button>
+              {% elif ev.effective_status == 'cancelled' %}
+                <button disabled class="flex-1 py-2 text-center rounded-xl text-xs font-bold bg-rose-50 text-rose-500 cursor-not-allowed">
+                  Đã hủy
                 </button>
               {% else %}
                 <button disabled class="flex-1 py-2 text-center rounded-xl text-xs font-bold bg-slate-100 text-slate-400 cursor-not-allowed">
@@ -223,7 +244,6 @@
 <script>
   function toggleEventRegistration(eventId, btn) {
     btn.disabled = true;
-    const isRegistered = btn.getAttribute('data-registered') === '1';
 
     fetch(`/events/${eventId}/register/`, {
       method: 'POST',
@@ -247,11 +267,29 @@
         }
         const counter = document.getElementById(`reg-count-${eventId}`);
         if (counter) counter.textContent = data.total_registered;
+
+        const availEl = document.getElementById(`avail-slots-${eventId}`);
+        if (availEl) {
+          availEl.innerHTML = data.is_full
+            ? '<span class="text-rose-600 font-bold">Hết chỗ</span>'
+            : `<span class="text-emerald-700 font-semibold">Còn ${data.available_slots} chỗ</span>`;
+        }
+
+        const progEl = document.getElementById(`reg-progress-${eventId}`);
+        if (progEl && data.max_participants > 0) {
+          const pct = Math.min(100, Math.round((data.total_registered / data.max_participants) * 100));
+          progEl.style.width = `${pct}%`;
+        }
+
+        const myTabCount = document.getElementById('tab-count-my');
+        if (myTabCount && typeof data.my_events_count === 'number') {
+          myTabCount.textContent = data.my_events_count;
+        }
       } else {
         alert(data.message || 'Có lỗi xảy ra, vui lòng thử lại.');
       }
     })
-    .catch(err => {
+    .catch(() => {
       btn.disabled = false;
       alert('Không thể kết nối đến máy chủ.');
     });

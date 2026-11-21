@@ -50,12 +50,24 @@
     <!-- Thanh tìm kiếm -->
     <form method="get" action="{% url 'documents' %}" class="doc-toolbar">
       <div class="doc-search-box">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink: 0;">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
         <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm trong thư viện tài liệu...">
       </div>
+      {% if search_query %}
+        <a href="{% url 'documents' %}" class="doc-filter-btn" style="text-decoration: none; color: var(--ink-soft);">
+          Bỏ lọc
+        </a>
+      {% endif %}
+      <button class="doc-filter-btn" type="submit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        Tìm kiếm
+      </button>
     </form>
 
     <!-- Bảng danh sách danh mục tài liệu -->
@@ -110,7 +122,11 @@
           {% empty %}
             <tr>
               <td colspan="4" style="text-align: center; color: var(--ink-soft); padding: 48px;">
-                Chưa có danh mục nào. Nhấn <strong>"Tạo danh mục"</strong> ở góc trên để thêm mới.
+                {% if is_manager %}
+                  Chưa có danh mục nào. Nhấn <strong>"Tạo danh mục"</strong> ở góc trên để thêm mới.
+                {% else %}
+                  Hiện chưa có danh mục tài liệu nào trong hệ thống.
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

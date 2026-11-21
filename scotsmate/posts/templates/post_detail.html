@@ -62,13 +62,48 @@
       </div>
       <div class="featured-comment" id="comments-list-{{ post.id }}">
         {% for comment in post.root_comments %}
-          <div class="comment-thread" style="margin-top: 10px;">
-            <div class="comment" style="display:flex; gap:8px;">
-              <div class="comment-bubble">
+          <div class="comment-thread" id="comment-thread-{{ comment.id }}" style="margin-top: 12px;">
+            <div class="comment" style="display:flex; gap:8px; align-items:flex-start;">
+              <div class="comment-bubble" style="flex:1;">
                 <strong>{{ comment.emp.get_full_name|default:comment.emp.username }}</strong>
                 <span>{{ comment.formatted_content|safe }}</span>
+                <div style="display:flex; gap:12px; margin-top:4px; font-size:12px; color:#64748b;">
+                  <button type="button" onclick="toggleDetailCommentLike({{ comment.id }}, this)" style="border:none; background:none; padding:0; cursor:pointer; color:{% if comment.is_liked_by_user %}#134c81{% else %}#64748b{% endif %}; font-weight:600;">
+                    {% if comment.is_liked_by_user %}Đã thích{% else %}Thích{% endif %} (<span class="cmt-like-count">{{ comment.reaction_count }}</span>)
+                  </button>
+                  <button type="button" onclick="replyDetailComment({{ post.id }}, {{ comment.id }}, '{{ comment.emp.get_full_name|default:comment.emp.username|escapejs }}')" style="border:none; background:none; padding:0; cursor:pointer; color:#64748b; font-weight:600;">
+                    Phản hồi
+                  </button>
+                  {% if current_user.id == comment.emp_id or current_user.id == post.author_id or user_roles.is_it_admin %}
+                  <button type="button" onclick="deleteDetailComment({{ comment.id }})" style="border:none; background:none; padding:0; cursor:pointer; color:#ef4444; font-weight:600;">
+                    Xóa
+                  </button>
+                  {% endif %}
+                </div>
               </div>
             </div>
+            {% if comment.child_replies %}
+            <div style="margin-left: 28px; margin-top: 6px; padding-left: 10px; border-left: 2px solid #e2e8f0;">
+              {% for reply in comment.child_replies %}
+              <div class="comment" id="comment-thread-{{ reply.id }}" style="display:flex; gap:8px; align-items:flex-start; margin-top:6px;">
+                <div class="comment-bubble" style="flex:1;">
+                  <strong>{{ reply.emp.get_full_name|default:reply.emp.username }}</strong>
+                  <span>{{ reply.formatted_content|safe }}</span>
+                  <div style="display:flex; gap:12px; margin-top:4px; font-size:12px; color:#64748b;">
+                    <button type="button" onclick="toggleDetailCommentLike({{ reply.id }}, this)" style="border:none; background:none; padding:0; cursor:pointer; color:{% if reply.is_liked_by_user %}#134c81{% else %}#64748b{% endif %}; font-weight:600;">
+                      {% if reply.is_liked_by_user %}Đã thích{% else %}Thích{% endif %} (<span class="cmt-like-count">{{ reply.reaction_count }}</span>)
+                    </button>
+                    {% if current_user.id == reply.emp_id or current_user.id == post.author_id or user_roles.is_it_admin %}
+                    <button type="button" onclick="deleteDetailComment({{ reply.id }})" style="border:none; background:none; padding:0; cursor:pointer; color:#ef4444; font-weight:600;">
+                      Xóa
+                    </button>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
           </div>
         {% endfor %}
       </div>
@@ -76,6 +111,7 @@
   </article>
 </main>
 <script>
+  let activeDetailParentId = null;
   function toggleDetailLike(postId, btn) {
     fetch(`/posts/${postId}/like/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
       .then(r => r.json()).then(d => {
@@ -86,15 +122,45 @@
         }
       });
   }
+  function replyDetailComment(postId, parentId, authorName) {
+    activeDetailParentId = parentId;
+    const input = document.querySelector(`#post-${postId} .comment-box input`);
+    if (input) {
+      input.placeholder = `Phản hồi ${authorName}… (Enter để gửi)`;
+      input.focus();
+    }
+  }
   function submitDetailComment(postId, input) {
     const content = input.value.trim();
     if (!content) return;
     const fd = new FormData();
     fd.append('content', content);
+    if (activeDetailParentId) {
+      fd.append('parent_id', activeDetailParentId);
+    }
     fetch(`/posts/${postId}/comment/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' }, body: fd })
       .then(r => r.json()).then(d => {
         if (d.success) {
           window.location.reload();
+        }
+      });
+  }
+  function toggleDetailCommentLike(commentId, btn) {
+    fetch(`/comments/${commentId}/like/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+      .then(r => r.json()).then(d => {
+        if (d.success) {
+          btn.style.color = d.liked ? '#134c81' : '#64748b';
+          btn.innerHTML = `${d.liked ? 'Đã thích' : 'Thích'} (<span class="cmt-like-count">${d.count}</span>)`;
+        }
+      });
+  }
+  function deleteDetailComment(commentId) {
+    fetch(`/comments/${commentId}/delete/`, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+      .then(r => r.json()).then(d => {
+        if (d.success) {
+          window.location.reload();
+        } else if (d.error) {
+          alert(d.error);
         }
       });
   }

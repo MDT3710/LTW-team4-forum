@@ -830,9 +830,9 @@
       <!-- Actions (Ẩn khi vào trang cá nhân của chính mình) -->
       {% if current_user.id != profile_user.id %}
       <div class="profile-actions-wrap">
-        <button type="button" class="btn-profile-primary" onclick="alert('Mở hộp thoại nhắn tin với {{ profile_user.get_full_name|default:profile_user.username }}')">
+        <a href="{% url 'inbox_detail' profile_user.id %}" class="btn-profile-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
           Nhắn tin
-        </button>
+        </a>
       </div>
       {% endif %}
     </div>
@@ -931,16 +931,6 @@
             <div>
               <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Lời giới thiệu</label>
               <textarea id="info-edit-bio" rows="3" placeholder="Nhập lời giới thiệu..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: inherit; line-height: 1.5; box-sizing: border-box; resize: vertical; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
-            </div>
-
-            <div>
-              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Chức vụ</label>
-              <input type="text" id="info-edit-job_title" placeholder="VD: Quản trị viên hệ thống" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
-            </div>
-
-            <div>
-              <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px;">Chi nhánh</label>
-              <input type="text" id="info-edit-branch" placeholder="VD: Hội sở Scots English" style="width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 13px; box-sizing: border-box; outline: none; background: #ffffff;" onfocus="this.style.borderColor='#134c81'" onblur="this.style.borderColor='#cbd5e1'" />
             </div>
 
             <div>
@@ -1089,7 +1079,7 @@
               </svg>
             </button>
             <div class="post-dropdown-menu" id="menu-post-{{ post.id }}" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); min-width: 170px; z-index: 100; overflow: hidden; padding: 4px 0;">
-              {% if current_user.id == post.author_id %}
+              {% if current_user.id == post.author_id or user_roles.is_it_admin %}
               <button type="button" onclick="openEditPostModal({{ post.id }})" style="width: 100%; border: none; background: none; text-align: left; padding: 10px 16px; font-size: 14px; font-weight: 500; color: #134c81; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#134c81" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 20h9"></path>
@@ -2377,15 +2367,11 @@
     };
 
     const bioInput = document.getElementById('info-edit-bio');
-    const jobInput = document.getElementById('info-edit-job_title');
-    const branchInput = document.getElementById('info-edit-branch');
     const joinDateInput = document.getElementById('info-edit-join_date');
     const emailInput = document.getElementById('info-edit-email');
     const phoneInput = document.getElementById('info-edit-phone');
 
     if (bioInput) bioInput.value = getVal('bio-display-text');
-    if (jobInput) jobInput.value = getVal('profile-display-job_title');
-    if (branchInput) branchInput.value = getVal('profile-display-branch');
     if (joinDateInput) joinDateInput.value = getVal('profile-display-join_date');
     if (emailInput) emailInput.value = getVal('profile-display-email');
     if (phoneInput) phoneInput.value = getVal('profile-display-phone');
@@ -2410,8 +2396,6 @@
   function saveEditingBio() {
     const saveBtn = document.getElementById('btn-save-bio');
     const bio = document.getElementById('info-edit-bio').value.trim();
-    const job_title = document.getElementById('info-edit-job_title').value.trim();
-    const branch = document.getElementById('info-edit-branch').value.trim();
     const join_date = document.getElementById('info-edit-join_date').value.trim();
     const email = document.getElementById('info-edit-email').value.trim();
     const phone = document.getElementById('info-edit-phone').value.trim();
@@ -2423,8 +2407,6 @@
 
     const formData = new FormData();
     formData.append('bio', bio);
-    formData.append('job_title', job_title);
-    formData.append('branch', branch);
     formData.append('join_date', join_date);
     formData.append('email', email);
     formData.append('phone', phone);

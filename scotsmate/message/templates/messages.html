@@ -2,24 +2,34 @@
 
 {% block content %}
 <!-- Khung nền ngoài cùng: Đã loại bỏ class .staff-workspace để tránh bị ép xếp dọc -->
-<div class="msg-index-page w-full min-h-[calc(100vh-80px)] bg-[#f8fafc] px-10 py-6 flex justify-center">
+<div class="msg-index-page w-full min-h-[calc(100vh-80px)] bg-[#f8fafc] px-10 py-6 flex flex-col items-center gap-4">
+    {% if messages %}
+        <div class="w-full max-w-[1400px] flex flex-col gap-2">
+            {% for msg in messages %}
+                <div class="px-4 py-3 rounded-xl text-xs font-medium {% if 'error' in msg.tags %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-emerald-50 text-emerald-800 border border-emerald-200{% endif %}">
+                    {{ msg }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
     <!-- Khung bọc 2 cột theo chiều ngang (flex-row) -->
     <div class="msg-index-layout w-full max-w-[1400px] flex flex-row gap-6 items-stretch">
 
         <!-- CỘT 1 (BÊN TRÁI): Danh sách cuộc trò chuyện -->
         <aside class="msg-sidebar-wide w-[320px] bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col shrink-0">
             <!-- Tiêu đề Hộp thư & Nút thêm mới -->
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-slate-800">Hộp thư</h2>
-                {% if user_roles.is_department_manager or user_roles.is_it_admin %}
-                    <a href="{% url 'group_create' %}" class="bg-[#134c81] hover:bg-[#0f3c66] text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors">
-                        + Tạo nhóm
-                    </a>
-                {% else %}
-                    <a href="{% url 'inbox_create' %}" class="bg-[#134c81] hover:bg-[#0f3c66] text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors">
+            <div class="flex items-center justify-between gap-2 mb-4">
+                <h2 class="text-xl font-bold text-slate-800 m-0">Hộp thư</h2>
+                <div class="flex items-center gap-1.5">
+                    {% if user_roles.is_department_manager or user_roles.is_it_admin %}
+                        <a href="{% url 'group_create' %}" class="bg-[#134c81] hover:bg-[#0f3c66] text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors no-underline">
+                            + Tạo nhóm
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'inbox_create' %}" class="{% if user_roles.is_department_manager or user_roles.is_it_admin %}bg-slate-100 hover:bg-slate-200 text-[#134c81]{% else %}bg-[#134c81] hover:bg-[#0f3c66] text-white{% endif %} text-xs font-semibold px-3 py-1.5 rounded-full transition-colors no-underline">
                         + Nhắn tin
                     </a>
-                {% endif %}
+                </div>
             </div>
 
             <!-- Ô tìm kiếm -->
@@ -41,8 +51,13 @@
                                 {{ convo.display_initials }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm font-semibold text-slate-800">{{ convo.display_name }}</div>
-                                <div class="text-xs text-slate-400 mt-0.5">{% if convo.last_msg %}{{ convo.last_msg.content|default:"[Tệp đính kèm]" }}{% else %}Nhóm • {{ convo.member_count }} thành viên{% endif %}</div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="text-sm font-semibold text-slate-800 truncate">{{ convo.display_name }}</div>
+                                    {% if convo.unread_count %}
+                                        <span class="px-1.5 py-0.5 rounded-full bg-[#134c81] text-white text-[10px] font-bold shrink-0">{{ convo.unread_count }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5 truncate">{% if convo.last_msg %}{{ convo.last_msg.content|default:"[Tệp đính kèm]" }}{% else %}Nhóm • {{ convo.member_count }} thành viên{% endif %}</div>
                                 <div class="text-[11px] text-blue-600 font-medium mt-1">
                                     {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Nhóm mới{% endif %}
                                     {% if convo.is_muted %} • Đã tắt thông báo{% endif %}
@@ -55,7 +70,12 @@
                                 {{ convo.display_initials }}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm font-semibold text-slate-800">{{ convo.display_name }}</div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="text-sm font-semibold text-slate-800 truncate">{{ convo.display_name }}</div>
+                                    {% if convo.unread_count %}
+                                        <span class="px-1.5 py-0.5 rounded-full bg-[#134c81] text-white text-[10px] font-bold shrink-0">{{ convo.unread_count }}</span>
+                                    {% endif %}
+                                </div>
                                 <div class="text-xs text-slate-400 mt-0.5 truncate">{{ convo.last_msg.content|default:"Trò chuyện 1-1" }}</div>
                                 <div class="text-[11px] text-slate-400 mt-1">
                                     {% if convo.last_msg %}{{ convo.last_msg.created_at|date:"H:i" }}{% else %}Mới{% endif %}

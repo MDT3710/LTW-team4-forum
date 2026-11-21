@@ -36,9 +36,9 @@
         <div class="relative">
           <select name="branch" class="appearance-none pl-4 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-[#134c81] cursor-pointer">
             <option value="ALL" {% if not selected_branch or selected_branch == 'ALL' %}selected{% endif %}>Tất cả chi nhánh</option>
-            <option value="Chi nhánh Cầu Giấy" {% if selected_branch == 'Chi nhánh Cầu Giấy' %}selected{% endif %}>Chi nhánh Cầu Giấy</option>
-            <option value="Chi nhánh Hà Đông" {% if selected_branch == 'Chi nhánh Hà Đông' %}selected{% endif %}>Chi nhánh Hà Đông</option>
-            <option value="Chi nhánh Đống Đa" {% if selected_branch == 'Chi nhánh Đống Đa' %}selected{% endif %}>Chi nhánh Đống Đa</option>
+            {% for b in branches %}
+              <option value="{{ b }}" {% if selected_branch == b %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
           </select>
           <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
@@ -59,7 +59,7 @@
               </div>
               <div>
                 <p class="text-xs font-bold text-slate-900 m-0">{{ u.display_info.display_name }}</p>
-                <p class="text-[11px] text-slate-400 m-0 mt-0.5">{{ u.display_info.position }}</p>
+                <p class="text-[11px] text-slate-400 m-0 mt-0.5">{{ u.display_info.position }} • {{ u.display_info.branch }}</p>
               </div>
             </div>
             <button type="submit" name="user_id" value="{{ u.id }}" class="px-4 py-2 rounded-xl bg-[#134c81] text-white text-xs font-semibold hover:bg-[#0e3b65] transition shadow-sm">

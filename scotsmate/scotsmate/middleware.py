@@ -14,8 +14,6 @@ class ScotsmateAuthRequiredMiddleware:
         '/posts/login/',
         '/logout/',
         '/posts/logout/',
-        '/register/',
-        '/courses/register/',
         '/password-reset/',
         '/reset/',
         '/admin/',

@@ -255,20 +255,22 @@ class CoursesLmsTests(TestCase):
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res.url, '/courses/trainer/courses/create/review/')
 
-        # Bước 3: Xuất bản
+        # Bước 3: Lưu khóa học (bắt buộc ở Bản nháp và chuyển thẳng sang Thiết lập bài thi)
         res = self.client.post('/courses/trainer/courses/create/review/', {'action': 'publish'})
         self.assertEqual(res.status_code, 302)
 
-        # Khóa học mới đã được lưu vào DB
+        # Khóa học mới đã được lưu vào DB ở trạng thái draft và chuyển hướng sang exam setup
         new_course = Course.objects.get(code='KH-WIZ01')
         self.assertEqual(new_course.title, 'Khóa học Wizard Test')
         self.assertEqual(new_course.creator, self.trainer)
+        self.assertEqual(new_course.status, 'draft')
+        self.assertEqual(res.url, f'/courses/trainer/courses/{new_course.id}/exam/setup/')
 
         # Học viên đã được ghi danh
         self.assertTrue(CourseEnrollment.objects.filter(emp=self.trainee, course=new_course).exists())
 
     def test_trainer_publish_draft_course(self):
-        """Khóa học bản nháp có thể xuất bản sang Đang triển khai"""
+        """Khóa học bản nháp KHÔNG thể xuất bản nếu chưa thiết lập bài thi; khi đã có bài thi sẽ xuất bản thành công"""
         draft_course = Course.objects.create(
             creator=self.trainer,
             code='KH-DRAFT01',
@@ -278,6 +280,36 @@ class CoursesLmsTests(TestCase):
             status='draft',
         )
         self.client.force_login(self.trainer)
+
+        # Chưa có bài thi -> chặn xuất bản và chuyển sang trang thiết lập bài thi
+        res_blocked = self.client.post(f'/courses/trainer/courses/{draft_course.id}/publish/')
+        self.assertEqual(res_blocked.status_code, 302)
+        self.assertEqual(res_blocked.url, f'/courses/trainer/courses/{draft_course.id}/exam/setup/')
+        draft_course.refresh_from_db()
+        self.assertEqual(draft_course.status, 'draft')
+
+        # Không thể lưu bài thi 0 câu hỏi
+        self.client.post(f'/courses/trainer/courses/{draft_course.id}/exam/setup/', {
+            'title': 'Đề thi trống',
+            'passcode': 'TEST01',
+            'duration': '20',
+            'passing_score': '75',
+            'total_questions': '0',
+        })
+        self.assertFalse(CourseExam.objects.filter(course=draft_course).exists())
+
+        # Thiết lập bài thi hợp lệ (có ít nhất 1 câu hỏi) -> xuất bản thành công
+        self.client.post(f'/courses/trainer/courses/{draft_course.id}/exam/setup/', {
+            'title': 'Đề thi bắt buộc',
+            'passcode': 'TEST01',
+            'duration': '20',
+            'passing_score': '75',
+            'total_questions': '1',
+            'question_1_caption': 'Câu hỏi kiểm tra 1?',
+            'question_1_choice_1': 'Đáp án A',
+            'question_1_choice_2': 'Đáp án B',
+            'question_1_correct': '1',
+        })
         res = self.client.post(f'/courses/trainer/courses/{draft_course.id}/publish/')
         self.assertEqual(res.status_code, 302)
         draft_course.refresh_from_db()
@@ -997,17 +1029,43 @@ class CoursesLmsTests(TestCase):
         })
         self.assertRedirects(res_submit, f'/courses/trainee/course/{self.course.id}/exam/result/')
 
-        # 5. Khóa không có bài thi: học hết bài giảng -> tự đánh dấu is_completed=True
-        no_exam_course = Course.objects.create(
-            creator=self.trainer, code='KH-NOEXAM', title='Khóa không bài thi',
+        # 5. Học hết toàn bộ bài giảng chỉ đạt study_process=100, CHƯA đánh dấu is_completed=True nếu chưa thi
+        mandatory_course = Course.objects.create(
+            creator=self.trainer, code='KH-EXAMREQ', title='Khóa bắt buộc thi',
             date_start=date.today(), date_end=date.today() + timedelta(days=5), status='ongoing',
         )
-        m_only = CourseMaterial.objects.create(course=no_exam_course, name='Bài duy nhất', order=1)
-        en_no_exam = CourseEnrollment.objects.create(emp=self.trainee, course=no_exam_course, study_process=0)
-        self.client.get(f'/courses/trainee/course/{no_exam_course.id}/{m_only.id}/')
-        en_no_exam.refresh_from_db()
-        self.assertEqual(en_no_exam.study_process, 100)
-        self.assertTrue(en_no_exam.is_completed)
+        m_only = CourseMaterial.objects.create(course=mandatory_course, name='Bài duy nhất', order=1)
+        req_exam = CourseExam.objects.create(
+            course=mandatory_course, title='Bài thi bắt buộc', passcode='REQ99', duration=15, passing_score=80, is_active=True
+        )
+        q_only = CourseExamQuestion.objects.create(exam=req_exam, question_number=1, caption='Câu 1?', correct_choice=1)
+        CourseQuestionChoice.objects.create(question=q_only, choice_number=1, content='Đúng')
+        CourseQuestionChoice.objects.create(question=q_only, choice_number=2, content='Sai')
+        en_req = CourseEnrollment.objects.create(emp=self.trainee, course=mandatory_course, exam=req_exam, study_process=0)
+        study_res = self.client.get(f'/courses/trainee/course/{mandatory_course.id}/{m_only.id}/')
+        self.assertContains(study_res, 'Hoàn thành bài giảng cuối')
+        en_req.refresh_from_db()
+        self.assertEqual(en_req.study_process, 100)
+        self.assertFalse(en_req.is_completed)
+        detail_res_req = self.client.get(f'/courses/trainee/courses/{mandatory_course.id}/')
+        self.assertEqual(detail_res_req.status_code, 200)
+        self.assertContains(detail_res_req, 'Mã dự thi (Passcode)')
+
+        # 5b. Khóa học tự chọn (is_assigned=False): KHÔNG yêu cầu Passcode, vào thi và nộp bài thẳng
+        en_req.is_assigned = False
+        en_req.save(update_fields=['is_assigned'])
+        detail_res_elective = self.client.get(f'/courses/trainee/courses/{mandatory_course.id}/')
+        self.assertNotContains(detail_res_elective, 'name="passcode"')
+        exam_get_elective = self.client.get(f'/courses/trainee/course/{mandatory_course.id}/exam/')
+        self.assertEqual(exam_get_elective.status_code, 200)
+        self.assertTrue(exam_get_elective.context['is_unlocked'])
+        exam_post_elective = self.client.post(f'/courses/trainee/course/{mandatory_course.id}/exam/', {
+            f'question_{q_only.id}': '1',
+        })
+        self.assertRedirects(exam_post_elective, f'/courses/trainee/course/{mandatory_course.id}/exam/result/')
+        en_req.refresh_from_db()
+        self.assertTrue(en_req.is_pass)
+        self.assertTrue(en_req.is_completed)
 
         # 6. Khóa học đã kết thúc (completed): Trainer chỉ xem chi tiết & dashboard, không sửa được
         # Kèm kiểm tra tính đồng nhất trạng thái bài thi Chưa đạt giữa Tổng quan và Tiến độ học viên
@@ -1053,7 +1111,9 @@ class CoursesLmsTests(TestCase):
         self.assertNotContains(preview_resp, 'Đăng ký học ngay (Tự chọn)')
         self.assertContains(preview_resp, 'Chế độ Xem trước (Trainer)')
 
-        # 7. Đăng ký tự do /register/ bị chuyển về /login/
+        # 7. Tính năng tự đăng ký /register/ đã được gỡ bỏ hoàn toàn
+        self.assertEqual(self.client.get('/register/').status_code, 404)
+        self.assertEqual(self.client.get('/courses/register/').status_code, 404)
         self.client.logout()
         res_reg = self.client.get('/register/')
         self.assertEqual(res_reg.status_code, 302)

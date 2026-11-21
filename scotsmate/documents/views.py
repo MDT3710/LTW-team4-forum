@@ -46,8 +46,12 @@ def _is_manager(user):
 def _pending_docs_for_user(user):
     if is_it_admin(user) or is_department_manager(user):
         return Document.objects.select_related('category', 'creator').prefetch_related(
-            'access_permissions__department'
-        ).filter(status='PENDING')
+            'access_permissions__department',
+            'proposals__proposed_category',
+            'proposals__submitted_by',
+        ).filter(
+            Q(status='PENDING') | Q(proposals__is_processed=False)
+        ).distinct()
     return Document.objects.none()
 
 
@@ -84,7 +88,6 @@ def _sync_doc_access(doc, access_scope, selected_departments):
             DocumentAccess(document=doc, department=dept) for dept in selected_departments
         ])
 
-
 # 1. Thư viện tài liệu (/documents/)
 def document_list(request):
     denied = _require_doc_access(request)
@@ -101,7 +104,7 @@ def document_list(request):
             )
         cat_name = cat_to_delete.name
         cat_to_delete.delete()
-        messages.success(request, f'Đã xoá danh mục "{cat_name}".')
+        messages.success(request, f'Đã xóa danh mục "{cat_name}".')
         return redirect('documents')
 
     search_query = request.GET.get('q', '').strip()
@@ -141,6 +144,20 @@ def document_create(request):
 
     error_message = None
     is_mgr = _is_manager(request.user)
+
+    # Kiểm tra hệ thống đã có danh mục chưa
+    if not DocumentCategory.objects.exists():
+        if is_mgr:
+            messages.error(
+                request,
+                'Chưa có danh mục nào trong hệ thống. Vui lòng tạo ít nhất một danh mục trước khi đăng tài liệu.'
+            )
+            return redirect('document_category_create')
+        messages.error(
+            request,
+            'Hệ thống hiện chưa có danh mục tài liệu nào. Vui lòng liên hệ Trưởng phòng để tạo danh mục trước khi đăng tải.'
+        )
+        return redirect('documents')
 
     if request.method == "POST":
         form = DocumentCreateForm(request.POST, request.FILES)
@@ -228,7 +245,8 @@ def document_my_docs(request):
         return redirect('document_my_docs')
 
     my_documents = Document.objects.select_related('category', 'approver', 'creator').prefetch_related(
-        'access_permissions__department'
+        'access_permissions__department',
+        'proposals',
     ).filter(creator=user)
 
     if search_query:
@@ -240,9 +258,13 @@ def document_my_docs(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    docs_list = list(page_obj)
+    for d in docs_list:
+        d.has_pending_update = any(not p.is_processed for p in d.proposals.all())
+
     context = {
         'page_obj': page_obj,
-        'documents': page_obj,
+        'documents': docs_list,
         'pending_count': _pending_docs_for_user(request.user).count(),
         'search_query': search_query,
         'is_manager': _is_manager(request.user),
@@ -265,7 +287,9 @@ def document_edit(request, id):
             fallback_url='document_my_docs',
         )
 
+    active_proposal = doc.proposals.filter(is_processed=False).first()
     error_message = None
+
     if request.method == 'POST':
         form = DocumentEditForm(request.POST, request.FILES, instance=doc)
         if form.is_valid():
@@ -274,14 +298,13 @@ def document_edit(request, id):
             proposed_description = form.cleaned_data.get('description', '')
             proposed_scope = form.cleaned_data.get('access_scope') or doc.access_scope or 'ALL'
             selected_departments = form.cleaned_data.get('departments', [])
-            proposed_file = request.FILES.get('file') or doc.file
 
             if can_manage:
                 doc.title = proposed_title
                 doc.category = proposed_category
                 doc.description = proposed_description
                 doc.access_scope = proposed_scope
-                doc.file = proposed_file
+                doc.file = request.FILES.get('file') or doc.file
                 doc.approver = request.user
                 doc.approved_at = timezone.now()
                 doc.status = 'APPROVED'
@@ -293,6 +316,11 @@ def document_edit(request, id):
                 return redirect('document_category', cate_id=doc.category_id)
 
             if doc.status == 'APPROVED':
+                proposed_file = request.FILES.get('file') or (
+                    active_proposal.proposed_file
+                    if active_proposal and active_proposal.proposed_file
+                    else doc.file
+                )
                 doc.proposals.filter(is_processed=False).update(is_processed=True)
                 DocumentUpdateProposal.objects.create(
                     document=doc,
@@ -306,21 +334,21 @@ def document_edit(request, id):
                     approver=doc.approver,
                 )
                 Document.objects.filter(id=doc.id).update(
-                    status='PENDING',
                     request_type='UPDATE',
                     rejection_reason='',
                     updated_at=timezone.now(),
                 )
                 messages.success(
                     request,
-                    f'Tài liệu "{proposed_title}" đã được lưu và gửi phê duyệt chỉnh sửa thành công.'
+                    f'Đề xuất chỉnh sửa tài liệu "{proposed_title}" đã được gửi phê duyệt. Bản gốc vẫn hiển thị cho đến khi được duyệt.'
                 )
             else:
+                doc.proposals.filter(is_processed=False).update(is_processed=True)
                 doc.title = proposed_title
                 doc.category = proposed_category
                 doc.description = proposed_description
                 doc.access_scope = proposed_scope
-                doc.file = proposed_file
+                doc.file = request.FILES.get('file') or doc.file
                 doc.status = 'PENDING'
                 doc.request_type = 'NEW'
                 doc.rejection_reason = ''
@@ -336,11 +364,21 @@ def document_edit(request, id):
                 error_message = field_errors[0]
                 break
     else:
-        form = DocumentEditForm(instance=doc)
+        initial_data = {}
+        if active_proposal and not can_manage:
+            initial_data = {
+                'title': active_proposal.proposed_title,
+                'category': active_proposal.proposed_category_id or doc.category_id,
+                'description': active_proposal.proposed_description,
+                'access_scope': active_proposal.proposed_scope,
+                'departments': active_proposal.proposed_department_ids or [],
+            }
+        form = DocumentEditForm(instance=doc, initial=initial_data)
 
     context = {
         'doc_id': id,
         'doc': doc,
+        'active_proposal': active_proposal,
         'form': form,
         'error_message': error_message,
         'pending_count': _pending_docs_for_user(request.user).count(),
@@ -362,15 +400,46 @@ def document_approve_list(request):
     filtered_qs = pending_qs
     if search_query:
         filtered_qs = filtered_qs.filter(
-            Q(title__icontains=search_query) | Q(description__icontains=search_query)
-        )
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(proposals__is_processed=False, proposals__proposed_title__icontains=search_query) |
+            Q(proposals__is_processed=False, proposals__proposed_description__icontains=search_query)
+        ).distinct()
 
     paginator = Paginator(filtered_qs, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
 
+    docs_list = list(page_obj)
+    all_proposed_dept_ids = set()
+    for d in docs_list:
+        d.active_proposal = next((p for p in d.proposals.all() if not p.is_processed), None)
+        if d.active_proposal and d.active_proposal.proposed_scope == 'DEPARTMENT':
+            all_proposed_dept_ids.update(d.active_proposal.proposed_department_ids or [])
+
+    dept_map = {}
+    if all_proposed_dept_ids:
+        dept_map = {
+            dept.id: dept.name
+            for dept in Department.objects.filter(id__in=all_proposed_dept_ids)
+        }
+
+    for d in docs_list:
+        if d.active_proposal:
+            if d.active_proposal.proposed_scope == 'DEPARTMENT':
+                names = [dept_map[did] for did in (d.active_proposal.proposed_department_ids or []) if did in dept_map]
+                d.display_scope = ', '.join(names) if names else 'Giới hạn phòng ban'
+            else:
+                d.display_scope = 'Toàn hệ thống'
+        else:
+            if d.access_scope == 'DEPARTMENT':
+                names = [perm.department.name for perm in d.access_permissions.all()]
+                d.display_scope = ', '.join(names) if names else 'Giới hạn phòng ban'
+            else:
+                d.display_scope = 'Toàn hệ thống'
+
     context = {
         'page_obj': page_obj,
-        'pending_docs': page_obj,
+        'pending_docs': docs_list,
         'pending_count': total_pending,
         'search_query': search_query,
         'is_manager': True,
@@ -391,7 +460,11 @@ def document_approve_detail(request, id):
             'Bạn không có quyền phê duyệt tài liệu này.',
             fallback_url='document_approve',
         )
+
     proposal = doc.proposals.filter(is_processed=False).first()
+    if doc.status != 'PENDING' and not proposal:
+        messages.error(request, 'Tài liệu này không ở trạng thái chờ duyệt hoặc đã được xử lý trước đó.')
+        return redirect('document_approve')
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -411,13 +484,13 @@ def document_approve_detail(request, id):
                     if proposal.proposed_scope == 'DEPARTMENT' else []
                 )
                 _sync_doc_access(doc, proposal.proposed_scope, selected_depts)
-                proposal.is_processed = True
-                proposal.save()
+                doc.proposals.filter(is_processed=False).update(is_processed=True)
+            else:
+                doc.is_visible = True
 
             doc.status = 'APPROVED'
             doc.approver = request.user
             doc.approved_at = timezone.now()
-            doc.is_visible = True
             doc.rejection_reason = ''
             doc.save()
 
@@ -429,15 +502,19 @@ def document_approve_detail(request, id):
                 messages.error(request, 'Vui lòng nhập lý do từ chối phê duyệt trước khi xác nhận.')
                 return redirect('document_approve_detail', id=doc.id)
 
-            doc.status = 'REJECTED'
-            doc.rejection_reason = rejection_reason
-            doc.save()
-
             if proposal:
-                proposal.is_processed = True
-                proposal.save()
-
-            messages.error(request, f'Đã từ chối phê duyệt tài liệu "{doc.title}".')
+                doc.proposals.filter(is_processed=False).update(is_processed=True)
+                doc.rejection_reason = rejection_reason
+                doc.save(update_fields=['rejection_reason', 'updated_at'])
+                messages.error(
+                    request,
+                    f'Đã từ chối đề xuất chỉnh sửa tài liệu "{doc.title}". Bản gốc đã duyệt vẫn được giữ nguyên.'
+                )
+            else:
+                doc.status = 'REJECTED'
+                doc.rejection_reason = rejection_reason
+                doc.save(update_fields=['status', 'rejection_reason', 'updated_at'])
+                messages.error(request, f'Đã từ chối phê duyệt tài liệu "{doc.title}".')
 
         return redirect('document_approve')
 
@@ -468,7 +545,7 @@ def document_category(request, cate_id):
     user = request.user
     is_mgr = _is_manager(user)
 
-    # Xử lý xoá (người tạo hoặc Trưởng phòng/Admin) hoặc ẩn/hiện (Trưởng phòng/Admin)
+    # Xử lý xóa (người tạo hoặc Trưởng phòng/Admin) hoặc ẩn/hiện (Trưởng phòng/Admin)
     if request.method == 'POST':
         if 'delete_doc_id' in request.POST:
             doc_to_delete = get_object_or_404(Document, id=request.POST.get('delete_doc_id'), category=category)
@@ -480,7 +557,7 @@ def document_category(request, cate_id):
                 )
             doc_title = doc_to_delete.title
             doc_to_delete.delete()
-            messages.success(request, f'Đã xoá thành công tài liệu "{doc_title}".')
+            messages.success(request, f'Đã xóa thành công tài liệu "{doc_title}".')
             return redirect('document_category', cate_id=cate_id)
         if 'toggle_visibility_id' in request.POST:
             if not is_mgr:

@@ -19,11 +19,11 @@ from home.roles import (
     is_trainer,
 )
 from posts.models import Post
-from courses.models import Course, CourseAccess
+from courses.models import Course, CourseAccess, CourseEnrollment
 from documents.models import Document, DocumentCategory
 from surveys.models import Survey, SurveyAccess, SurveyResponse
-from events.models import Event
-from message.models import Conversation, ConversationMember
+from events.models import Event, EventRegistration
+from message.models import Conversation, ConversationMember, Message
 
 
 class RBACAndModulesTests(TestCase):
@@ -293,9 +293,10 @@ class RBACAndModulesTests(TestCase):
             'description': 'Mô tả mới sau sửa',
         })
         doc_hr.refresh_from_db()
-        self.assertEqual(doc_hr.status, 'PENDING')
+        self.assertEqual(doc_hr.status, 'APPROVED')
         self.assertEqual(doc_hr.request_type, 'UPDATE')
         self.assertEqual(doc_hr.access_permissions.count(), 0)
+        self.assertEqual(doc_hr.proposals.filter(is_processed=False).count(), 1)
 
         # Không xóa được tài liệu của người khác (doc_dt), nhưng xóa được tài liệu của mình
         self.client.post(f'/documents/{cat.id}/', {'delete_doc_id': doc_dt.id})
@@ -380,3 +381,166 @@ class RBACAndModulesTests(TestCase):
         self.client.force_login(self.manager)
         self.client.post(f'/message/group/{group.id}/delete/')
         self.assertFalse(Conversation.objects.filter(id=group.id).exists())
+
+
+class HomeViewAndNotificationsTests(TestCase):
+    """Kiểm thử HomeView (tìm kiếm, Lịch của bạn, sự kiện sắp tới), thông báo thật và loại bỏ /register/."""
+
+    def setUp(self):
+        self.groups = ensure_role_groups()
+        self.branch = Branch.objects.create(name='Cơ sở Cầu Giấy', region='NORTH', address='Hà Nội')
+        self.dept = Department.objects.create(name='Nhân sự', block=Department.BlockChoices.LEGAL_HR)
+        self.user = User.objects.create_user(
+            username='home_emp', password='pw', first_name='An', last_name='Nguyễn', is_staff=True
+        )
+        self.user.groups.add(self.groups[ROLE_EMPLOYEE])
+        EmployeeInformation.objects.create(
+            emp_id=self.user, gender='MALE', NIN='009990000001',
+            tel='0909000001', dep=self.dept, branch=self.branch, date_of_birth='1995-03-03',
+        )
+        self.other = User.objects.create_user(
+            username='home_sender', password='pw', first_name='Bình', last_name='Lê', is_staff=True
+        )
+        self.other.groups.add(self.groups[ROLE_EMPLOYEE])
+
+    def test_index_home_search_header_and_register_removed(self):
+        res_anon = self.client.get('/')
+        self.assertRedirects(res_anon, '/login/', fetch_redirect_response=False)
+
+        # Trang login không còn nút Đăng ký và route /register/ bị loại bỏ
+        res_login = self.client.get('/login/')
+        self.assertEqual(res_login.status_code, 200)
+        res_reg_anon = self.client.get('/register/')
+        self.assertEqual(res_reg_anon.status_code, 302)
+        self.assertIn('/login/', res_reg_anon.url)
+
+        Post.objects.create(author=self.user, title='Bản tin đào tạo', content='Nội dung tìm kiếm Alpha')
+        Post.objects.create(author=self.user, title='Bản tin khác', content='Nội dung Beta')
+
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get('/register/').status_code, 404)
+        self.assertEqual(self.client.get('/courses/register/').status_code, 404)
+
+        res_home = self.client.get('/home/')
+        self.assertEqual(res_home.status_code, 200)
+        self.assertContains(res_home, 'placeholder="Tìm kiếm bài viết..."')
+        self.assertNotContains(res_home, '>Đăng ký<')
+        self.assertNotContains(res_home, '/courses/trainee/courses/2/exam/')
+
+        res_search = self.client.get('/home/?q=Alpha')
+        self.assertContains(res_search, 'Nội dung tìm kiếm Alpha')
+        self.assertNotContains(res_search, 'Nội dung Beta')
+
+        # Trên /profile/, tab Bảng tin không còn bị active nhầm
+        res_prof = self.client.get('/profile/')
+        self.assertEqual(res_prof.status_code, 200)
+        self.assertNotContains(res_prof, 'class="nav-tab active" href="/home/"')
+
+    def test_calendar_schedule_excludes_draft_and_unregistered_events(self):
+        now = timezone.now()
+        upcoming_ev = Event.objects.create(
+            title='Hội thảo chưa đăng ký',
+            description='Mô tả hội thảo',
+            organizer=self.other,
+            date_start=now + timedelta(days=2),
+            date_end=now + timedelta(days=2, hours=2),
+            location='Hà Nội',
+            status=Event.STATUS_UPCOMING,
+        )
+        draft_course = Course.objects.create(
+            creator=self.other,
+            code='KH-DRAFT',
+            title='Khóa nháp không được hiện',
+            date_start=date.today(),
+            date_end=date.today() + timedelta(days=10),
+            status='draft',
+        )
+        CourseEnrollment.objects.create(emp=self.user, course=draft_course, is_completed=False)
+
+        self.client.force_login(self.user)
+        res = self.client.get('/home/')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['calendar_schedule'], [])
+        self.assertContains(res, 'Bạn chưa có lịch trình nào sắp tới.')
+        self.assertEqual(len(res.context['upcoming_events']), 1)
+        self.assertFalse(res.context['upcoming_events'][0].is_registered)
+
+        # Khi tham gia khóa học ongoing và đăng ký sự kiện -> hiển thị vào Lịch của bạn
+        ongoing_course = Course.objects.create(
+            creator=self.other,
+            code='KH-ONGOING',
+            title='Khóa hội nhập Scots',
+            date_start=date.today(),
+            date_end=date.today() + timedelta(days=5),
+            status='ongoing',
+        )
+        CourseEnrollment.objects.create(emp=self.user, course=ongoing_course, is_completed=False)
+        EventRegistration.objects.create(event=upcoming_ev, user=self.user)
+
+        res2 = self.client.get('/home/')
+        self.assertTrue(len(res2.context['calendar_schedule']) >= 1)
+        titles = [item['title'] for day in res2.context['calendar_schedule'] for item in day['items']]
+        self.assertIn('Khóa: Khóa hội nhập Scots', titles)
+        self.assertIn('Hội thảo chưa đăng ký', titles)
+        self.assertNotIn('Khóa: Khóa nháp không được hiện', titles)
+
+    def test_real_notifications_and_mark_read_persistence(self):
+        now = timezone.now()
+        course = Course.objects.create(
+            creator=self.other,
+            code='KH-NOTIF',
+            title='Khóa thông báo thật',
+            date_start=date.today(),
+            date_end=date.today() + timedelta(days=3),
+            status='ongoing',
+        )
+        CourseEnrollment.objects.create(emp=self.user, course=course, is_completed=False)
+
+        cat = DocumentCategory.objects.create(name='Quy trình nội bộ', display_order=1)
+        doc = Document.objects.create(
+            category=cat,
+            title='Tài liệu thông báo thật',
+            description='Mô tả',
+            file=SimpleUploadedFile('tb.pdf', b'%PDF-1.4 tb'),
+            creator=self.other,
+            status='APPROVED',
+            access_scope='ALL',
+            is_visible=True,
+        )
+        ev = Event.objects.create(
+            title='Sự kiện thông báo thật',
+            description='Mô tả sự kiện',
+            organizer=self.other,
+            date_start=now + timedelta(days=1),
+            date_end=now + timedelta(days=1, hours=2),
+            location='Hội trường',
+            status=Event.STATUS_UPCOMING,
+        )
+        conv = Conversation.objects.create(conversation_type=Conversation.TYPE_DIRECT)
+        ConversationMember.objects.create(conversation=conv, user=self.user)
+        ConversationMember.objects.create(conversation=conv, user=self.other)
+        msg = Message.objects.create(conversation=conv, sender=self.other, content='Chào bạn mới')
+
+        self.client.force_login(self.user)
+        res = self.client.get('/home/')
+        self.assertEqual(res.status_code, 200)
+        notif_ids = [n['id'] for n in res.context['header_notifications']]
+        self.assertIn(f'course-{course.id}', notif_ids)
+        self.assertIn(f'doc-{doc.id}', notif_ids)
+        self.assertIn(f'event-{ev.id}', notif_ids)
+        self.assertIn(f'msg-{msg.id}', notif_ids)
+        initial_unread = res.context['header_unread_notifications_count']
+        self.assertEqual(initial_unread, len(notif_ids))
+
+        # Đánh dấu đọc 1 thông báo -> lưu session & giảm unread_count
+        res_mark_one = self.client.post('/notifications/read/', {'notif_id': f'msg-{msg.id}'})
+        self.assertEqual(res_mark_one.status_code, 200)
+        self.assertEqual(res_mark_one.json()['unread_count'], initial_unread - 1)
+
+        # Đánh dấu tất cả là đã đọc -> unread_count = 0 và giữ nguyên khi tải lại trang
+        res_mark_all = self.client.post('/notifications/read/', {'all': '1'})
+        self.assertEqual(res_mark_all.status_code, 200)
+        self.assertEqual(res_mark_all.json()['unread_count'], 0)
+
+        res_after = self.client.get('/home/')
+        self.assertEqual(res_after.context['header_unread_notifications_count'], 0)

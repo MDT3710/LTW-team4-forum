@@ -19,7 +19,7 @@
   {% if messages %}
     <div class="mb-6">
       {% for msg in messages %}
-        <div class="p-3.5 rounded-xl text-xs font-medium {% if msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif msg.tags == 'error' %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} mb-2">
+        <div class="p-3.5 rounded-xl text-xs font-medium {% if 'success' in msg.tags %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif 'error' in msg.tags %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} mb-2">
           {{ msg }}
         </div>
       {% endfor %}
@@ -34,15 +34,15 @@
           <span class="text-xs font-bold px-3 py-1 rounded-full {{ event.category_badge_class }}">
             {{ event.get_category_display }}
           </span>
-          {% if event.status == 'upcoming' %}
+          {% if event.effective_status == 'upcoming' %}
             <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
               Sắp diễn ra
             </span>
-          {% elif event.status == 'ongoing' %}
-            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 animate-pulse">
+          {% elif event.effective_status == 'ongoing' %}
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
               Đang diễn ra
             </span>
-          {% elif event.status == 'completed' %}
+          {% elif event.effective_status == 'completed' %}
             <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
               Đã kết thúc
             </span>
@@ -51,7 +51,7 @@
               Đã hủy
             </span>
           {% endif %}
-          
+
           {% if event.branch %}
             <span class="text-xs text-slate-500 font-medium flex items-center gap-1">
               • Cơ sở: <strong>{{ event.branch.name }}</strong>
@@ -71,7 +71,13 @@
             </div>
             <div>
               <p class="text-[11px] text-slate-400 m-0 font-medium">Thời gian diễn ra</p>
-              <p class="font-bold text-slate-800 m-0 mt-0.5">{{ event.date_start|date:"H:i - l, d/m/Y" }}</p>
+              <p class="font-bold text-slate-800 m-0 mt-0.5">
+                {% if event.date_start|date:"Y-m-d" == event.date_end|date:"Y-m-d" %}
+                  {{ event.date_start|date:"H:i" }} - {{ event.date_end|date:"H:i" }} • {{ event.date_start|date:"d/m/Y" }}
+                {% else %}
+                  {{ event.date_start|date:"H:i d/m/Y" }} → {{ event.date_end|date:"H:i d/m/Y" }}
+                {% endif %}
+              </p>
             </div>
           </div>
 
@@ -87,7 +93,7 @@
         </div>
       </div>
 
-      <!-- Management Buttons (Trainer/Admin) -->
+      <!-- Management Buttons (Trưởng phòng / Admin) -->
       {% if is_manager %}
         <div class="flex items-center gap-2 shrink-0">
           <a href="{% url 'event_edit' event.id %}" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm" style="text-decoration: none;">
@@ -103,10 +109,10 @@
 
   <!-- Main Content Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    
+
     <!-- Left Column: Description & Agenda (2 cols) -->
     <div class="lg:col-span-2 flex flex-col gap-6">
-      
+
       <!-- Card: Description -->
       <section class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm">
         <h2 class="text-base font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
@@ -165,11 +171,11 @@
 
     <!-- Right Column: Registration Box & Organizer (1 col) -->
     <div class="flex flex-col gap-6">
-      
+
       <!-- Registration CTA Card -->
       <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm sticky top-24">
         <h3 class="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">Trạng thái đăng ký</h3>
-        
+
         <div class="space-y-3 mb-6 text-xs text-slate-600">
           <div class="flex items-center justify-between">
             <span class="text-slate-500">Số chỗ đã đăng ký:</span>
@@ -178,7 +184,9 @@
 
           <div class="flex items-center justify-between">
             <span class="text-slate-500">Chỗ còn trống:</span>
-            <span class="font-bold text-emerald-700" id="detail-avail-count">{{ event.available_slots }} chỗ</span>
+            <span class="font-bold {% if event.is_full %}text-rose-600{% else %}text-emerald-700{% endif %}" id="detail-avail-count">
+              {% if event.is_full %}Hết chỗ{% else %}{{ event.available_slots }} chỗ{% endif %}
+            </span>
           </div>
 
           <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-1">
@@ -186,23 +194,42 @@
           </div>
         </div>
 
-        {% if event.status == 'upcoming' or event.status == 'ongoing' %}
-          <button 
-            type="button" 
-            onclick="toggleEventDetailRegistration({{ event.id }}, this)"
-            class="w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 {% if is_registered %}bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300{% else %}bg-[#134c81] text-white hover:bg-[#0c375f]{% endif %}"
-            data-registered="{% if is_registered %}1{% else %}0{% endif %}"
-          >
-            {% if is_registered %}
+        {% if event.can_register %}
+          {% if is_registered %}
+            <button
+              type="button"
+              onclick="toggleEventDetailRegistration({{ event.id }}, this)"
+              class="w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300"
+              data-registered="1"
+            >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
               <span class="btn-text">Đã đăng ký tham gia (Hủy?)</span>
-            {% else %}
+            </button>
+          {% elif event.is_full %}
+            <button disabled class="w-full py-3 text-center rounded-xl bg-rose-50 text-rose-500 border border-rose-200 font-bold text-xs cursor-not-allowed">
+              Sự kiện đã hết chỗ
+            </button>
+          {% else %}
+            <button
+              type="button"
+              onclick="toggleEventDetailRegistration({{ event.id }}, this)"
+              class="w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 bg-[#134c81] text-white hover:bg-[#0c375f]"
+              data-registered="0"
+            >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               <span class="btn-text">Đăng ký tham gia ngay</span>
-            {% endif %}
-          </button>
+            </button>
+          {% endif %}
+        {% elif event.effective_status == 'ongoing' %}
+          <div class="w-full py-3 px-3 text-center rounded-xl bg-blue-50 text-blue-700 font-bold text-xs border border-blue-200">
+            Sự kiện đang diễn ra • Đã đóng đăng ký/hủy
+          </div>
+        {% elif event.effective_status == 'cancelled' %}
+          <div class="w-full py-3 px-3 text-center rounded-xl bg-rose-50 text-rose-600 font-bold text-xs border border-rose-200">
+            Sự kiện đã bị hủy
+          </div>
         {% else %}
-          <div class="w-full py-3 text-center rounded-xl bg-slate-100 text-slate-400 font-bold text-xs">
+          <div class="w-full py-3 px-3 text-center rounded-xl bg-slate-100 text-slate-400 font-bold text-xs">
             Sự kiện đã kết thúc
           </div>
         {% endif %}
@@ -248,25 +275,14 @@
     })
     .then(r => r.json())
     .then(data => {
-      btn.disabled = false;
       if (data.success) {
-        if (data.registered) {
-          btn.setAttribute('data-registered', '1');
-          btn.className = "w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300";
-          btn.querySelector('.btn-text').textContent = "Đã đăng ký tham gia (Hủy?)";
-        } else {
-          btn.setAttribute('data-registered', '0');
-          btn.className = "w-full py-3 rounded-xl text-sm font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 bg-[#134c81] text-white hover:bg-[#0c375f]";
-          btn.querySelector('.btn-text').textContent = "Đăng ký tham gia ngay";
-        }
-        document.getElementById('detail-reg-count').textContent = `${data.total_registered} / {{ event.max_participants }}`;
-        document.getElementById('detail-avail-count').textContent = `${data.available_slots} chỗ`;
         window.location.reload();
       } else {
+        btn.disabled = false;
         alert(data.message || 'Có lỗi xảy ra, vui lòng thử lại.');
       }
     })
-    .catch(err => {
+    .catch(() => {
       btn.disabled = false;
       alert('Không thể kết nối đến máy chủ.');
     });

@@ -21,9 +21,7 @@
 
     background-color: #f8fafc;
 
-    min-height: 844px;
-
-    padding: 32px 48px;
+    padding: 28px 48px 36px;
 
     width: 100%;
 
@@ -35,9 +33,9 @@
 
     display: flex !important;
 
-    flex-direction: row !important;
+    flex-direction: column !important;
 
-    gap: 24px !important;
+    gap: 22px !important;
 
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
@@ -683,37 +681,9 @@
 
 <div class="trainee-workspace-figma">
 
+  <!-- Khu vực nội dung chính (không còn sidebar thừa "Khóa học của tôi") -->
 
-
-  <!-- Sidebar điều hướng phân hệ học viên (208px fixed) -->
-
-  <aside class="tr-sidebar">
-
-    <div class="tr-identity">
-      <h2>Đào tạo</h2>
-    </div>
-
-    <hr class="tr-sidebar-hr">
-
-    <nav class="tr-nav-links">
-
-      <a href="/courses/trainee/courses/" class="tr-nav-link active">
-
-        Khóa học của tôi
-
-      </a>
-
-      
-
-    </nav>
-
-  </aside>
-
-
-
-  <!-- Khu vực nội dung chính -->
-
-  <main class="tr-content">
+  <main class="tr-content" style="width: 100%;">
 
     
 
@@ -743,7 +713,23 @@
       {% endfor %}
     {% endif %}
 
-
+    <!-- Toolbar: Tìm kiếm (Đồng bộ chuẩn .doc-toolbar ngay dưới tiêu đề) -->
+    <section class="doc-toolbar">
+      <div class="doc-search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink: 0;">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" id="traineeSearchInput" placeholder="Tìm kiếm theo mã hoặc tên khóa học..." />
+      </div>
+      <button type="button" class="doc-filter-btn" onclick="if(document.getElementById('traineeSearchInput')) document.getElementById('traineeSearchInput').focus();">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        Tìm kiếm
+      </button>
+    </section>
 
     <!-- 3 Thẻ thống kê KPI học viên (3 Cột) -->
 
@@ -824,26 +810,6 @@
       </div>
     </section>
     {% endif %}
-
-    <!-- Toolbar: Tìm kiếm -->
-
-    <section class="tr-toolbar">
-
-      <div class="tr-search-box">
-
-        <svg class="tr-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
-          <circle cx="11" cy="11" r="8"></circle>
-
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-
-        </svg>
-
-        <input type="text" id="traineeSearchInput" class="tr-search-input">
-
-      </div>
-
-    </section>
 
 
 

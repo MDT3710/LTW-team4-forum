@@ -208,6 +208,14 @@ class PostComment(models.Model):
         db_column='emp_id',
         verbose_name="Nhân viên bình luận"
     )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='replies',
+        verbose_name="Bình luận cha"
+    )
     content = models.TextField(verbose_name="Nội dung bình luận")
     time_reacted = models.CharField(
         max_length=200,
@@ -229,3 +237,34 @@ class PostComment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.emp.username} on Post #{self.post_id}: {self.content[:30]}"
+
+
+class PostCommentReaction(models.Model):
+    """
+    Bảng: post_comment_reaction
+    Lưu trữ lượt thích đối với từng bình luận trong cơ sở dữ liệu.
+    """
+    comment = models.ForeignKey(
+        PostComment,
+        on_delete=models.CASCADE,
+        related_name='reactions',
+        db_column='comment_id',
+        verbose_name="Bình luận"
+    )
+    emp = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='post_comment_reactions',
+        db_column='emp_id',
+        verbose_name="Nhân viên thích"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian thích")
+
+    class Meta:
+        db_table = 'post_comment_reaction'
+        verbose_name = "Lượt thích bình luận"
+        verbose_name_plural = "Danh sách lượt thích bình luận"
+        unique_together = ('comment', 'emp')
+
+    def __str__(self):
+        return f"{self.emp.username} liked Comment #{self.comment_id}"

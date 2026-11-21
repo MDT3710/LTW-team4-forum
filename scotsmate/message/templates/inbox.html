@@ -11,6 +11,15 @@
     <main class="workspace-card flex-1 min-w-0 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm min-h-[680px]">
 
       <div>
+        {% if flash_messages %}
+          <div class="flex flex-col gap-2 mb-3">
+            {% for fm in flash_messages %}
+              <div class="px-3.5 py-2.5 rounded-xl text-xs font-medium {% if 'error' in fm.tags %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-emerald-50 text-emerald-800 border border-emerald-200{% endif %}">
+                {{ fm }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
         <!-- Chat Header -->
         <header class="flex items-center justify-between pb-4 border-b border-slate-200">
           <div class="flex items-center gap-3">
@@ -19,7 +28,7 @@
             </div>
             <div>
               <h1 class="text-base font-bold text-slate-900 m-0 leading-none">{{ convo_display_name }}</h1>
-              <p class="text-xs text-slate-400 m-0 mt-1">{% if active_convo.title %}{{ target_info.display_name }} • {% endif %}{{ target_info.position }}</p>
+              <p class="text-xs text-slate-400 m-0 mt-1">{{ target_info.position }}</p>
             </div>
           </div>
 
@@ -32,7 +41,9 @@
 
         <!-- Mốc thời gian -->
         <div class="text-center my-4">
-          <span class="text-[11px] text-slate-400">Hôm nay, {% now "d/m/Y" %}</span>
+          <span class="text-[11px] text-slate-400">
+            {% if messages %}Bắt đầu cuộc trò chuyện • {{ messages.0.created_at|date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}
+          </span>
         </div>
 
         {% include 'partials/_chat_messages.html' %}
@@ -52,17 +63,8 @@
         </div>
         <div class="sidebar-name-row">
           <h3 class="text-sm font-bold text-slate-900 m-0">{{ convo_display_name }}</h3>
-          <button type="button" id="toggle-rename-btn" class="sidebar-edit-btn" title="Đổi biệt danh" aria-expanded="false">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-          </button>
         </div>
-        {% if active_convo.title %}
-          <p class="text-[11px] text-slate-400 m-0 mt-1">Tên thật: {{ target_info.display_name }}</p>
-        {% endif %}
-        {% include 'partials/_rename_panel.html' with convo_id=active_convo.id current_name=active_convo.title|default:'' is_direct=True placeholder="Nhập biệt danh..." %}
+        <p class="text-[11px] text-slate-400 m-0 mt-1">{{ target_info.position }} • {{ target_info.branch }}</p>
       </div>
 
       {% include 'partials/_chat_sidebar_tools.html' with convo_id=active_convo.id %}

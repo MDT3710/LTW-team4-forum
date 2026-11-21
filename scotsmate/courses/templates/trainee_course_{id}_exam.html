@@ -105,7 +105,9 @@
       <!-- Form làm bài trắc nghiệm -->
       <form id="traineeExamForm" method="POST" action="/courses/trainee/course/{{ course.id }}/exam/" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {% csrf_token %}
-        <input type="hidden" name="passcode" value="{{ exam.passcode }}">
+        {% if requires_passcode %}
+          <input type="hidden" name="passcode" value="{{ exam.passcode }}">
+        {% endif %}
 
         <!-- Cột câu hỏi chính (2/3) -->
         <div class="lg:col-span-2 flex flex-col gap-6">

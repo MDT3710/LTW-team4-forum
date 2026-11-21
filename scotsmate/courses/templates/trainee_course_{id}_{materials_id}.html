@@ -288,7 +288,7 @@
                     <span>Xem kết quả & chi tiết bài làm</span>
                     <span>→</span>
                   </a>
-                {% elif course.exam %}
+                {% elif has_active_exam and course.status == 'ongoing' %}
                   <a href="/courses/trainee/course/{{ course.id }}/exam/" class="px-5 py-2.5 rounded-lg bg-emerald-600 text-white text-xs md:text-sm font-semibold hover:bg-emerald-700 transition shadow-sm flex items-center gap-1.5" style="text-decoration: none;">
                     <span>Hoàn thành bài giảng cuối • Đến phòng thi</span>
                     <span>→</span>
@@ -342,7 +342,7 @@
               Xem chi tiết kết quả bài thi →
             </a>
           </div>
-        {% elif course.exam %}
+        {% elif has_active_exam %}
           {% if not all_materials_completed %}
             <!-- KHI CHƯA HỌC XONG HẾT BÀI GIẢNG: KHÓA PHÒNG THI, KHÔNG CÓ NÚT VÀO THI -->
             <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 shadow-sm flex flex-col gap-2.5">
@@ -359,19 +359,9 @@
               </div>
             </div>
           {% else %}
-            <!-- KHI ĐÃ HỌC XONG HẾT BÀI GIẢNG: MỞ NÚT VÀO PHÒNG THI (CẦN PASSCODE) -->
-            <div class="p-5 rounded-xl bg-emerald-50/70 border border-emerald-200 shadow-sm flex flex-col gap-3">
-              <div class="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Đủ điều kiện làm bài thi</span>
-              </div>
-              <p class="text-xs text-slate-600 leading-relaxed">
-                Bạn đã hoàn thành toàn bộ bài giảng. Nhập mã Passcode để mở đề thi.
-              </p>
-              <a href="/courses/trainee/course/{{ course.id }}/exam/" class="w-full py-2.5 rounded-lg bg-[#134c81] hover:bg-[#0c375f] text-white text-xs font-bold text-center transition shadow-sm" style="text-decoration: none;">
-                Vào làm bài thi (Cần Passcode) →
-              </a>
-            </div>
+            <a href="/courses/trainee/course/{{ course.id }}/exam/" class="w-full py-3 rounded-xl bg-[#134c81] hover:bg-[#0c375f] text-white text-xs font-bold text-center transition shadow-sm block" style="text-decoration: none;">
+              {% if requires_passcode %}Vào làm bài thi (Cần Passcode) →{% else %}Vào làm bài thi ngay →{% endif %}
+            </a>
           {% endif %}
         {% endif %}
       </aside>

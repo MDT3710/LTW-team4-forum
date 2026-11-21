@@ -5,6 +5,16 @@
   <!-- Bỏ staff-workspace để không bị ép flex-direction: column -->
   <div class="messages-workspace flex flex-col gap-6 px-12 py-8 min-h-[844px] w-full max-w-[1440px] mx-auto bg-[#f8fafc]">
 
+    {% if messages %}
+      <div class="flex flex-col gap-2">
+        {% for msg in messages %}
+          <div class="px-4 py-3 rounded-xl text-xs font-medium {% if 'error' in msg.tags %}bg-rose-50 text-rose-800 border border-rose-200{% else %}bg-emerald-50 text-emerald-800 border border-emerald-200{% endif %}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <!-- Thanh chuyển chế độ: Tạo nhóm / Nhắn tin cá nhân (1-1) -->
     <div class="flex items-center justify-between">
       <div class="inline-flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs">
@@ -26,11 +36,24 @@
       <!-- CARD 1: Thông tin nhóm chuẩn Figma -->
       <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
         <h2 class="text-base font-bold text-slate-900 m-0">Thông tin nhóm</h2>
-        <div class="flex flex-col gap-2">
-          <label class="text-xs font-semibold text-slate-700">
-            Tên nhóm <span class="text-rose-500">*</span>
-          </label>
-          <input type="text" name="title" required placeholder="Nhập tên nhóm..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-[#134c81]" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="md:col-span-2 flex flex-col gap-2">
+            <label class="text-xs font-semibold text-slate-700">
+              Tên nhóm <span class="text-rose-500">*</span>
+            </label>
+            <input type="text" name="title" required placeholder="Nhập tên nhóm..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-[#134c81]" />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-semibold text-slate-700">Chi nhánh phụ trách</label>
+            <div class="relative">
+              <select id="group-branch-select" name="branch" class="w-full appearance-none pl-4 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:border-[#134c81] cursor-pointer">
+                {% for b in branches %}
+                  <option value="{{ b }}" {% if b == default_branch %}selected{% endif %}>{{ b }}</option>
+                {% endfor %}
+              </select>
+              <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -46,30 +69,31 @@
           </div>
 
           <div class="relative">
-            <select id="group-branch-select" name="branch" class="appearance-none pl-4 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-[#134c81] cursor-pointer">
-              <option value="Chi nhánh Cầu Giấy">Chi nhánh Cầu Giấy</option>
-              <option value="Chi nhánh Hà Đông">Chi nhánh Hà Đông</option>
-              <option value="Chi nhánh Đống Đa">Chi nhánh Đống Đa</option>
+            <select id="group-member-branch-filter" class="appearance-none pl-4 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-[#134c81] cursor-pointer">
+              <option value="ALL">Tất cả chi nhánh</option>
+              {% for b in branches %}
+                <option value="{{ b|lower }}">{{ b }}</option>
+              {% endfor %}
             </select>
             <svg class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
 
           <button id="group-filter-btn" type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
-            Bộ lọc
+            Lọc
           </button>
         </div>
 
         <!-- Danh sách thành viên động từ database -->
         <div id="group-member-list" class="flex flex-col divide-y divide-slate-100">
           {% for u in users %}
-            <label data-member-search="{{ u.display_info.display_name|lower }} {{ u.username|lower }} {{ u.email|default:''|lower }} {{ u.display_info.position|lower }}" class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
+            <label data-member-search="{{ u.display_info.display_name|lower }} {{ u.username|lower }} {{ u.email|default:''|lower }} {{ u.display_info.position|lower }} {{ u.display_info.branch|lower }}" data-member-branch="{{ u.display_info.branch|lower }}" class="flex items-center justify-between py-3.5 px-2 hover:bg-slate-50/70 rounded-xl cursor-pointer transition">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-full {{ u.display_info.avatar_color }} font-bold text-xs flex items-center justify-center shrink-0">
                   {{ u.display_info.initials }}
                 </div>
                 <div>
                   <p class="text-xs font-bold text-slate-900 m-0">{{ u.display_info.display_name }}</p>
-                  <p class="text-[11px] text-slate-400 m-0 mt-0.5">{{ u.display_info.position }}</p>
+                  <p class="text-[11px] text-slate-400 m-0 mt-0.5">{{ u.display_info.position }} • {{ u.display_info.branch }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-2">
@@ -103,24 +127,29 @@
   <script>
   document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("group-member-search");
+    const branchFilter = document.getElementById("group-member-branch-filter");
     const filterBtn = document.getElementById("group-filter-btn");
     const list = document.getElementById("group-member-list");
     if (!searchInput || !list) return;
 
     function filterMembers() {
       const q = searchInput.value.trim().toLowerCase();
+      const b = branchFilter ? branchFilter.value.trim().toLowerCase() : "all";
       list.querySelectorAll("label").forEach(function (row) {
         const txt = (row.getAttribute("data-member-search") || row.textContent || "").toLowerCase();
-        row.style.display = !q || txt.indexOf(q) !== -1 ? "" : "none";
+        const rowBranch = (row.getAttribute("data-member-branch") || "").toLowerCase();
+        const matchQuery = !q || txt.indexOf(q) !== -1;
+        const matchBranch = !b || b === "all" || rowBranch === b || rowBranch.indexOf(b.replace("chi nhánh ", "")) !== -1;
+        row.style.display = (matchQuery && matchBranch) ? "" : "none";
       });
     }
 
     searchInput.addEventListener("input", filterMembers);
+    if (branchFilter) {
+      branchFilter.addEventListener("change", filterMembers);
+    }
     if (filterBtn) {
-      filterBtn.addEventListener("click", function () {
-        searchInput.focus();
-        filterMembers();
-      });
+      filterBtn.addEventListener("click", filterMembers);
     }
   });
   </script>

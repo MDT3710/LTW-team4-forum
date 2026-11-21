@@ -1,29 +1,38 @@
 import tempfile
 from datetime import timedelta
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from home.models import Branch
+from home.roles import ROLE_ADMIN, ROLE_EMPLOYEE, ROLE_MANAGER
 from .models import Attachment, Conversation, ConversationMember, Message, StaffProfile
 
 
 class MessageChatViewTests(TestCase):
     def setUp(self):
+        self.mgr_group, _ = Group.objects.get_or_create(name=ROLE_MANAGER)
+        self.admin_group, _ = Group.objects.get_or_create(name=ROLE_ADMIN)
+        self.emp_group, _ = Group.objects.get_or_create(name=ROLE_EMPLOYEE)
+
         self.user_me = User.objects.create_user(
             username='minhanh',
             password='password123',
             first_name='Minh',
             last_name='Anh',
         )
+        self.user_me.groups.add(self.emp_group)
+
         self.user_other = User.objects.create_user(
             username='minhduc',
             password='password123',
             first_name='Trần Minh',
             last_name='Đức',
         )
+        self.user_other.groups.add(self.mgr_group)
         StaffProfile.objects.create(
             user=self.user_other,
             position='Trainer',
@@ -113,23 +122,17 @@ class MessageChatViewTests(TestCase):
         self.assertIn('Tải file', html)
         self.assertIn(msg.attachment.url, html)
 
-    def test_group_detail_post_fallback_first_user_when_anonymous(self):
+    def test_group_detail_requires_login_and_blocks_non_member(self):
         url = reverse('group_detail', kwargs={'group_id': self.group.id})
-        response = self.client.post(
-            url,
-            {'content': 'Tin nhắn chưa login'},
-            HTTP_HOST='127.0.0.1',
-        )
+        anon_resp = self.client.post(url, {'content': 'Tin nhắn chưa login'}, HTTP_HOST='127.0.0.1')
+        self.assertEqual(anon_resp.status_code, 302)
+        self.assertIn('/login/', anon_resp['Location'])
+        self.assertEqual(self.group.messages.count(), 0)
 
-        self.assertRedirects(response, url, fetch_redirect_response=False)
-        msg = self.group.messages.first()
-        self.assertIsNotNone(msg)
-        self.assertEqual(msg.sender, User.objects.first())
-
-        get_resp = self.client.get(url, HTTP_HOST='127.0.0.1')
-        html = get_resp.content.decode('utf-8')
-        self.assertIn('Tin nhắn chưa login', html)
-        self.assertIn('Bạn •', html)
+        outsider = User.objects.create_user(username='outsider', password='pw', first_name='Người', last_name='Ngoài')
+        self.client.force_login(outsider)
+        out_resp = self.client.get(url, HTTP_HOST='127.0.0.1')
+        self.assertRedirects(out_resp, reverse('messages_list'), fetch_redirect_response=False)
 
     def test_group_detail_post_empty_ignored_still_redirects(self):
         self.client.force_login(self.user_me)
@@ -139,26 +142,21 @@ class MessageChatViewTests(TestCase):
         self.assertRedirects(response, url, fetch_redirect_response=False)
         self.assertEqual(self.group.messages.count(), 0)
 
-    def test_group_detail_auto_creates_missing_group_and_avoids_404(self):
+    def test_group_detail_missing_or_direct_redirects_cleanly(self):
         self.client.force_login(self.user_me)
         response = self.client.get(
-            reverse('group_detail', kwargs={'group_id': 99}),
+            reverse('group_detail', kwargs={'group_id': 999}),
             HTTP_HOST='127.0.0.1',
         )
-        self.assertEqual(response.status_code, 200)
-        auto_group = Conversation.objects.get(id=99, conversation_type=Conversation.TYPE_GROUP)
-        self.assertEqual(auto_group.title, 'Nhóm Thảo Luận #99')
-        self.assertTrue(auto_group.members.filter(id=self.user_me.id).exists())
-        self.assertEqual(auto_group.messages.count(), 1)
+        self.assertRedirects(response, reverse('messages_list'), fetch_redirect_response=False)
+        self.assertFalse(Conversation.objects.filter(id=999).exists())
 
         direct = Conversation.objects.create(conversation_type=Conversation.TYPE_DIRECT)
         direct_resp = self.client.get(
             reverse('group_detail', kwargs={'group_id': direct.id}),
             HTTP_HOST='127.0.0.1',
         )
-        self.assertEqual(direct_resp.status_code, 302)
-        follow_resp = self.client.get(direct_resp['Location'], HTTP_HOST='127.0.0.1')
-        self.assertEqual(follow_resp.status_code, 200)
+        self.assertRedirects(direct_resp, reverse('messages_list'), fetch_redirect_response=False)
 
     def test_messages_list_renders_dynamic_sidebar_conversations(self):
         direct = Conversation.objects.create(
@@ -232,30 +230,35 @@ class MessageChatViewTests(TestCase):
         self.assertIn('bg-[#134c81]', html)
         self.assertIn('bg-[#edf4fb]', html)
 
-    def test_inbox_detail_self_chat_does_not_collide_with_other_direct(self):
+    def test_inbox_detail_blocks_self_chat_and_inactive_user(self):
         self.client.force_login(self.user_me)
-        self.client.get(
-            reverse('inbox_detail', kwargs={'user_id': self.user_other.id}),
-            HTTP_HOST='127.0.0.1',
-        )
-        self.client.get(
+        self_resp = self.client.get(
             reverse('inbox_detail', kwargs={'user_id': self.user_me.id}),
             HTTP_HOST='127.0.0.1',
         )
-        self.assertEqual(
-            Conversation.objects.filter(conversation_type=Conversation.TYPE_DIRECT).count(),
-            2,
+        self.assertRedirects(self_resp, reverse('messages_list'), fetch_redirect_response=False)
+        self.assertEqual(Conversation.objects.filter(conversation_type=Conversation.TYPE_DIRECT).count(), 0)
+
+        inactive = User.objects.create_user(
+            username='resigned', password='pw', first_name='Đã', last_name='Nghỉ', is_active=False
         )
+        inactive_resp = self.client.get(
+            reverse('inbox_detail', kwargs={'user_id': inactive.id}),
+            HTTP_HOST='127.0.0.1',
+        )
+        self.assertEqual(inactive_resp.status_code, 404)
 
 
 class GroupCreateViewTests(TestCase):
     def setUp(self):
+        mgr_group, _ = Group.objects.get_or_create(name=ROLE_MANAGER)
         self.creator = User.objects.create_user(
             username='creator',
             password='password123',
             first_name='Minh',
             last_name='Anh',
         )
+        self.creator.groups.add(mgr_group)
         self.colleague = User.objects.create_user(
             username='colleague',
             password='password123',
@@ -292,32 +295,36 @@ class GroupCreateViewTests(TestCase):
             ).exists()
         )
 
-class GroupCreateEmptyDbViewTests(TestCase):
-    def test_group_create_anonymous_fallback_creates_admin_demo_and_default_title(self):
-        post_resp = self.client.post(
-            reverse('group_create'),
-            {'title': '   '},
-            HTTP_HOST='127.0.0.1',
-        )
-        default_user = User.objects.get(username='admin_demo')
-        self.assertEqual(default_user.first_name, 'Quân')
-        self.assertEqual(default_user.last_name, 'Nguyễn')
 
-        group = Conversation.objects.get(title='Nhóm trò chuyện mới')
-        target_url = reverse('group_detail', kwargs={'group_id': group.id})
-        self.assertRedirects(post_resp, target_url, status_code=302, target_status_code=200)
+class GroupCreateValidationAndAuthTests(TestCase):
+    def test_group_create_requires_login_and_non_empty_title(self):
+        anon_resp = self.client.post(reverse('group_create'), {'title': '   '}, HTTP_HOST='127.0.0.1')
+        self.assertEqual(anon_resp.status_code, 302)
+        self.assertIn('/login/', anon_resp['Location'])
+        self.assertFalse(User.objects.filter(username='admin_demo').exists())
+
+        mgr_group, _ = Group.objects.get_or_create(name=ROLE_MANAGER)
+        mgr = User.objects.create_user(username='mgr1', password='pw', first_name='A', last_name='B')
+        mgr.groups.add(mgr_group)
+        self.client.force_login(mgr)
+
+        blank_resp = self.client.post(reverse('group_create'), {'title': '   '}, HTTP_HOST='127.0.0.1')
+        self.assertEqual(blank_resp.status_code, 200)
+        self.assertEqual(Conversation.objects.filter(conversation_type=Conversation.TYPE_GROUP).count(), 0)
+        self.assertIn('Vui lòng nhập tên nhóm.', blank_resp.content.decode('utf-8'))
 
 
 class InboxCreateViewTests(TestCase):
     def test_inbox_create_get_lists_and_filters_colleagues(self):
-        user_a = User.objects.create_user(
-            username='usera', first_name='Minh', last_name='Anh'
-        )
-        user_b = User.objects.create_user(
-            username='duc_nguyen', first_name='Đức', last_name='Nguyễn'
-        )
-        user_c = User.objects.create_user(
-            username='thu_ha', first_name='Thu', last_name='Hà'
+        Branch.objects.create(name='Chi nhánh Cầu Giấy', region=Branch.RegionChoices.NORTH, address='HN')
+        Branch.objects.create(name='Chi nhánh Hà Đông', region=Branch.RegionChoices.NORTH, address='HN')
+        Branch.objects.create(name='Scots English Đà Nẵng', region=Branch.RegionChoices.CENTRAL, address='ĐN')
+
+        user_a = User.objects.create_user(username='usera', first_name='Minh', last_name='Anh')
+        user_b = User.objects.create_user(username='duc_nguyen', first_name='Đức', last_name='Nguyễn')
+        user_c = User.objects.create_user(username='thu_ha', first_name='Thu', last_name='Hà')
+        user_inactive = User.objects.create_user(
+            username='nghi_viec', first_name='Nghỉ', last_name='Việc', is_active=False
         )
         StaffProfile.objects.create(user=user_b, position='Trainer', branch='Chi nhánh Cầu Giấy')
         StaffProfile.objects.create(user=user_c, position='Nhân sự', branch='Chi nhánh Hà Đông')
@@ -328,7 +335,9 @@ class InboxCreateViewTests(TestCase):
         html = resp.content.decode('utf-8')
         self.assertIn('Đức Nguyễn', html)
         self.assertIn('Thu Hà', html)
+        self.assertIn('Scots English Đà Nẵng', html)
         self.assertNotIn(user_a, resp.context['users'])
+        self.assertNotIn(user_inactive, resp.context['users'])
 
         filtered = self.client.get(
             reverse('inbox_create'),
@@ -340,12 +349,8 @@ class InboxCreateViewTests(TestCase):
         self.assertNotIn('Thu Hà', filtered_html)
 
     def test_inbox_create_post_creates_or_reuses_direct_and_redirects_to_inbox_detail(self):
-        user_a = User.objects.create_user(
-            username='usera', first_name='Minh', last_name='Anh'
-        )
-        user_b = User.objects.create_user(
-            username='duc_nguyen', first_name='Đức', last_name='Nguyễn'
-        )
+        user_a = User.objects.create_user(username='usera', first_name='Minh', last_name='Anh')
+        user_b = User.objects.create_user(username='duc_nguyen', first_name='Đức', last_name='Nguyễn')
         self.client.force_login(user_a)
 
         url = reverse('inbox_create')
@@ -367,9 +372,12 @@ class InboxCreateViewTests(TestCase):
 
 class ChatToolbarFeatureTests(TestCase):
     def setUp(self):
+        self.mgr_group, _ = Group.objects.get_or_create(name=ROLE_MANAGER)
+        self.admin_group, _ = Group.objects.get_or_create(name=ROLE_ADMIN)
         self.user_me = User.objects.create_user(
             username='me', password='pw', first_name='Minh', last_name='Anh'
         )
+        self.user_me.groups.add(self.mgr_group)
         self.user_other = User.objects.create_user(
             username='other', password='pw', first_name='Đức', last_name='Nguyễn'
         )
@@ -384,7 +392,7 @@ class ChatToolbarFeatureTests(TestCase):
             role=ConversationMember.ROLE_ADMIN,
         )
 
-    def test_toggle_mute_updates_membership_and_ui_label_on_group_and_inbox(self):
+    def test_toggle_mute_updates_membership_and_blocks_outsider(self):
         self.client.force_login(self.user_me)
 
         group_url = reverse('group_detail', kwargs={'group_id': self.group.id})
@@ -396,8 +404,10 @@ class ChatToolbarFeatureTests(TestCase):
         self.assertTrue(self.membership.is_muted)
 
         html_muted = self.client.get(group_url, HTTP_HOST='127.0.0.1').content.decode('utf-8')
-        self.assertIn('Bật thông báo', html_muted)
-        self.assertIn('Đã tắt thông báo', html_muted)
+        self.assertIn('Bật chuông', html_muted)
+        self.assertIn('aria-pressed="true"', html_muted)
+        list_muted = self.client.get(reverse('messages_list'), HTTP_HOST='127.0.0.1').content.decode('utf-8')
+        self.assertIn('Đã tắt thông báo', list_muted)
 
         resp2 = self.client.post(mute_url, HTTP_HOST='127.0.0.1')
         self.assertRedirects(resp2, group_url, fetch_redirect_response=False)
@@ -405,9 +415,10 @@ class ChatToolbarFeatureTests(TestCase):
         self.assertFalse(self.membership.is_muted)
 
         html_unmuted = self.client.get(group_url, HTTP_HOST='127.0.0.1').content.decode('utf-8')
-        self.assertIn('Tắt thông báo', html_unmuted)
+        self.assertIn('Tắt chuông', html_unmuted)
+        self.assertIn('aria-pressed="false"', html_unmuted)
 
-        # Verify direct inbox toggle-mute also redirects cleanly back to inbox_detail
+        # Verify direct inbox toggle-mute works for members
         inbox_url = reverse('inbox_detail', kwargs={'user_id': self.user_other.id})
         self.client.get(inbox_url, HTTP_HOST='127.0.0.1')
         direct = Conversation.objects.get(conversation_type=Conversation.TYPE_DIRECT)
@@ -417,6 +428,14 @@ class ChatToolbarFeatureTests(TestCase):
         self.assertTrue(
             ConversationMember.objects.get(conversation=direct, user=self.user_me).is_muted
         )
+
+        # Outsider MUST NOT auto-join private group or direct chat via toggle_mute
+        outsider = User.objects.create_user(username='intruder', password='pw', first_name='Kẻ', last_name='Lạ')
+        self.client.force_login(outsider)
+        self.client.post(mute_url, HTTP_HOST='127.0.0.1')
+        self.client.post(direct_mute_url, HTTP_HOST='127.0.0.1')
+        self.assertFalse(ConversationMember.objects.filter(conversation=self.group, user=outsider).exists())
+        self.assertFalse(ConversationMember.objects.filter(conversation=direct, user=outsider).exists())
 
     @override_settings(MEDIA_ROOT=tempfile.gettempdir())
     def test_sidebar_renders_media_and_document_drawers_with_counts_and_search_panel(self):
@@ -434,7 +453,7 @@ class ChatToolbarFeatureTests(TestCase):
         html = resp.content.decode('utf-8')
 
         self.assertIn('File phương tiện (1)', html)
-        self.assertIn('File (1)', html)
+        self.assertIn('File tài liệu (1)', html)
         self.assertIn('id="media-panel"', html)
         self.assertIn('id="file-panel"', html)
         self.assertIn('workshop.png', html)
@@ -443,12 +462,23 @@ class ChatToolbarFeatureTests(TestCase):
         self.assertIn('id="in-chat-search-input"', html)
         self.assertIn('msg-inline-image', html)
 
-    def test_rename_group_and_direct_nickname_flows(self):
-        self.client.force_login(self.user_me)
-
+    def test_rename_group_requires_admin_and_direct_rename_disabled(self):
+        ConversationMember.objects.create(
+            conversation=self.group,
+            user=self.user_other,
+            role=ConversationMember.ROLE_MEMBER,
+        )
         group_url = reverse('group_detail', kwargs={'group_id': self.group.id})
         rename_group_url = reverse('rename_conversation', kwargs={'convo_id': self.group.id})
 
+        # Regular member cannot rename group
+        self.client.force_login(self.user_other)
+        self.client.post(rename_group_url, {'nickname': 'Đổi Trái Phép'}, HTTP_HOST='127.0.0.1')
+        self.group.refresh_from_db()
+        self.assertEqual(self.group.title, 'Nhóm Kỹ Thuật')
+
+        # Group admin can rename group; blank keeps existing title
+        self.client.force_login(self.user_me)
         resp_g = self.client.post(
             rename_group_url,
             {'nickname': 'Đội Đào Tạo Cầu Giấy'},
@@ -457,36 +487,24 @@ class ChatToolbarFeatureTests(TestCase):
         self.assertRedirects(resp_g, group_url, fetch_redirect_response=False)
         self.group.refresh_from_db()
         self.assertEqual(self.group.title, 'Đội Đào Tạo Cầu Giấy')
-        html_g = self.client.get(group_url, HTTP_HOST='127.0.0.1').content.decode('utf-8')
-        self.assertIn('Đội Đào Tạo Cầu Giấy', html_g)
 
-        # Blank rename keeps existing group title
         self.client.post(rename_group_url, {'nickname': '   '}, HTTP_HOST='127.0.0.1')
         self.group.refresh_from_db()
         self.assertEqual(self.group.title, 'Đội Đào Tạo Cầu Giấy')
 
-        # 1-1 nickname + reset back to default display name
+        # Direct 1-1 chat does not allow renaming / nickname UI
         inbox_url = reverse('inbox_detail', kwargs={'user_id': self.user_other.id})
-        self.client.get(inbox_url, HTTP_HOST='127.0.0.1')
+        inbox_html = self.client.get(inbox_url, HTTP_HOST='127.0.0.1').content.decode('utf-8')
+        self.assertNotIn('id="toggle-rename-btn"', inbox_html)
+        self.assertNotIn('id="rename-convo-panel"', inbox_html)
         direct = Conversation.objects.get(conversation_type=Conversation.TYPE_DIRECT)
-        rename_direct_url = reverse('rename_conversation', kwargs={'convo_id': direct.id})
-
-        resp_d = self.client.post(
-            rename_direct_url,
-            {'nickname': 'Anh Đức Mentor'},
+        self.client.post(
+            reverse('rename_conversation', kwargs={'convo_id': direct.id}),
+            {'nickname': 'Biệt Danh'},
             HTTP_HOST='127.0.0.1',
         )
-        self.assertRedirects(resp_d, inbox_url, fetch_redirect_response=False)
-        html_nick = self.client.get(inbox_url, HTTP_HOST='127.0.0.1').content.decode('utf-8')
-        self.assertIn('Anh Đức Mentor', html_nick)
-        self.assertIn('Tên thật: Đức Nguyễn', html_nick)
-
-        self.client.post(rename_direct_url, {'reset': '1'}, HTTP_HOST='127.0.0.1')
         direct.refresh_from_db()
         self.assertIsNone(direct.title)
-        html_reset = self.client.get(inbox_url, HTTP_HOST='127.0.0.1').content.decode('utf-8')
-        self.assertNotIn('Anh Đức Mentor', html_reset)
-        self.assertIn('Đức Nguyễn', html_reset)
 
     def test_technical_admin_account_hidden_from_selectors_and_formatted_cleanly(self):
         bare_admin = User.objects.create_superuser(username='admin', email='admin@gmail.com', password='pw')
@@ -494,6 +512,7 @@ class ChatToolbarFeatureTests(TestCase):
 
         for route_name in ('group_create', 'inbox_create'):
             resp = self.client.get(reverse(route_name), HTTP_HOST='127.0.0.1')
+            self.assertEqual(resp.status_code, 200)
             self.assertNotIn(bare_admin, resp.context['users'])
 
         inbox_admin_html = self.client.get(
@@ -501,3 +520,99 @@ class ChatToolbarFeatureTests(TestCase):
             HTTP_HOST='127.0.0.1',
         ).content.decode('utf-8')
         self.assertIn('Quản trị viên hệ thống', inbox_admin_html)
+
+
+class MessageSecurityAndReadTrackingTests(TestCase):
+    def setUp(self):
+        self.admin_group, _ = Group.objects.get_or_create(name=ROLE_ADMIN)
+        self.mgr_group, _ = Group.objects.get_or_create(name=ROLE_MANAGER)
+
+        self.user_a = User.objects.create_user(username='ua', password='pw', first_name='Minh', last_name='Anh')
+        self.user_b = User.objects.create_user(username='ub', password='pw', first_name='Thu', last_name='Hà')
+        self.intruder = User.objects.create_user(username='uc', password='pw', first_name='Kẻ', last_name='Lạ')
+        self.other_mgr = User.objects.create_user(username='mgr_other', password='pw', first_name='Trưởng', last_name='Phòng')
+        self.other_mgr.groups.add(self.mgr_group)
+
+        self.it_admin = User.objects.create_user(username='it_admin', password='pw', first_name='Admin', last_name='IT')
+        self.it_admin.groups.add(self.admin_group)
+
+    def test_api_send_message_blocks_outsider_from_direct_chat(self):
+        direct = Conversation.objects.create(conversation_type=Conversation.TYPE_DIRECT, created_by=self.user_a)
+        ConversationMember.objects.create(conversation=direct, user=self.user_a)
+        ConversationMember.objects.create(conversation=direct, user=self.user_b)
+
+        self.client.force_login(self.intruder)
+        resp = self.client.post(
+            reverse('api_send_message'),
+            {'conversation_id': str(direct.id), 'content': 'Xen ngang 1-1'},
+            HTTP_HOST='127.0.0.1',
+        )
+        self.assertEqual(resp.status_code, 403)
+        self.assertFalse(ConversationMember.objects.filter(conversation=direct, user=self.intruder).exists())
+        self.assertEqual(direct.messages.count(), 0)
+
+    def test_admin_can_view_send_and_poll_all_groups(self):
+        group = Conversation.objects.create(
+            title='Nhóm Nội Bộ HR', conversation_type=Conversation.TYPE_GROUP, created_by=self.user_a
+        )
+        ConversationMember.objects.create(conversation=group, user=self.user_a, role=ConversationMember.ROLE_ADMIN)
+        Message.objects.create(conversation=group, sender=self.user_a, content='Tin mật HR')
+
+        self.client.force_login(self.it_admin)
+        list_resp = self.client.get(reverse('messages_list'), HTTP_HOST='127.0.0.1')
+        self.assertIn('Nhóm Nội Bộ HR', list_resp.content.decode('utf-8'))
+
+        detail_resp = self.client.get(reverse('group_detail', kwargs={'group_id': group.id}), HTTP_HOST='127.0.0.1')
+        self.assertEqual(detail_resp.status_code, 200)
+        self.assertIn('Tin mật HR', detail_resp.content.decode('utf-8'))
+
+        poll_resp = self.client.get(reverse('api_get_messages', kwargs={'convo_id': group.id}), HTTP_HOST='127.0.0.1')
+        self.assertEqual(poll_resp.status_code, 200)
+        self.assertEqual(len(poll_resp.json()['messages']), 1)
+
+        send_resp = self.client.post(
+            reverse('api_send_message'),
+            {'conversation_id': str(group.id), 'content': 'Admin hỗ trợ nhóm'},
+            HTTP_HOST='127.0.0.1',
+        )
+        self.assertEqual(send_resp.status_code, 200)
+        self.assertTrue(send_resp.json()['success'])
+
+    def test_invited_manager_member_cannot_delete_group_and_creator_protected(self):
+        group = Conversation.objects.create(
+            title='Nhóm Dự Án', conversation_type=Conversation.TYPE_GROUP, created_by=self.user_a
+        )
+        ConversationMember.objects.create(conversation=group, user=self.user_a, role=ConversationMember.ROLE_ADMIN)
+        ConversationMember.objects.create(conversation=group, user=self.other_mgr, role=ConversationMember.ROLE_MEMBER)
+
+        # Invited manager with ROLE_MEMBER cannot delete group or remove creator
+        self.client.force_login(self.other_mgr)
+        self.client.post(reverse('group_delete', kwargs={'group_id': group.id}), HTTP_HOST='127.0.0.1')
+        self.assertTrue(Conversation.objects.filter(id=group.id).exists())
+
+        # Even if promoted to ROLE_ADMIN, cannot remove group creator via remove_member
+        ConversationMember.objects.filter(conversation=group, user=self.other_mgr).update(role=ConversationMember.ROLE_ADMIN)
+        self.client.post(
+            reverse('group_remove_member', kwargs={'group_id': group.id, 'user_id': self.user_a.id}),
+            HTTP_HOST='127.0.0.1',
+        )
+        self.assertTrue(ConversationMember.objects.filter(conversation=group, user=self.user_a).exists())
+
+    def test_unread_count_and_is_read_marked_on_open_and_poll(self):
+        direct = Conversation.objects.create(conversation_type=Conversation.TYPE_DIRECT, created_by=self.user_a)
+        ConversationMember.objects.create(conversation=direct, user=self.user_a)
+        ConversationMember.objects.create(conversation=direct, user=self.user_b)
+        msg = Message.objects.create(conversation=direct, sender=self.user_a, content='Alo bạn ơi')
+
+        self.client.force_login(self.user_b)
+        list_resp = self.client.get(reverse('messages_list'), HTTP_HOST='127.0.0.1')
+        convos = list_resp.context['conversations']
+        self.assertEqual(convos[0].unread_count, 1)
+
+        # Opening inbox marks is_read=True and updates last_read_at
+        self.client.get(reverse('inbox_detail', kwargs={'user_id': self.user_a.id}), HTTP_HOST='127.0.0.1')
+        msg.refresh_from_db()
+        self.assertTrue(msg.is_read)
+
+        list_after = self.client.get(reverse('messages_list'), HTTP_HOST='127.0.0.1')
+        self.assertEqual(list_after.context['conversations'][0].unread_count, 0)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, PostAttachment, PostReaction, PostComment
+from .models import Post, PostAttachment, PostReaction, PostComment, PostCommentReaction
 
 
 class PostAttachmentInline(admin.TabularInline):
@@ -41,5 +41,11 @@ class PostReactionAdmin(admin.ModelAdmin):
 
 @admin.register(PostComment)
 class PostCommentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'post', 'emp', 'content', 'time_reacted')
+    list_display = ('id', 'post', 'parent', 'emp', 'content', 'time_reacted')
     search_fields = ('content', 'emp__username', 'post__title')
+
+
+@admin.register(PostCommentReaction)
+class PostCommentReactionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'comment', 'emp', 'created_at')
+    list_filter = ('emp',)

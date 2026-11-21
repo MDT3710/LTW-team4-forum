@@ -35,9 +35,28 @@
         return div.innerHTML;
       }
 
+      function updateSidebarPreview(msg) {
+        if (!currentConvoId) return;
+        const sidebarList = document.getElementById("sidebar-convo-list");
+        const sidebarItem = sidebarList
+          ? sidebarList.querySelector(`.convo-item[data-convo-id="${currentConvoId}"]`)
+          : null;
+        if (!sidebarItem) return;
+        const snippetEl = sidebarItem.querySelector(".convo-snippet");
+        if (snippetEl) {
+          snippetEl.textContent = msg.content || "[Tệp đính kèm]";
+        }
+        const timeEl = sidebarItem.querySelector(".convo-time");
+        if (timeEl && msg.created_at) {
+          timeEl.textContent = msg.created_at;
+        }
+        sidebarList.prepend(sidebarItem);
+      }
+
       function appendMessageToChat(msg) {
         if (!chatBox) return;
         if (chatBox.querySelector(`.message[data-msg-id="${msg.id}"]`)) return;
+        chatBox.querySelectorAll(".chat-empty-state").forEach(function (el) { el.remove(); });
 
         const isMe = Boolean(msg.is_me);
         const msgDiv = document.createElement("div");
@@ -53,7 +72,7 @@
 
         const headerSpan = document.createElement("span");
         headerSpan.className = "text-[11px] font-semibold text-slate-500";
-        headerSpan.textContent = (isMe ? "Bạn" : safeSender) + " • " + (msg.created_at || "");
+        headerSpan.textContent = (isMe ? "Bạn" : (msg.sender_name || "Đồng nghiệp")) + " • " + (msg.created_at || "");
         msgDiv.appendChild(headerSpan);
 
         const bubble = document.createElement("div");
@@ -72,12 +91,13 @@
 
         if (msg.attachment) {
           const att = msg.attachment;
+          const safeUrl = escapeHtml(att.url || "");
           if (att.is_media) {
             const imgWrap = document.createElement("div");
             imgWrap.className = "msg-inline-image-wrap mt-2";
             imgWrap.innerHTML = `
-              <img src="${att.url}" alt="${escapeHtml(att.file_name)}" class="msg-inline-image max-h-48 rounded-xl object-cover cursor-pointer" onclick="if (typeof openImageLightbox === 'function') openImageLightbox(this.src);" />
-              <a href="${att.url}" target="_blank" class="inline-flex items-center gap-1 ${isMe ? 'text-white' : 'text-[#134c81]'} font-semibold underline text-xs mt-1 shrink-0">Xem ảnh gốc</a>
+              <img src="${safeUrl}" alt="${escapeHtml(att.file_name)}" class="msg-inline-image max-h-48 rounded-xl object-cover cursor-pointer" onclick="if (typeof openImageLightbox === 'function') openImageLightbox(this.src);" />
+              <a href="${safeUrl}" target="_blank" class="inline-flex items-center gap-1 ${isMe ? 'text-white' : 'text-[#134c81]'} font-semibold underline text-xs mt-1 shrink-0">Xem ảnh gốc</a>
             `;
             bubble.appendChild(imgWrap);
           } else {
@@ -96,7 +116,7 @@
                 <span>${escapeHtml(att.file_name)}</span>
                 ${att.file_size ? `<span class="opacity-60">•</span><span class="text-[11px] opacity-80">${escapeHtml(att.file_size)}</span>` : ''}
               </div>
-              <a href="${att.url}" target="_blank" class="inline-flex items-center gap-1 ${isMe ? 'text-white' : 'text-[#134c81]'} font-semibold underline ml-2 shrink-0">
+              <a href="${safeUrl}" target="_blank" class="inline-flex items-center gap-1 ${isMe ? 'text-white' : 'text-[#134c81]'} font-semibold underline ml-2 shrink-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>
@@ -116,6 +136,7 @@
           lastMsgId = msg.id;
         }
 
+        updateSidebarPreview(msg);
         chatBox.scrollTop = chatBox.scrollHeight;
       }
 

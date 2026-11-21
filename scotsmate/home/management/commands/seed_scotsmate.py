@@ -627,7 +627,7 @@ class Command(BaseCommand):
             creator=tr_mgr,
             code='KH-1028',
             title='Quy chế Phối hợp Liên phòng ban & Theo dõi Tiến độ Vận hành',
-            description='Khóa học tự nghiên cứu (không yêu cầu bài thi cuối khóa) về quy chế phối hợp giữa Khối Học thuật, HR, Tuyển dụng GV và Bộ phận Cộng tác viên.',
+            description='Khóa học chuẩn hóa quy chế phối hợp giữa Khối Học thuật, HR, Tuyển dụng GV và Bộ phận Cộng tác viên kèm bài kiểm tra cuối khóa.',
             date_start=today - timedelta(days=2),
             date_end=today + timedelta(days=35),
             status='ongoing',
@@ -661,9 +661,41 @@ class Command(BaseCommand):
         )
         attach_file(m3_2, 'Quy_trinh_theo_doi_tien_do.pdf')
 
-        CourseEnrollment.objects.create(emp=hr_emp, course=c3, study_process=50, is_assigned=True)
-        CourseEnrollment.objects.create(emp=ctv, course=c3, study_process=0, is_assigned=True)
-        CourseEnrollment.objects.create(emp=rd_emp, course=c3, study_process=100, is_completed=True, is_assigned=False)
+        exam3 = CourseExam.objects.create(
+            course=c3,
+            title='Kiểm tra Quy chế Phối hợp Liên phòng ban',
+            passcode='VHANH26',
+            duration=20,
+            passing_score=75.0,
+            is_active=True,
+        )
+        q3 = seed_questions(exam3, [
+            (
+                'SLA phản hồi yêu cầu phối hợp nội bộ giữa các phòng ban là bao lâu?',
+                ['4 giờ làm việc', '48 giờ làm việc', '5 ngày làm việc', 'Cuối tháng'],
+                1,
+            ),
+            (
+                'Báo cáo tiến độ học tập, khảo sát và tài liệu định kỳ được tổng hợp vào thời điểm nào?',
+                ['Thứ 2 đầu tuần', 'Mỗi thứ 6 hàng tuần', 'Ngày mùng 1 hàng tháng', 'Cuối quý'],
+                2,
+            ),
+            (
+                'Nguyên tắc phân công xử lý yêu cầu liên phòng ban là gì?',
+                ['Ai rảnh thì làm', 'Rõ phòng ban chủ trì và phòng ban phối hợp', 'Chuyển hết cho HR', 'Không cần ghi nhận'],
+                2,
+            ),
+            (
+                'Khi phát hiện hạng mục có nguy cơ trễ hạn, đầu mối cần làm gì?',
+                ['Im lặng chờ hết hạn', 'Cảnh báo sớm và đề xuất phương án xử lý', 'Xóa khỏi báo cáo', 'Đợi cuối quý báo cáo'],
+                2,
+            ),
+        ])
+
+        CourseEnrollment.objects.create(emp=hr_emp, course=c3, exam=exam3, study_process=50, is_assigned=True)
+        CourseEnrollment.objects.create(emp=ctv, course=c3, exam=exam3, study_process=0, is_assigned=True)
+        CourseEnrollment.objects.create(emp=rd_emp, course=c3, exam=exam3, study_process=100, is_completed=True, is_pass=True, is_assigned=False)
+        seed_response(rd_emp, exam3, q3, [1, 2, 2, 2], 12, days_ago=1)
 
         # =====================================================================
         # 4. KH-1029 (ONGOING - creator: admin, assistant: minhanh)

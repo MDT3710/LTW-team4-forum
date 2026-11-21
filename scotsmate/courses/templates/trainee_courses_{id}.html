@@ -7,16 +7,15 @@
 <style>
   .trainee-workspace-figma {
     background-color: #f8fafc;
-    min-height: 844px;
-    padding: 32px 48px;
+    padding: 28px 48px 36px;
     width: 100%;
     max-width: 1440px;
     margin: 0 auto;
     box-sizing: border-box;
     display: flex !important;
-    flex-direction: row !important;
-    gap: 24px !important;
-    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 22px !important;
+    align-items: stretch !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
@@ -88,31 +87,8 @@
 </style>
 
 <div class="trainee-workspace-figma">
-  
-  <!-- Left Sidebar (Khớp 100% với trang danh sách) -->
-  <aside class="tr-sidebar">
-    <div class="tr-identity">
-      <h2>{% if is_preview %}Xem trước{% else %}Đào tạo{% endif %}</h2>
-    </div>
-    <hr class="tr-sidebar-hr">
-    <nav class="tr-nav-links">
-      {% if is_preview %}
-        <a href="/courses/trainer/courses/{{ course.id }}/" class="tr-nav-link active">
-          ← Chi tiết khóa học
-        </a>
-        <a href="/courses/trainer/courses/" class="tr-nav-link">
-          Quản lý đào tạo
-        </a>
-      {% else %}
-        <a href="/courses/trainee/courses/" class="tr-nav-link active">
-          Khóa học của tôi
-        </a>
-      {% endif %}
-    </nav>
-  </aside>
-
-  <!-- Right Main Content -->
-  <main class="tr-content">
+  <!-- Main Content -->
+  <main class="tr-content" style="width: 100%;">
     
     <!-- Breadcrumb -->
     <div class="flex items-center gap-2 text-xs text-slate-500">
@@ -347,9 +323,9 @@
             <h2 class="text-lg font-bold text-slate-900 mt-2">Bài thi cuối khóa</h2>
           </div>
 
-          <!-- TRƯỜNG HỢP 1: HỌC VIÊN ĐÃ NỘP BÀI THI (ĐÃ CÓ KẾT QUẢ, KHÔNG ĐƯỢC THI LẠI) -->
-          {% if latest_response or enrollment.is_completed or enrollment.is_pass %}
-            {% if latest_response.is_passed or enrollment.is_pass %}
+          <!-- TRƯỜNG HỢP 1: HỌC VIÊN ĐÃ NỘP BÀI THI HOẶC ĐÃ ĐẠT KHÓA HỌC -->
+          {% if latest_response or enrollment.is_pass %}
+            {% if latest_response and latest_response.is_passed or enrollment.is_pass %}
               <!-- ĐÃ THI ĐẠT CHUẨN -->
               <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 via-emerald-50/60 to-white border border-emerald-200 text-center flex flex-col items-center gap-3">
                 <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl shadow-sm">
@@ -358,7 +334,7 @@
                 <div>
                   <p class="text-xs font-bold text-emerald-800 uppercase tracking-wide">Kết quả thi đạt chuẩn</p>
                   <div class="flex items-baseline justify-center gap-1.5 mt-1">
-                    <span class="text-4xl font-extrabold text-emerald-600">{{ latest_response.score|default:100|floatformat:0 }}</span>
+                    <span class="text-4xl font-extrabold text-emerald-600">{% if latest_response %}{{ latest_response.score|default:100|floatformat:0 }}{% else %}100{% endif %}</span>
                     <span class="text-sm font-bold text-slate-400">/ 100 điểm</span>
                   </div>
                   <p class="text-xs text-slate-600 mt-1">Xếp loại: <strong>Đạt tiêu chuẩn</strong></p>
@@ -367,7 +343,7 @@
                 <div class="w-full border-t border-emerald-100 pt-3 text-left text-xs text-slate-600 space-y-1">
                   <p class="flex justify-between">
                     <span class="text-slate-400">Thời gian làm bài:</span>
-                    <strong class="text-slate-800">{{ latest_response.duration|default:exam.duration|default:30 }} phút</strong>
+                    <strong class="text-slate-800">{% if exam %}{{ exam.duration|default:30 }}{% else %}30{% endif %} phút</strong>
                   </p>
                   <p class="flex justify-between">
                     <span class="text-slate-400">Trạng thái:</span>
@@ -396,13 +372,13 @@
                     <span class="text-4xl font-extrabold text-rose-600">{{ latest_response.score|default:0|floatformat:0 }}</span>
                     <span class="text-sm font-bold text-slate-400">/ 100 điểm</span>
                   </div>
-                  <p class="text-xs text-slate-600 mt-1">Yêu cầu tối thiểu: <strong>{{ exam.passing_score|floatformat:0 }} điểm</strong></p>
+                  <p class="text-xs text-slate-600 mt-1">Yêu cầu tối thiểu: <strong>{% if exam %}{{ exam.passing_score|floatformat:0 }}{% else %}75{% endif %} điểm</strong></p>
                 </div>
 
                 <div class="w-full border-t border-rose-100 pt-3 text-left text-xs text-slate-600 space-y-1">
                   <p class="flex justify-between">
                     <span class="text-slate-400">Thời gian làm bài:</span>
-                    <strong class="text-slate-800">{{ latest_response.duration|default:exam.duration|default:30 }} phút</strong>
+                    <strong class="text-slate-800">{% if exam %}{{ exam.duration|default:30 }}{% else %}30{% endif %} phút</strong>
                   </p>
                   <p class="flex justify-between">
                     <span class="text-slate-400">Trạng thái:</span>
@@ -421,9 +397,23 @@
               </div>
             {% endif %}
 
-          <!-- TRƯỜNG HỢP 2: CHƯA THI - ĐANG THEO HỌC -->
+          <!-- TRƯỜNG HỢP 2: KHÓA HỌC KHÔNG CÓ BÀI THI VÀ ĐÃ HOÀN THÀNH 100% BÀI GIẢNG -->
+          {% elif enrollment and enrollment.is_completed and not has_active_exam %}
+            <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 via-emerald-50/60 to-white border border-emerald-200 text-center flex flex-col items-center gap-3">
+              <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl shadow-sm">
+                ✓
+              </div>
+              <div>
+                <p class="text-xs font-bold text-emerald-800 uppercase tracking-wide">Đã hoàn thành khóa học</p>
+                <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  Bạn đã hoàn thành 100% bài giảng trong khóa học này. Khóa học không yêu cầu bài thi đánh giá cuối khóa.
+                </p>
+              </div>
+            </div>
+
+          <!-- TRƯỜNG HỢP 3: CHƯA THI - ĐANG THEO HỌC -->
           {% else %}
-            {% if exam %}
+            {% if has_active_exam %}
               <div class="text-xs text-slate-600 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <p class="flex items-center gap-2">
                   <svg class="text-[#134c81]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -451,26 +441,30 @@
                   <span class="font-bold text-slate-800">🔒 Khóa học đã kết thúc</span>
                   <span class="text-[11px] leading-relaxed">Kỳ thi đánh giá năng lực của khóa học này đã đóng và không tiếp nhận thêm bài nộp mới.</span>
                 </div>
-              {% elif all_materials_completed %}
-                <!-- ĐÃ HOÀN THÀNH TẤT CẢ BÀI GIẢNG: MỞ KHÓA NHẬP PASSCODE VÀ LÀM BÀI -->
-                <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 font-medium flex items-center gap-2">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  Bạn đã hoàn thành đủ {{ total_materials }} bài giảng. Hãy nhập Passcode để bắt đầu thi!
+              {% elif not enrollment %}
+                <div class="p-4 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-slate-700 leading-relaxed">
+                  Vui lòng bấm <strong>Đăng ký học ngay (Tự chọn)</strong> và hoàn thành {{ total_materials }} bài giảng để mở bài kiểm tra.
                 </div>
+              {% elif all_materials_completed %}
+                {% if requires_passcode %}
+                  <!-- Form nhập passcode để thi -->
+                  <form method="GET" action="/courses/trainee/course/{{ course.id }}/exam/" class="border-t border-slate-100 pt-3 flex flex-col gap-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-700 mb-1">Mã dự thi (Passcode):</label>
+                      <input type="text" name="passcode" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm uppercase focus:outline-none focus:border-[#134c81] focus:ring-2 focus:ring-[#134c81]/15 transition">
+                    </div>
 
-                <!-- Form nhập passcode để thi -->
-                <form method="GET" action="/courses/trainee/course/{{ course.id }}/exam/" class="border-t border-slate-100 pt-3 flex flex-col gap-3">
-                  <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mã dự thi (Passcode):</label>
-                    <input type="text" name="passcode" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm uppercase focus:outline-none focus:border-[#134c81] focus:ring-2 focus:ring-[#134c81]/15 transition">
-                  </div>
-                  <p class="text-[11px] text-slate-400 leading-tight">Mã passcode do Ban Đào tạo cung cấp để mở đề thi.</p>
-
-                  <button type="submit" class="w-full py-3 rounded-xl bg-[#134c81] hover:bg-[#0c375f] text-white font-bold text-xs transition shadow-md cursor-pointer flex items-center justify-center gap-1.5 mt-1">
+                    <button type="submit" class="w-full py-3 rounded-xl bg-[#134c81] hover:bg-[#0c375f] text-white font-bold text-xs transition shadow-md cursor-pointer flex items-center justify-center gap-1.5 mt-1">
+                      <span>Bắt đầu làm bài kiểm tra</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  </form>
+                {% else %}
+                  <a href="/courses/trainee/course/{{ course.id }}/exam/" class="w-full py-3 rounded-xl bg-[#134c81] hover:bg-[#0c375f] text-white font-bold text-xs transition shadow-md flex items-center justify-center gap-1.5" style="text-decoration:none;">
                     <span>Bắt đầu làm bài kiểm tra</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                  </button>
-                </form>
+                  </a>
+                {% endif %}
               {% else %}
                 <!-- CHƯA HỌC XONG HẾT BÀI GIẢNG: KHÓA BÀI THI, KHÔNG HIỆN NƠI VÀO THI -->
                 <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 flex flex-col gap-2">

@@ -71,8 +71,8 @@
           </div>
           <div>
             <span class="text-slate-400 block mb-0.5">Trạng thái khởi tạo:</span> 
-            <p class="font-bold text-sm {% if draft.status == 'ongoing' %}text-emerald-600{% else %}text-amber-600{% endif %}">
-              {% if draft.status == 'ongoing' %}Đang triển khai (Kích hoạt ngay){% else %}Bản nháp (Lưu trữ){% endif %}
+            <p class="font-bold text-sm text-amber-600">
+              Bản nháp (Chờ thiết lập bài thi để xuất bản)
             </p>
           </div>
           {% if draft.description %}
@@ -118,14 +118,14 @@
         </div>
       </section>
 
-      <!-- Khối 3: Bước tiếp theo sau khi xuất bản -->
-      <section class="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-        <h3 class="font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#134c81]"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          Bước tiếp theo sau khi xuất bản
+      <!-- Khối 3: Bước tiếp theo bắt buộc sau khi lưu khóa học -->
+      <section class="space-y-3 p-4 rounded-xl bg-amber-50/70 border border-amber-200 text-xs">
+        <h3 class="font-bold text-amber-900 uppercase tracking-wider flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-700"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Bước tiếp theo bắt buộc: Thiết lập bài thi
         </h3>
-        <p class="text-slate-600 leading-relaxed">
-          Ngay sau khi xuất bản thành công, bạn sẽ được tự động chuyển đến trang <strong>Quản lý chi tiết khóa học</strong> để tải lên các bài giảng (PDF, Video MP4) và thiết lập bài kiểm tra năng lực cuối khóa.
+        <p class="text-amber-900/90 leading-relaxed">
+          Mỗi khóa học đều bắt buộc có bài thi đánh giá năng lực. Ngay sau khi lưu khóa học ở bước này, hệ thống sẽ chuyển bạn thẳng tới trang <strong>Thiết lập bài thi</strong> — sau khi cấu hình xong bài thi và tải lên bài giảng, bạn mới có thể xuất bản khóa học cho học viên.
         </p>
       </section>
 
@@ -133,8 +133,8 @@
         <button type="submit" name="action" value="back" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition cursor-pointer">
           ← Quay lại phân công
         </button>
-        <button type="submit" name="action" value="publish" class="inline-flex items-center gap-2 px-8 py-3 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition shadow-md cursor-pointer">
-          Xuất bản & Kích hoạt khóa học ngay ✓
+        <button type="submit" name="action" value="publish" class="inline-flex items-center gap-2 px-8 py-3 rounded-lg bg-[#134c81] text-white text-sm font-bold hover:bg-[#0e3b65] transition shadow-md cursor-pointer">
+          Lưu khóa học & Thiết lập bài thi (Bắt buộc) →
         </button>
       </div>
 

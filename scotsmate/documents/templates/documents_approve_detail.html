@@ -25,123 +25,117 @@
       <a href="{% url 'document_my_docs' %}" class="doc-tab">Tài liệu của tôi</a>
     </nav>
 
-    <!-- Layout 2 cột -->
-    <div class="doc-two-col">
+    <!-- Layout 1 cột liền mạch -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
 
-      <!-- Cột phụ bên trái: Thông tin tệp -->
-      <aside class="doc-col-side" style="width: 340px;">
-        <div class="doc-card">
-          <h2 class="doc-card-title">Thông tin hiện tại</h2>
-          <div style="margin-bottom: 16px;">
-             {% if doc.request_type == 'UPDATE' %}
-               <span class="doc-badge doc-badge-in-progress">Chờ duyệt (Cập nhật)</span>
-             {% else %}
-               <span class="doc-badge doc-badge-pending">Chờ duyệt (Tạo mới)</span>
-             {% endif %}
+      <!-- Bảng thông tin & nội dung tài liệu gộp chung -->
+      <section class="doc-card">
+        <!-- Phần đầu: Tiêu đề, trạng thái & nút xem/tải -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--line, #e2e8f0);">
+          <div style="flex: 1; min-width: 240px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+              <h2 style="font-size: 20px; font-weight: 700; color: var(--ink); margin: 0;">
+                {% if proposal %}
+                  {{ proposal.proposed_title|default:doc.title }}
+                {% else %}
+                  {{ doc.title }}
+                {% endif %}
+              </h2>
+              {% if proposal %}
+                <span class="doc-badge doc-badge-in-progress">Chờ duyệt (Cập nhật)</span>
+              {% else %}
+                <span class="doc-badge doc-badge-pending">Chờ duyệt (Tạo mới)</span>
+              {% endif %}
+            </div>
+            <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; margin: 0; white-space: pre-wrap;">{% if proposal and proposal.proposed_description %}{{ proposal.proposed_description }}{% else %}{{ doc.description|default:"Chưa có mô tả cho tài liệu này." }}{% endif %}</p>
           </div>
 
-          <div class="doc-meta-list">
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Người nộp</span>
-              <span class="doc-meta-value">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {% if proposal and proposal.proposed_file %}
+              <a href="{{ proposal.proposed_file.url }}" target="_blank" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem trực tiếp ↗</a>
+              <a href="{{ proposal.proposed_file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>Tải file đề xuất</a>
+            {% elif doc.file %}
+              <a href="{{ doc.file.url }}" target="_blank" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem trực tiếp ↗</a>
+              <a href="{{ doc.file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>Tải tài liệu</a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Phần dưới: Thông tin chi tiết liền mạch dạng bảng -->
+        <table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th style="text-align: left; padding: 12px 0; width: 200px; font-weight: 500; color: var(--ink-soft, #64748b);">Người nộp</th>
+              <td style="padding: 12px 0; font-weight: 600; color: var(--ink, #0f172a);">
                 {% if proposal %}
                   {{ proposal.submitted_by.get_full_name|default:proposal.submitted_by.username }}
                 {% else %}
                   {{ doc.creator.get_full_name|default:doc.creator.username }}
                 {% endif %}
-              </span>
-            </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Mã tài liệu</span>
-              <span class="doc-meta-value">DOC-{{ doc.id|stringformat:"03d" }}</span>
-            </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Danh mục</span>
-              <span class="doc-meta-value">
+              </td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th style="text-align: left; padding: 12px 0; font-weight: 500; color: var(--ink-soft, #64748b);">Mã tài liệu</th>
+              <td style="padding: 12px 0; font-weight: 600; color: var(--ink, #0f172a);">DOC-{{ doc.id|stringformat:"03d" }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th style="text-align: left; padding: 12px 0; font-weight: 500; color: var(--ink-soft, #64748b);">Danh mục</th>
+              <td style="padding: 12px 0; font-weight: 600; color: var(--ink, #0f172a);">
                 {% if proposal and proposal.proposed_category %}
                   {{ proposal.proposed_category.name }}
                 {% else %}
                   {{ doc.category.name|default:"--" }}
                 {% endif %}
-              </span>
-            </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Thời điểm gửi</span>
-              <span class="doc-meta-value">
-                 {% if proposal %}
-                   {{ proposal.created_at|date:"H:i d/m/Y" }}
-                 {% else %}
-                   {{ doc.created_at|date:"H:i d/m/Y" }}
-                 {% endif %}
-              </span>
-            </div>
-            <div class="doc-meta-row">
-              <span class="doc-meta-label">Phạm vi truy cập</span>
-              <span class="doc-meta-value">
-                 {% if proposal %}
-                   {{ proposal.get_proposed_scope_display|default:proposal.proposed_scope }}
-                 {% else %}
-                   {{ doc.get_access_scope_display|default:doc.access_scope }}
-                 {% endif %}
-              </span>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Cột chính bên phải: Xem trước tài liệu & Hành động phê duyệt -->
-      <section class="doc-col-main">
-        <div class="doc-card">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 240px;">
-              <h2 style="font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
+              </td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th style="text-align: left; padding: 12px 0; font-weight: 500; color: var(--ink-soft, #64748b);">Thời điểm gửi</th>
+              <td style="padding: 12px 0; font-weight: 600; color: var(--ink, #0f172a);">
                 {% if proposal %}
-                   {{ proposal.proposed_title|default:doc.title }}
+                  {{ proposal.created_at|date:"H:i d/m/Y" }}
                 {% else %}
-                   {{ doc.title }}
+                  {{ doc.created_at|date:"H:i d/m/Y" }}
                 {% endif %}
-              </h2>
-              <p style="font-size: 13px; color: var(--ink-soft); line-height: 1.6; white-space: pre-wrap;">
-                 {% if proposal and proposal.proposed_description %}{{ proposal.proposed_description }}{% else %}{{ doc.description|default:"Chưa có mô tả cho tài liệu này." }}{% endif %}
-              </p>
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              {% if proposal and proposal.proposed_file %}
-                <a href="{{ proposal.proposed_file.url }}" target="_blank" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem trực tiếp ↗</a>
-                <a href="{{ proposal.proposed_file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>Tải file đề xuất</a>
-              {% elif doc.file %}
-                <a href="{{ doc.file.url }}" target="_blank" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;">Xem trực tiếp ↗</a>
-                <a href="{{ doc.file.url }}" class="doc-btn doc-btn-secondary" style="height: 36px; padding: 0 14px; font-size: 13px;" download>Tải tài liệu</a>
-              {% endif %}
-            </div>
+              </td>
+            </tr>
+            <tr>
+              <th style="text-align: left; padding: 12px 0; font-weight: 500; color: var(--ink-soft, #64748b);">Phạm vi truy cập</th>
+              <td style="padding: 12px 0; font-weight: 600; color: var(--ink, #0f172a);">
+                {% if proposal %}
+                  {{ proposal.get_proposed_scope_display|default:proposal.proposed_scope }}
+                {% else %}
+                  {{ doc.get_access_scope_display|default:doc.access_scope }}
+                {% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {% if proposal %}
+          <div style="margin-top: 16px; padding: 12px 14px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 13px; color: #334155;">
+            <strong style="color: var(--navy); display: block; margin-bottom: 6px;">Đối chiếu bản hiện tại vs Đề xuất chỉnh sửa:</strong>
+            <div>• Tiêu đề: <span style="color:#64748b;">{{ doc.title }}</span> → <strong>{{ proposal.proposed_title }}</strong></div>
+            <div>• Danh mục: <span style="color:#64748b;">{{ doc.category.name }}</span> → <strong>{{ proposal.proposed_category.name|default:doc.category.name }}</strong></div>
+            <div>• Phạm vi: <span style="color:#64748b;">{{ doc.get_access_scope_display }}</span> → <strong>{{ proposal.get_proposed_scope_display }}</strong>{% if proposed_departments %} ({% for d in proposed_departments %}{{ d.name }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}</div>
+            <div>• Mô tả: <span style="color:#64748b;">{{ doc.description|default:"(Trống)"|truncatechars:60 }}</span> → <strong>{{ proposal.proposed_description|default:"(Trống)" }}</strong></div>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Khung Quyết định phê duyệt -->
+      <section class="doc-card">
+        <h3 class="doc-card-title">Ý kiến phê duyệt</h3>
+        <form method="POST" action="{% url 'document_approve_detail' id=doc.id %}">
+          {% csrf_token %}
+          <div class="doc-form-group">
+            <textarea class="doc-form-textarea" id="approval-notes" name="rejection_reason" placeholder="Nhập lý do từ chối (bắt buộc khi bấm Từ chối duyệt) hoặc ghi chú..."></textarea>
           </div>
 
-          {% if proposal %}
-            <div style="margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 12px; color: #334155;">
-              <strong style="color: var(--navy); display: block; margin-bottom: 6px;">Đối chiếu bản hiện tại vs Đề xuất chỉnh sửa:</strong>
-              <div>• Tiêu đề: <span style="color:#64748b;">{{ doc.title }}</span> → <strong>{{ proposal.proposed_title }}</strong></div>
-              <div>• Danh mục: <span style="color:#64748b;">{{ doc.category.name }}</span> → <strong>{{ proposal.proposed_category.name|default:doc.category.name }}</strong></div>
-              <div>• Phạm vi: <span style="color:#64748b;">{{ doc.get_access_scope_display }}</span> → <strong>{{ proposal.get_proposed_scope_display }}</strong>{% if proposed_departments %} ({% for d in proposed_departments %}{{ d.name }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}</div>
-              <div>• Mô tả: <span style="color:#64748b;">{{ doc.description|default:"(Trống)"|truncatechars:60 }}</span> → <strong>{{ proposal.proposed_description|default:"(Trống)" }}</strong></div>
-            </div>
-          {% endif %}
-        </div>
-
-        <!-- Khung Quyết định phê duyệt -->
-        <div class="doc-card">
-          <h3 class="doc-card-title">Ý kiến phê duyệt</h3>
-          <form method="POST" action="{% url 'document_approve_detail' id=doc.id %}">
-            {% csrf_token %}
-            <div class="doc-form-group">
-              <textarea class="doc-form-textarea" id="approval-notes" name="rejection_reason" placeholder="Nhập lý do từ chối (bắt buộc khi bấm Từ chối duyệt) hoặc ghi chú..."></textarea>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-              <button type="submit" name="action" value="reject" onclick="return validateRejectReason()" class="doc-btn doc-btn-danger">Từ chối duyệt</button>
-              <button type="submit" name="action" value="approve" class="doc-btn doc-btn-success">Phê duyệt tài liệu</button>
-            </div>
-          </form>
-        </div>
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button type="submit" name="action" value="reject" onclick="return validateRejectReason()" class="doc-btn doc-btn-danger">Từ chối duyệt</button>
+            <button type="submit" name="action" value="approve" class="doc-btn doc-btn-success">Phê duyệt tài liệu</button>
+          </div>
+        </form>
       </section>
 
     </div>

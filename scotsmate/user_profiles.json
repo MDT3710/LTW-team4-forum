@@ -9,6 +9,13 @@
     "cover": "/media/covers/minhanh_1794415083.jpg"
   },
   "tranminhduc": {
-    "bio": "Giảng viên chuyên môn Scots English - Đồng hành cùng học viên nâng cao năng lực tiếng Anh."
+    "avatar": "/media/avatars/tranminhduc_1795108484.png",
+    "cover": "/media/covers/tranminhduc_1795108509.png",
+    "bio": "Giảng viên chuyên môn Scots English - Đồng hành cùng học viên nâng cao năng lực tiếng Anh.",
+    "job_title": "Trưởng phòng",
+    "branch": "Scots English Đà Nẵng",
+    "join_date": "15/08/2022",
+    "phone": "0901234561",
+    "email": "duc.tm@scotsenglish.edu.vn"
   }
 }

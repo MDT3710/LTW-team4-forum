@@ -7,7 +7,6 @@ urlpatterns = [
     path('', views.courses_home, name='courses'),
     path('', views.courses_home, name='courses_home'),
     path('login/', views.login_view, name='courses_login'),
-    path('register/', views.register_view, name='courses_register'),
     path('logout/', views.logout_view, name='courses_logout'),
 
     # ----------------- REST API (CHƯƠNG 05 - MIS3010) -----------------

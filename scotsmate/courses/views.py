@@ -45,6 +45,12 @@ def get_course_exam(course):
         return None
 
 
+def _course_has_valid_exam(course):
+    """Kiểm tra khóa học đã thiết lập bài thi hợp lệ (đang kích hoạt và có ít nhất 1 câu hỏi) hay chưa."""
+    exam = get_course_exam(course)
+    return bool(exam and exam.is_active and exam.questions.exists())
+
+
 def get_user_role(user):
     """
     Xác định vai trò phân quyền thực tế trong module Đào tạo nội bộ:
@@ -144,16 +150,6 @@ def login_view(request):
             error_msg = 'Vui lòng điền đầy đủ tên đăng nhập và mật khẩu!'
 
     return render(request, 'login.html', {'form': form, 'error_msg': error_msg, 'next': next_url or ''})
-
-
-def register_view(request):
-    """
-    Không cho phép tự đăng ký tài khoản ngoài luồng Admin (theo Use Case Tài khoản: Admin tạo tài khoản).
-    """
-    if request.user.is_authenticated:
-        return redirect('courses_home')
-    messages.info(request, 'Tài khoản nội bộ do Admin (Phòng IT) cấp phát. Vui lòng liên hệ Phòng IT hoặc đăng nhập bằng tài khoản được cấp.')
-    return redirect('login')
 
 
 def logout_view(request):
@@ -279,6 +275,12 @@ def trainer_course_detail(request, course_id=1):
             )
         action = request.POST.get('action', '')
         if action == 'publish':
+            if not _course_has_valid_exam(course):
+                messages.error(
+                    request,
+                    'Không thể xuất bản khóa học khi chưa thiết lập bài thi cuối khóa (tối thiểu 1 câu hỏi). Vui lòng hoàn tất thiết lập bài thi trước!'
+                )
+                return redirect('trainer_course_exam_setup', course_id=course.id)
             course.status = 'ongoing'
             course.save()
             messages.success(request, f'Khóa học "{course.title}" đã được xuất bản thành công! Học viên đã có thể tham gia học tập.')
@@ -290,7 +292,8 @@ def trainer_course_detail(request, course_id=1):
                 form.save()
                 messages.success(request, f'Đã cập nhật thông tin khóa học "{course.title}" thành công!')
             else:
-                messages.error(request, 'Cập nhật thất bại. Ngày kết thúc phải diễn ra sau ngày bắt đầu hoặc dữ liệu không hợp lệ.')
+                first_err = next(iter(form.errors.values()))[0] if form.errors else 'Dữ liệu không hợp lệ.'
+                messages.error(request, f'Cập nhật thất bại: {first_err}')
             return redirect('trainer_course_detail', course_id=course.id)
         elif action == 'remove_trainee':
             emp_id = request.POST.get('emp_id')
@@ -740,6 +743,33 @@ def trainer_course_exam_setup(request, course_id=1):
         passing_score = float(request.POST.get('passing_score', 80.0) or 80.0)
         is_active = True  # Luôn tự động kích hoạt đề thi khi giảng viên thiết lập đề thi
 
+        total_questions = int(request.POST.get('total_questions', 0) or 0)
+        parsed_questions = []
+        for n in range(1, total_questions + 1):
+            caption = request.POST.get(f'question_{n}_caption', '').strip()
+            if not caption:
+                continue
+
+            valid_choices = []
+            for m in range(1, 6):
+                val = request.POST.get(f'question_{n}_choice_{m}', '').strip()
+                if val:
+                    valid_choices.append(val)
+
+            if len(valid_choices) < 2:
+                continue
+
+            raw_correct = int(request.POST.get(f'question_{n}_correct', 1) or 1)
+            correct_choice = min(max(1, raw_correct), len(valid_choices))
+            parsed_questions.append((caption, valid_choices, correct_choice))
+
+        if not parsed_questions:
+            messages.error(
+                request,
+                'Bài thi bắt buộc phải có ít nhất 1 câu hỏi trắc nghiệm hợp lệ (mỗi câu tối thiểu 2 phương án). Không thể bỏ qua bước thiết lập bài thi!'
+            )
+            return redirect('trainer_course_exam_setup', course_id=course.id)
+
         # Đảm bảo tính toàn vẹn cơ sở dữ liệu: Nếu một bước thất bại, toàn bộ giao dịch sẽ được Rollback
         with transaction.atomic():
             # 3.1. Tạo mới hoặc cập nhật thông tin bài thi (CourseExam)
@@ -754,32 +784,9 @@ def trainer_course_exam_setup(request, course_id=1):
                 }
             )
 
-            # 3.2. Thu thập và cập nhật danh sách câu hỏi trắc nghiệm động từ form gửi lên
-            total_questions = int(request.POST.get('total_questions', 0) or 0)
             max_q = 0
-
-            for n in range(1, total_questions + 1):
-                caption = request.POST.get(f'question_{n}_caption', '').strip()
-                if not caption:
-                    continue
-
-                # Thu thập các phương án hợp lệ (m = 1 đến 5 đại diện cho A, B, C, D, E)
-                valid_choices = []
-                for m in range(1, 6):
-                    val = request.POST.get(f'question_{n}_choice_{m}', '').strip()
-                    if val:
-                        valid_choices.append(val)
-
-                # Mỗi câu hỏi hợp lệ bắt buộc cần có tối thiểu 2 phương án (ví dụ Đúng/Sai hoặc trắc nghiệm A, B)
-                if len(valid_choices) < 2:
-                    continue
-
-                raw_correct = int(request.POST.get(f'question_{n}_correct', 1) or 1)
-                correct_choice = min(max(1, raw_correct), len(valid_choices))
-
+            for caption, valid_choices, correct_choice in parsed_questions:
                 max_q += 1
-
-                # Lưu hoặc cập nhật câu hỏi vào bảng CourseExamQuestion
                 question, _ = CourseExamQuestion.objects.update_or_create(
                     exam=exam,
                     question_number=max_q,
@@ -788,21 +795,15 @@ def trainer_course_exam_setup(request, course_id=1):
                         'correct_choice': correct_choice,
                     }
                 )
-
-                # Lưu từng phương án trả lời vào bảng CourseQuestionChoice
                 for idx, c_text in enumerate(valid_choices, start=1):
                     CourseQuestionChoice.objects.update_or_create(
                         question=question,
                         choice_number=idx,
                         defaults={'content': c_text}
                     )
-
-                # Dọn dẹp phương án thừa nếu người dùng xóa bớt phương án (ví dụ từ 4 phương án giảm xuống 3)
                 question.choices.filter(choice_number__gt=len(valid_choices)).delete()
 
-            # Dọn dẹp câu hỏi thừa nếu số lượng câu hỏi bị giảm sau khi sửa
-            if exam:
-                exam.questions.filter(question_number__gt=max_q).delete()
+            exam.questions.filter(question_number__gt=max_q).delete()
 
         messages.success(request, f'Đã lưu thành công cấu hình bài thi và {max_q} câu hỏi trắc nghiệm!')
         return redirect('trainer_course_exam_setup', course_id=course.id)
@@ -972,7 +973,7 @@ def trainer_courses_create_info(request):
                 'description': cleaned.get('description', ''),
                 'date_start': cleaned.get('date_start').strftime('%Y-%m-%d') if cleaned.get('date_start') else '',
                 'date_end': cleaned.get('date_end').strftime('%Y-%m-%d') if cleaned.get('date_end') else '',
-                'status': cleaned.get('status', 'draft'),
+                'status': 'draft',  # Khóa học mới bắt buộc ở Bản nháp cho tới khi thiết lập xong bài thi
             }
             request.session['draft_course'] = form_data
             return redirect('trainer_courses_create_assign')
@@ -1048,7 +1049,8 @@ def trainer_courses_create_review(request):
             code = draft.get('code', '').strip().upper()
             title = draft.get('title', 'Khóa học đào tạo mới')
             description = draft.get('description', '')
-            status = draft.get('status', 'draft')
+            # Bắt buộc ở trạng thái Bản nháp cho tới khi giảng viên hoàn tất thiết lập bài thi cuối khóa
+            status = 'draft'
 
             try:
                 date_start = datetime.strptime(draft.get('date_start', ''), '%Y-%m-%d').date()
@@ -1094,8 +1096,11 @@ def trainer_courses_create_review(request):
             request.session.pop('draft_course', None)
             request.session.pop('draft_trainees', None)
 
-            messages.success(request, f'Khóa học "{title}" đã được tạo và kích hoạt thành công!')
-            return redirect('trainer_course_detail', course_id=course.id)
+            messages.info(
+                request,
+                f'Đã tạo khóa học "{title}" ở trạng thái Bản nháp. Vui lòng thiết lập bài thi cuối khóa (bắt buộc) trước khi xuất bản!'
+            )
+            return redirect('trainer_course_exam_setup', course_id=course.id)
 
     context = {
         'step': 3,
@@ -1134,6 +1139,12 @@ def trainer_course_publish(request, course_id):
         return access_denied
     if request.method != 'POST':
         return redirect('trainer_course_detail', course_id=course.id)
+    if not _course_has_valid_exam(course):
+        messages.error(
+            request,
+            'Không thể xuất bản khóa học khi chưa thiết lập bài thi cuối khóa (tối thiểu 1 câu hỏi). Vui lòng thiết lập bài thi trước!'
+        )
+        return redirect('trainer_course_exam_setup', course_id=course.id)
     course.status = 'ongoing'
     course.save()
     messages.success(request, f'Khóa học "{course.title}" đã được xuất bản thành công! Học viên đã có thể thấy và tham gia học tập.')
@@ -1316,6 +1327,9 @@ def trainee_course_detail(request, course_id=1):
     if is_course_finished or (enrollment and enrollment.study_process >= 100):
         all_materials_completed = True
 
+    requires_passcode = bool(
+        not is_preview and enrollment and enrollment.is_assigned and exam and exam.passcode
+    )
     context = {
         'course': course,
         'materials': materials,
@@ -1325,6 +1339,8 @@ def trainee_course_detail(request, course_id=1):
         'all_materials_completed': all_materials_completed,
         'next_material_to_study': next_material_to_study,
         'exam': exam,
+        'has_active_exam': bool(exam and exam.is_active),
+        'requires_passcode': requires_passcode,
         'enrollment': enrollment,
         'latest_response': latest_response,
         'is_preview': is_preview,
@@ -1434,19 +1450,19 @@ def trainee_course_material(request, course_id=1, materials_id=1):
 
         if total > 0 and enrollment and course.status == 'ongoing':
             # Tính phần trăm theo đúng số bài thực tế đã mở trong khóa học (không nhảy cóc)
+            # Bắt buộc hoàn thành bài thi cuối khóa mới đánh dấu is_completed=True
             num_done = learned_count
             progress = int(round(num_done / total * 100))
             if progress > enrollment.study_process and not enrollment.is_pass:
                 enrollment.study_process = progress
-                if progress >= 100 and (not exam or not exam.is_active):
-                    enrollment.is_completed = True
-                    enrollment.save(update_fields=['study_process', 'is_completed'])
-                else:
-                    enrollment.save(update_fields=['study_process'])
+                enrollment.save(update_fields=['study_process'])
     else:
         learned_count = len(all_materials)
         all_materials_completed = True
 
+    requires_passcode = bool(
+        not is_preview and enrollment and enrollment.is_assigned and exam and exam.passcode
+    )
     context = {
         'course': course,
         'material': material,
@@ -1455,6 +1471,8 @@ def trainee_course_material(request, course_id=1, materials_id=1):
         'next_material': next_material,
         'enrollment': enrollment,
         'exam': exam,
+        'has_active_exam': bool(exam and exam.is_active),
+        'requires_passcode': requires_passcode,
         'latest_response': latest_response,
         'is_preview': is_preview,
         'all_materials_completed': all_materials_completed,
@@ -1488,6 +1506,7 @@ def trainee_course_exam(request, course_id=1):
     passcode_error = None
     is_unlocked = is_preview  # Giảng viên luôn mở chế độ xem trước
 
+    requires_passcode = False
     if not is_preview:
         enrollment = CourseEnrollment.objects.filter(emp=request.user, course=course).first()
         latest_response = CourseExamResponse.objects.filter(
@@ -1512,10 +1531,11 @@ def trainee_course_exam(request, course_id=1):
                 messages.warning(request, 'Vui lòng hoàn thành 100% bài giảng trước khi vào làm bài kiểm tra.')
                 return redirect('trainee_course_detail', course_id=course.id)
 
-
-
-        # Xử lý bảo mật Passcode:
-        if exam and exam.passcode:
+        # Khóa bắt buộc (is_assigned=True) mới yêu cầu Passcode; khóa tự chọn (is_assigned=False) vào thi thẳng
+        requires_passcode = bool(enrollment.is_assigned and exam and exam.passcode)
+        if not requires_passcode:
+            is_unlocked = True
+        else:
             # Kiểm tra trạng thái đã mở khóa trong phiên session
             if request.session.get(unlocked_session_key):
                 is_unlocked = True
@@ -1541,8 +1561,9 @@ def trainee_course_exam(request, course_id=1):
         action = request.POST.get('action')
         if action == 'unlock_exam':
             entered_code = request.POST.get('entered_passcode', '').strip().upper()
-            if exam.passcode and entered_code == exam.passcode.upper():
-                request.session[unlocked_session_key] = True
+            if not requires_passcode or (exam.passcode and entered_code == exam.passcode.upper()):
+                if unlocked_session_key:
+                    request.session[unlocked_session_key] = True
                 is_unlocked = True
                 messages.success(request, 'Mở khóa phòng thi thành công! Chúc bạn làm bài tốt.')
             else:
@@ -1555,6 +1576,7 @@ def trainee_course_exam(request, course_id=1):
                 'questions': questions,
                 'is_preview': is_preview,
                 'is_unlocked': is_unlocked,
+                'requires_passcode': requires_passcode,
                 'passcode_error': passcode_error,
             }
             return render(request, 'trainee_course_{id}_exam.html', context)
@@ -1564,10 +1586,10 @@ def trainee_course_exam(request, course_id=1):
             messages.warning(request, 'Bạn đã hoàn thành bài thi trước đó và không được phép làm bài lại!')
             return redirect('trainee_course_exam_result', course_id=course.id)
 
-        # Bảo mật kiểm tra Passcode khi nộp bài (không phân biệt hoa/thường)
+        # Bảo mật kiểm tra Passcode khi nộp bài (chỉ bắt buộc với khóa học được Trainer phân công)
         expected_passcode = (exam.passcode or '').strip().upper()
         passcode_entered = request.POST.get('passcode', '').strip().upper()
-        if not is_preview and expected_passcode:
+        if requires_passcode and expected_passcode:
             if passcode_entered:
                 if passcode_entered != expected_passcode:
                     messages.error(request, 'Mã dự thi (Passcode) không chính xác. Vui lòng thử lại!')
@@ -1700,6 +1722,7 @@ def trainee_course_exam(request, course_id=1):
         'questions': questions,
         'is_preview': is_preview,
         'is_unlocked': is_unlocked,
+        'requires_passcode': requires_passcode,
         'passcode_error': passcode_error,
     }
     return render(request, 'trainee_course_{id}_exam.html', context)

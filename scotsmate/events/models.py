@@ -78,12 +78,6 @@ class Event(models.Model):
         default=50,
         verbose_name="Số lượng đăng ký tối đa"
     )
-    banner = models.ImageField(
-        upload_to='events/banners/',
-        null=True,
-        blank=True,
-        verbose_name="Ảnh bìa sự kiện"
-    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
@@ -118,6 +112,27 @@ class Event(models.Model):
     @property
     def is_past(self):
         return self.date_end < timezone.now()
+
+    @property
+    def effective_status(self):
+        """Trạng thái thực tế kết hợp trạng thái lưu và đồng hồ thời gian thực."""
+        if self.status == self.STATUS_CANCELLED:
+            return self.STATUS_CANCELLED
+        now = timezone.now()
+        if self.status == self.STATUS_COMPLETED or (self.date_end and self.date_end < now):
+            return self.STATUS_COMPLETED
+        if self.status == self.STATUS_ONGOING or (self.date_start and self.date_start <= now):
+            return self.STATUS_ONGOING
+        return self.STATUS_UPCOMING
+
+    @property
+    def can_register(self):
+        """Nhân viên chỉ được đăng ký / hủy đăng ký trước khi sự kiện bắt đầu."""
+        return (
+            self.effective_status == self.STATUS_UPCOMING
+            and self.date_start is not None
+            and self.date_start > timezone.now()
+        )
 
     @property
     def category_badge_class(self):
