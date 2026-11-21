@@ -54,8 +54,9 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm trong thư viện tài liệu...">
+        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm danh mục...">
       </div>
+      <button type="submit" class="doc-btn doc-btn-primary">Tìm</button>
     </form>
 
     <!-- Bảng danh sách danh mục tài liệu -->
@@ -66,8 +67,7 @@
           <tr>
             <th>Tên danh mục</th>
             <th>Mô tả danh mục</th>
-            <th>Số tài liệu</th>
-            <th style="text-align: right;">Thao tác</th>
+            <th style="text-align: right;"> </th>
           </tr>
         </thead>
         <tbody>
@@ -81,10 +81,6 @@
 
               <td style="color: var(--ink-soft); max-width: 420px;">
                 {{ cat.description|default:"Chưa có mô tả chi tiết."|truncatechars:90 }}
-              </td>
-
-              <td>
-                <span class="doc-badge" style="background: #f1f5f9; color: #334155;">{{ cat.doc_count|default:0 }} tài liệu</span>
               </td>
 
               <td style="text-align: right;">
@@ -109,8 +105,12 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" style="text-align: center; color: var(--ink-soft); padding: 48px;">
-                Chưa có danh mục nào. Nhấn <strong>"Tạo danh mục"</strong> ở góc trên để thêm mới.
+              <td colspan="3" style="text-align: center; color: var(--ink-soft); padding: 48px;">
+                {% if is_manager %}
+                  Chưa có danh mục nào. Nhấn <strong>"Tạo danh mục"</strong> ở góc trên để thêm mới.
+                {% else %}
+                  Hiện chưa có danh mục tài liệu nào trong hệ thống.
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

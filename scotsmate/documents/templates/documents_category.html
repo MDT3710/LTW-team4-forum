@@ -44,8 +44,9 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm tài liệu trong danh mục này...">
+        <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm tài liệu chờ duyệt...">
       </div>
+      <button type="submit" class="doc-btn doc-btn-primary">Tìm</button>
     </form>
 
     <!-- Bảng danh sách tài liệu -->
@@ -59,7 +60,7 @@
             <th>Người tạo</th>
             <th>Quyền truy cập</th>
             <th>Ngày tải lên</th>
-            <th style="text-align: right;">Thao tác</th>
+            <th style="text-align: right;"> </th>
           </tr>
         </thead>
         <tbody>
@@ -119,6 +120,9 @@
               <td style="text-align: right;">
                 <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
                   {% if doc.file %}
+                    <a href="{{ doc.file.url }}" target="_blank" class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px; white-space: nowrap;">
+                      Xem trực tiếp ↗
+                    </a>
                     <a href="{{ doc.file.url }}" download class="doc-btn doc-btn-secondary" style="height: 34px; padding: 0 12px; font-size: 13px;">
                       Tải về
                     </a>

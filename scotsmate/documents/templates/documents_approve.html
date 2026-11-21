@@ -33,6 +33,7 @@
         Tài liệu của tôi
       </a>
     </nav>
+
     <!-- Thanh tìm kiếm -->
     <form method="get" action="{% url 'document_approve' %}" class="doc-toolbar">
       <div class="doc-search-box">
@@ -42,7 +43,9 @@
         </svg>
         <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Tìm kiếm theo tên tài liệu...">
       </div>
+      <button type="submit" class="doc-btn doc-btn-primary">Tìm</button>
     </form>
+
 
     <!-- Bảng danh sách chờ duyệt -->
     <section class="doc-table-card">
@@ -66,30 +69,52 @@
                 <button type="button"
                         onclick="openDocDetailModal(this)"
                         data-code="DOC-{{ doc.id|stringformat:'03d' }}"
-                        data-title="{{ doc.title }}"
-                        data-category="{{ doc.category.name|default:'--' }}"
-                        data-creator="{{ doc.creator.get_full_name|default:doc.creator.username }}"
-                        data-scope="{% if doc.access_scope == 'DEPARTMENT' %}{% for perm in doc.access_permissions.all %}{{ perm.department.name }}{% if not forloop.last %}, {% endif %}{% empty %}Giới hạn phòng ban{% endfor %}{% else %}Toàn hệ thống{% endif %}"
-                        data-date="{{ doc.created_at|date:'d/m/Y H:i' }}"
-                        data-description="{{ doc.description|default:'Chưa có mô tả chi tiết.' }}"
-                        data-file="{% if doc.file %}{{ doc.file.url }}{% endif %}"
+                        data-title="{% if doc.active_proposal %}{{ doc.active_proposal.proposed_title }}{% else %}{{ doc.title }}{% endif %}"
+                        data-category="{% if doc.active_proposal and doc.active_proposal.proposed_category %}{{ doc.active_proposal.proposed_category.name }}{% else %}{{ doc.category.name|default:'--' }}{% endif %}"
+                        data-creator="{% if doc.active_proposal %}{{ doc.active_proposal.submitted_by.get_full_name|default:doc.active_proposal.submitted_by.username }}{% else %}{{ doc.creator.get_full_name|default:doc.creator.username }}{% endif %}"
+                        data-scope="{{ doc.display_scope }}"
+                        data-date="{% if doc.active_proposal %}{{ doc.active_proposal.created_at|date:'d/m/Y H:i' }}{% else %}{{ doc.created_at|date:'d/m/Y H:i' }}{% endif %}"
+                        data-description="{% if doc.active_proposal %}{{ doc.active_proposal.proposed_description|default:'Chưa có mô tả chi tiết.' }}{% else %}{{ doc.description|default:'Chưa có mô tả chi tiết.' }}{% endif %}"
+                        data-file="{% if doc.active_proposal and doc.active_proposal.proposed_file %}{{ doc.active_proposal.proposed_file.url }}{% elif doc.file %}{{ doc.file.url }}{% endif %}"
                         title="Nhấn để xem chi tiết tài liệu"
                         style="background:none; border:none; padding:0; text-align:left; font-weight:600; color:var(--ink, #0f172a); cursor:pointer; font-size:inherit;"
                         onmouseover="this.style.color='var(--navy, #134c81)'; this.style.textDecoration='underline';"
                         onmouseout="this.style.color='var(--ink, #0f172a)'; this.style.textDecoration='none';">
-                  {{ doc.title }}
+                  {% if doc.active_proposal %}{{ doc.active_proposal.proposed_title }}{% else %}{{ doc.title }}{% endif %}
                 </button>
               </td>
-              <td>{{ doc.category.name|default:"--" }}</td>
+              <td>
+                {% if doc.active_proposal and doc.active_proposal.proposed_category %}
+                  {{ doc.active_proposal.proposed_category.name }}
+                {% else %}
+                  {{ doc.category.name|default:"--" }}
+                {% endif %}
+              </td>
               <td style="color: var(--ink-soft); max-width: 240px;">
                 <span onclick="this.closest('tr').querySelector('.doc-table-title button').click()" title="Nhấn để xem mô tả đầy đủ" style="cursor:pointer;">
-                  {{ doc.description|default:"Chưa có mô tả chi tiết."|truncatechars:65 }}
+                  {% if doc.active_proposal %}
+                    {{ doc.active_proposal.proposed_description|default:"Chưa có mô tả chi tiết."|truncatechars:65 }}
+                  {% else %}
+                    {{ doc.description|default:"Chưa có mô tả chi tiết."|truncatechars:65 }}
+                  {% endif %}
                 </span>
               </td>
-              <td>{{ doc.creator.get_full_name|default:doc.creator.username }}</td>
-              <td>{{ doc.created_at|date:"d/m/Y H:i" }}</td>
               <td>
-                {% if doc.request_type == 'UPDATE' %}
+                {% if doc.active_proposal %}
+                  {{ doc.active_proposal.submitted_by.get_full_name|default:doc.active_proposal.submitted_by.username }}
+                {% else %}
+                  {{ doc.creator.get_full_name|default:doc.creator.username }}
+                {% endif %}
+              </td>
+              <td>
+                {% if doc.active_proposal %}
+                  {{ doc.active_proposal.created_at|date:"d/m/Y H:i" }}
+                {% else %}
+                  {{ doc.created_at|date:"d/m/Y H:i" }}
+                {% endif %}
+              </td>
+              <td>
+                {% if doc.active_proposal %}
                   <span class="doc-badge doc-badge-in-progress">Cập nhật</span>
                 {% else %}
                   <span class="doc-badge" style="background: #e0f2fe; color: #0369a1;">Tạo mới</span>
@@ -100,7 +125,7 @@
               </td>
               <td style="text-align: right;">
                 <a href="{% url 'document_approve_detail' id=doc.id %}" class="doc-btn doc-btn-primary" style="height: 34px; padding: 0 14px; font-size: 13px;">
-                  Duyệt ngay
+                  Xem chi tiết
                 </a>
               </td>
             </tr>
