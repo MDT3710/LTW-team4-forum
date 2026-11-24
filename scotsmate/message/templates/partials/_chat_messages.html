@@ -41,9 +41,6 @@
                     {% endif %}
                   {% endif %}
                 </div>
-                {% if msg.is_read %}
-                  <span class="text-[10px] text-slate-400">Đã xem</span>
-                {% endif %}
               </div>
             {% else %}
               <div class="message received flex flex-col gap-1 items-start max-w-xl" data-msg-id="{{ msg.id }}" data-search-text="{{ msg.sender_display_name|lower }} {{ msg.content|default:''|lower }} {{ msg.primary_attachment.file_name|default:''|lower }}">

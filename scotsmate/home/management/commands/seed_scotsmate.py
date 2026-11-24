@@ -28,7 +28,7 @@ from documents.models import (
 from events.models import Event, EventRegistration
 from home.models import Branch, Department
 from home.roles import ensure_role_groups
-from message.models import Conversation, ConversationMember, Message, StaffProfile
+from message.models import Conversation, ConversationMember, Message
 from posts.models import Post, PostComment, PostReaction
 from surveys.models import (
     Survey,
@@ -81,7 +81,6 @@ class Command(BaseCommand):
             return users.get(username) or users.get(fallback) or next(iter(users.values()))
 
         with transaction.atomic():
-            self._seed_staff_profiles(users)
             self._seed_posts(pick)
             self._seed_messages(pick, list(users.values()))
             self._seed_courses(pick)
@@ -127,20 +126,6 @@ class Command(BaseCommand):
         EventRegistration.objects.all().delete()
         Event.objects.all().delete()
         self.stdout.write(self.style.NOTICE('Đã xóa dữ liệu cũ của các module nghiệp vụ.'))
-
-    def _seed_staff_profiles(self, users):
-        for u in users.values():
-            emp_info = getattr(u, 'employee_info', None)
-            dept_name = emp_info.dep.name if emp_info and emp_info.dep else 'Scots English'
-            branch_name = emp_info.branch.name if emp_info and emp_info.branch else 'Hà Nội'
-            StaffProfile.objects.get_or_create(
-                user=u,
-                defaults={
-                    'department': dept_name,
-                    'branch': branch_name,
-                    'position': 'Admin IT' if u.is_superuser else dept_name,
-                },
-            )
 
     def _seed_posts(self, pick):
         admin = pick('admin')

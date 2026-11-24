@@ -2,74 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 import os
 
-class StaffProfile(models.Model):
-    """
-    Thông tin nhân viên / hồ sơ người dùng trong hệ thống Scots English.
-    Khớp với danh sách nhân viên chọn trong tạo nhóm & chat cá nhân trên Figma.
-    """
-    user = models.OneToOneField(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='profile',
-        verbose_name='Tài khoản người dùng'
-    )
-    department = models.CharField(
-        max_length=100, 
-        blank=True, 
-        null=True, 
-        verbose_name='Phòng ban',
-        help_text='Ví dụ: Phòng Đào tạo, Phòng Nhân sự, Tư vấn tuyển sinh'
-    )
-    position = models.CharField(
-        max_length=100, 
-        blank=True, 
-        null=True, 
-        verbose_name='Chức danh / Vị trí',
-        help_text='Ví dụ: Trainer, Giáo viên, Quản lý chi nhánh, Tư vấn'
-    )
-    branch = models.CharField(
-        max_length=100, 
-        default='Chi nhánh Cầu Giấy', 
-        verbose_name='Chi nhánh',
-        help_text='Ví dụ: Chi nhánh Cầu Giấy, Chi nhánh Hà Đông, Chi nhánh Đống Đa'
-    )
-    avatar = models.ImageField(
-        upload_to='avatars/', 
-        blank=True, 
-        null=True, 
-        verbose_name='Ảnh đại diện'
-    )
-    avatar_color = models.CharField(
-        max_length=50, 
-        default='bg-blue-100 text-[#134c81]', 
-        verbose_name='Màu nền avatar (Tailwind class)',
-        help_text='Ví dụ: bg-blue-100 text-[#134c81], bg-emerald-100 text-emerald-800'
-    )
-    is_online = models.BooleanField(
-        default=False, 
-        verbose_name='Đang trực tuyến'
-    )
-
-    class Meta:
-        verbose_name = 'Hồ sơ nhân viên'
-        verbose_name_plural = 'Danh sách nhân viên'
-
-    def __str__(self):
-        full_name = self.user.get_full_name() or self.user.username
-        pos = f" - {self.position}" if self.position else ""
-        return f"{full_name}{pos}"
-
-    def get_initials(self):
-        """Lấy 2 chữ cái đầu viết tắt cho avatar tròn (ví dụ: Trần Minh Đức -> MD)"""
-        full_name = self.user.get_full_name()
-        if full_name:
-            parts = full_name.strip().split()
-            if len(parts) >= 2:
-                return f"{parts[-2][0]}{parts[-1][0]}".upper()
-            elif len(parts) == 1:
-                return parts[0][:2].upper()
-        return self.user.username[:2].upper()
-
 
 class Conversation(models.Model):
     """
@@ -255,11 +187,6 @@ class Message(models.Model):
         blank=True, 
         null=True, 
         verbose_name='Nội dung tin nhắn'
-    )
-    is_read = models.BooleanField(
-        default=False, 
-        verbose_name='Đã xem',
-        help_text='Trạng thái hiển thị Đã xem trên Figma'
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Thời gian gửi')
 

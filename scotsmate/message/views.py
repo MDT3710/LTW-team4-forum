@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .models import Attachment, Conversation, ConversationMember, Message, StaffProfile
+from .models import Attachment, Conversation, ConversationMember, Message
 from home.models import Branch
 from home.roles import get_primary_role_label, is_department_manager, is_it_admin, redirect_back_with_error
 
@@ -43,21 +43,15 @@ def _can_manage_group(user, group):
 
 
 def _get_branch_choices():
-    """Lấy danh sách chi nhánh động từ bảng Branch (kèm StaffProfile nếu có)."""
+    """Lấy danh sách chi nhánh động từ bảng Branch."""
     names = list(Branch.objects.order_by('name').values_list('name', flat=True))
-    extra = [
-        b for b in StaffProfile.objects.exclude(branch='').values_list('branch', flat=True).distinct()
-        if b and b not in names
-    ]
-    combined = names + sorted(extra)
-    return combined or ['Chi nhánh Cầu Giấy', 'Chi nhánh Hà Đông', 'Chi nhánh Đống Đa']
+    return names or ['Chi nhánh Cầu Giấy', 'Chi nhánh Hà Đông', 'Chi nhánh Đống Đa']
 
 
 def _mark_conversation_read(convo, user):
-    """Đánh dấu đã xem tin nhắn của người khác và cập nhật last_read_at cho thành viên."""
+    """Cập nhật last_read_at cho thành viên trong cuộc trò chuyện."""
     if not convo or not user or not user.is_authenticated:
         return
-    Message.objects.filter(conversation=convo, is_read=False).exclude(sender=user).update(is_read=True)
     ConversationMember.objects.filter(conversation=convo, user=user).update(last_read_at=timezone.now())
 
 
@@ -151,7 +145,7 @@ def get_sidebar_conversations(user):
     viewer = user
 
     raw_conversations = list(
-        qs.distinct().prefetch_related('members__profile', 'members__employee_info__branch', 'memberships', 'messages')
+        qs.distinct().prefetch_related('members__employee_info__branch', 'memberships', 'messages')
     )
 
     conversations = []
@@ -327,7 +321,7 @@ def _get_colleague_users(current_user, query='', branch=''):
         User.objects.filter(is_active=True)
         .exclude(id=current_user.id)
         .exclude(is_superuser=True, first_name='', last_name='')
-        .select_related('profile', 'employee_info__branch', 'employee_info__dep')
+        .select_related('employee_info__branch', 'employee_info__dep')
         .order_by('id')
     )
 
@@ -392,12 +386,12 @@ def group_detail(request, group_id=1):
     conversations = get_sidebar_conversations(current_user)
     messages_list_qs = _annotate_messages_for_display(
         current_group.messages.all()
-        .select_related('sender', 'sender__profile', 'sender__employee_info__branch')
+        .select_related('sender', 'sender__employee_info__branch')
         .prefetch_related('attachments')
     )
     memberships = list(
         ConversationMember.objects.filter(conversation=current_group)
-        .select_related('user', 'user__profile', 'user__employee_info__branch')
+        .select_related('user', 'user__employee_info__branch')
         .order_by('-role', 'joined_at')
     )
     members = []
@@ -596,7 +590,7 @@ def inbox_detail(request, user_id=1):
     conversations = get_sidebar_conversations(current_user)
     messages_list_qs = _annotate_messages_for_display(
         convo.messages.all()
-        .select_related('sender', 'sender__profile', 'sender__employee_info__branch')
+        .select_related('sender', 'sender__employee_info__branch')
         .prefetch_related('attachments')
     )
     convo_display_name, convo_display_initials, target_info = _resolve_direct_conversation_display(
@@ -890,7 +884,7 @@ def api_get_messages(request, convo_id):
 
     new_messages = (
         convo.messages.filter(id__gt=after_id)
-        .select_related('sender', 'sender__profile')
+        .select_related('sender')
         .prefetch_related('attachments')
         .order_by('created_at')
     )
