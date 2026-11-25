@@ -67,7 +67,7 @@ def HomeView(request):
     # Lọc bài viết theo phạm vi hiển thị thực tế:
     # - Admin ('is_it_admin'): toàn quyền xem tất cả bài viết
     # - 'Toàn công ty': tất cả nhân viên đều thấy
-    # - 'Chỉ mình tôi': chỉ chính tác giả (và Admin) mới thấy
+    # - 'Chỉ mình tôi': chỉ chính tác giả mới thấy
     # - 'Phòng ban': đồng nghiệp cùng phòng ban mới thấy
     from posts.colleagues import get_user_department
     if not is_it_admin(current_user):

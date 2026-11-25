@@ -5,6 +5,7 @@
   <!-- ======================= MAIN ======================= -->
   <main class="main">
 
+    <!-- [GIAO DIỆN 1.1] Cột trái: Thẻ 'Sự kiện sắp tới' & 'Lịch của bạn' -->
     <!-- LEFT COLUMN -->
     <aside class="left-col">
 
@@ -102,6 +103,7 @@
     <!-- FEED COLUMN -->
     <div class="feed-col">
 
+      <!-- [GIAO DIỆN 1.2] Khung mồi tạo bài viết ('...ơi, hôm nay bạn có điều gì mới?') -->
       <!-- Tạo bài viết -->
       <section class="card create-post">
         <div class="composer">
@@ -151,6 +153,7 @@
         {% for post in posts %}
         <article class="card post" id="post-{{ post.id }}" style="margin-bottom: 24px;">
           <div class="post-body">
+            <!-- [GIAO DIỆN 1.3] Phần đầu Thẻ bài viết: Avatar tác giả, Thời gian, Badge Phạm vi & Menu 3 chấm -->
             <div class="author-row">
               <a href="/profile/{{ post.author.username }}/" class="avatar" style="border-radius: 50%; overflow: hidden; width: 44px; height: 44px; display: block; flex-shrink: 0; cursor: pointer; text-decoration: none;" title="Xem trang cá nhân của {{ post.author.get_full_name|default:post.author.username }}">
                 <img class="user-avatar-sync-{{ post.author.username }}" src="{{ post.author_avatar|default:'/static/img/profile_avatar_144.png' }}" alt="{{ post.author.get_full_name|default:post.author.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.src='{% static 'img/profile_avatar_144.png' %}';" />
@@ -208,6 +211,7 @@
               {% endif %}
             </div>
 
+            <!-- [GIAO DIỆN 1.4] Nội dung bài viết, Nhãn 'Đã chỉnh sửa' & Khối Ảnh / Video / Card Tài liệu -->
             <p class="post-content" id="post-content-{{ post.id }}">{{ post.content|linebreaksbr }}</p>
             <span id="post-edited-badge-{{ post.id }}" style="font-size: 11px; color: #94a3b8; display: block; margin-top: 4px;">
               {% if post.created_at != post.updated_at %}
@@ -252,6 +256,7 @@
             </div>
           </div>
 
+          <!-- [GIAO DIỆN 1.5] Thanh thống kê, Nút Thích (Like) & Ô nhập bình luận -->
           <div class="post-actions">
             <div class="stats-row">
               <span class="stat-like" onclick="showLikesModal({{ post.id }})" style="cursor: pointer;" title="Nhấn để xem ai đã thích">
@@ -278,6 +283,7 @@
               </div>
             </div>
 
+                        <!-- [GIAO DIỆN 1.6] Cây bình luận 2 cấp (Cha - Con thụt lề chuẩn Facebook) & Ô trả lời nhanh -->
                         <!-- Danh sách bình luận -->
             <div class="featured-comment" id="comments-list-{{ post.id }}">
               {% for comment in post.root_comments %}
@@ -313,7 +319,7 @@
                           Trả lời
                         </span>
                         <span style="color: #94a3b8;">·</span>
-                        <span class="comment-time" style="color: #94a3b8;">{{ comment.time_reacted }}</span>
+                        <span class="comment-time" style="color: #94a3b8;" title="{{ comment.time_reacted }}">{{ comment.time_display|default:comment.time_reacted_vi|default:comment.time_reacted }}</span>
                       </span>
                     </div>
                   </div>
@@ -355,7 +361,7 @@
                             Trả lời
                           </span>
                           <span style="color: #94a3b8;">·</span>
-                          <span class="comment-time" style="color: #94a3b8;">{{ reply.time_reacted }}</span>
+                          <span class="comment-time" style="color: #94a3b8;" title="{{ reply.time_reacted }}">{{ reply.time_display|default:reply.time_reacted_vi|default:reply.time_reacted }}</span>
                         </span>
                       </div>
                     </div>
@@ -1146,6 +1152,7 @@
       </script>
 
     </div>
+      <!-- [GIAO DIỆN 1.7] Modal Chỉnh sửa bài viết (#editPostModal) -->
       <!-- Modal Chỉnh sửa bài viết -->
   <div id="editPostModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center;">
     <div style="background: #ffffff; border-radius: 14px; width: 90%; max-width: 580px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; animation: fadeIn 0.2s ease-out;">
@@ -1223,6 +1230,7 @@
   </div>
   </main>
 
+    <!-- [GIAO DIỆN 1.7] Modal Danh sách người đã thích (#likes-modal) -->
     <!-- Likes Modal -->
     <div id="likes-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; padding: 16px;">
       <div style="background: #ffffff; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; animation: fadeIn 0.2s ease;">

@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db.models import Q
 from django.utils.http import url_has_allowed_host_and_scheme
-from .models import Post, PostAttachment, PostReaction, PostComment, PostCommentReaction
+from .models import Post, PostAttachment, PostReaction, PostComment, PostCommentReaction, format_time_ago_vi
 from .colleagues import get_profile_details, get_user_department
 from home.roles import is_it_admin, redirect_back_with_error
 from django.contrib.auth import views as auth_views
@@ -390,6 +390,7 @@ def prepare_post_comments(post, current_user_id=None):
         c.is_liked_by_user = bool(current_user_id and any(r.emp_id == current_user_id for r in reactions))
         c.child_replies = []
         c.formatted_content = format_comment_content(c.content)
+        c.time_display = format_time_ago_vi(c.time_reacted) or c.time_reacted
         try:
             c.emp_avatar = get_profile_details(c.emp).get('avatar', '/static/img/profile_avatar_144.png')
         except Exception:

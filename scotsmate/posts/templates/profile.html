@@ -767,6 +767,7 @@
 
 <div class="profile-workspace">
 
+  <!-- [GIAO DIỆN 4.1] Phần đầu Profile: Ảnh bìa (Cover) & Avatar tròn chồng lấn (Overlapping) -->
   <!-- ======================= 1. PROFILE HEADER ======================= -->
   <section class="profile-header-card">
     <!-- Cover Photo -->
@@ -845,6 +846,7 @@
     <!-- ========== LEFT COLUMN (344px) ========== -->
     <aside class="profile-left-col">
 
+      <!-- [GIAO DIỆN 4.2] Cột trái (344px): Thẻ 'Giới thiệu' với 2 chế độ Xem (Display) & Sửa (Edit Mode) -->
       <!-- Card 1: Giới thiệu -->
       <div class="card-std" id="profile-bio-card">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
@@ -962,6 +964,7 @@
     <!-- ========== RIGHT COLUMN (ACTIVITY FEED) ========== -->
     <main class="profile-feed-col">
 
+      <!-- [GIAO DIỆN 4.3] Cột phải: Khung đăng bài nhanh trực tiếp & Dòng thời gian bài viết cá nhân -->
       <!-- Card: Tạo bài viết -->
       {% if current_user.id == profile_user.id %}
       <div class="card-std" style="padding: 20px;">
@@ -1218,7 +1221,7 @@
                       Trả lời
                     </span>
                     <span style="color: #94a3b8;">·</span>
-                    <span class="comment-time" style="color: #94a3b8; font-size: 11px;">{{ comment.time_reacted }}</span>
+                    <span class="comment-time" style="color: #94a3b8; font-size: 11px;" title="{{ comment.time_reacted }}">{{ comment.time_display|default:comment.time_reacted_vi|default:comment.time_reacted }}</span>
                   </span>
                 </div>
               </div>
@@ -1260,7 +1263,7 @@
                         Trả lời
                       </span>
                       <span style="color: #94a3b8;">·</span>
-                      <span class="comment-time" style="color: #94a3b8; font-size: 11px;">{{ reply.time_reacted }}</span>
+                      <span class="comment-time" style="color: #94a3b8; font-size: 11px;" title="{{ reply.time_reacted }}">{{ reply.time_display|default:reply.time_reacted_vi|default:reply.time_reacted }}</span>
                     </span>
                   </div>
                 </div>

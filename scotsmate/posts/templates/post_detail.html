@@ -3,6 +3,7 @@
 {% block title %}{{ post.title|default:"Chi tiết bài đăng" }} | ScotsMate{% endblock %}
 
 {% block content %}
+<!-- [GIAO DIỆN 3.1] Nút 'Quay lại Bảng tin', Thẻ bài viết đơn & Hệ thống tương tác độc lập -->
 <main class="w-full max-w-3xl mx-auto px-4 py-8 space-y-5">
   <div class="flex items-center justify-between">
     <a href="{% url 'home' %}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#134c81] hover:underline" style="text-decoration:none;">

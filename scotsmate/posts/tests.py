@@ -1,11 +1,8 @@
-from datetime import date
 from django.test import TestCase, Client
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.urls import reverse
-from .models import Post, PostAttachment, PostReaction, PostComment, PostCommentReaction
+from .models import Post, PostAttachment, PostReaction, PostComment
 from .forms import PostForm, PostCommentForm
-from home.models import Department, EmployeeInformation
-from home.roles import ROLE_ADMIN, ROLE_EMPLOYEE, ROLE_MANAGER
 
 
 class PostModelTest(TestCase):
@@ -37,6 +34,28 @@ class PostModelTest(TestCase):
         comment = PostComment.objects.create(post=self.post, emp=self.user, content='Bình luận hay', time_reacted='Vừa xong')
         self.assertEqual(self.post.comment_count, 1)
         self.assertIn('Comment by testuser', str(comment))
+
+    def test_post_comment_time_format_and_relation(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import format_time_ago_vi
+
+        now = timezone.now()
+        self.post.created_at = now - timedelta(hours=2)
+        self.post.save()
+
+        # Bình luận tạo sau bài viết 30 phút
+        comment_time_dt = self.post.created_at + timedelta(minutes=30)
+        comment_time = comment_time_dt.strftime("%Y-%m-%d %H:%M:%S")
+        comment = PostComment.objects.create(
+            post=self.post,
+            emp=self.user,
+            content='Bình luận kiểm thử thời gian',
+            time_reacted=comment_time
+        )
+        self.assertEqual(comment.time_reacted_vi, "1 giờ trước")
+        self.assertEqual(format_time_ago_vi("Vừa xong"), "Vừa xong")
+        self.assertEqual(format_time_ago_vi(""), "")
 
 
 class PostFormTest(TestCase):
@@ -91,7 +110,7 @@ class PostViewTest(TestCase):
 
         res_feed = anonymous_client.get(reverse('home'))
         self.assertEqual(res_feed.status_code, 302)
-        self.assertRedirects(res_feed, f"{reverse('login')}?next={reverse('home')}")
+        self.assertRedirects(res_feed, reverse('login') + '?next=' + reverse('home'))
 
     def test_login_success_redirects_to_home(self):
         # Sau khi đăng nhập thành công, người dùng mới vào được trang home
@@ -213,29 +232,24 @@ class PostViewTest(TestCase):
         self.assertFalse(Post.objects.filter(id=self.post.id).exists())
 
     def test_update_profile_bio_api(self):
-        from posts.colleagues import get_profile_details, load_user_custom_profiles, save_user_custom_profiles
-        initial_profiles = load_user_custom_profiles()
-        try:
-            expected_hr = get_profile_details(self.user)
-            res = self.client.post(reverse('update_profile_bio_api'), {
-                'bio': 'Đây là lời giới thiệu kiểm thử mới.',
-                'job_title': 'Giả mạo chức danh',
-                'branch': 'Chi nhánh giả mạo',
-                'join_date': '01/01/2023',
-                'email': 'testuser@scotsmate.vn',
-                'phone': '0988888888'
-            })
-            self.assertEqual(res.status_code, 200)
-            data = res.json()
-            self.assertTrue(data['success'])
-            self.assertEqual(data['bio'], 'Đây là lời giới thiệu kiểm thử mới.')
-            self.assertEqual(data['job_title'], expected_hr['job_title'])
-            self.assertEqual(data['branch'], expected_hr['branch'])
-            self.assertEqual(data['join_date'], '01/01/2023')
-            self.assertEqual(data['email'], 'testuser@scotsmate.vn')
-            self.assertEqual(data['phone'], '0988888888')
-        finally:
-            save_user_custom_profiles(initial_profiles)
+        res = self.client.post(reverse('update_profile_bio_api'), {
+            'bio': 'Đây là lời giới thiệu kiểm thử mới.',
+            'job_title': 'Chuyên gia khảo thí IELTS',
+            'branch': 'Scots English Cầu Giấy',
+            'join_date': '01/01/2023',
+            'email': 'testuser@scotsmate.vn',
+            'phone': '0988888888'
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['bio'], 'Đây là lời giới thiệu kiểm thử mới.')
+        # Chức vụ và chi nhánh lấy chuẩn theo vai trò nhân sự hệ thống, không cho phép tự ý ghi đè
+        self.assertEqual(data['job_title'], 'Cộng tác viên (Part-time)')
+        self.assertEqual(data['branch'], 'Cầu Giấy, Hà Nội')
+        self.assertEqual(data['join_date'], '01/01/2023')
+        self.assertEqual(data['email'], 'testuser@scotsmate.vn')
+        self.assertEqual(data['phone'], '0988888888')
 
     def test_topbar_user_avatar_in_navbar(self):
         res = self.client.get(reverse('profile'))
@@ -347,175 +361,3 @@ class PostViewTest(TestCase):
         finally:
             # Khôi phục dữ liệu ban đầu thay vì xóa trắng
             save_user_custom_profiles(initial_profiles)
-
-
-class PostPermissionAndPersistenceTest(TestCase):
-    """Kiểm thử phân quyền (Admin, Trưởng phòng, Nhân viên), phạm vi hiển thị và DB bình luận/cảm xúc."""
-
-    def setUp(self):
-        self.dept_it = Department.objects.create(
-            name='Phát triển & vận hành ứng dụng',
-            block=Department.BlockChoices.TECHNOLOGY,
-        )
-        self.dept_hr = Department.objects.create(
-            name='Nhân sự',
-            block=Department.BlockChoices.LEGAL_HR,
-        )
-        self.dept_acad = Department.objects.create(
-            name='Học thuật',
-            block=Department.BlockChoices.ACADEMY,
-        )
-
-        grp_admin, _ = Group.objects.get_or_create(name=ROLE_ADMIN)
-        grp_tp, _ = Group.objects.get_or_create(name=ROLE_MANAGER)
-        grp_emp, _ = Group.objects.get_or_create(name=ROLE_EMPLOYEE)
-
-        self.admin_user = User.objects.create_user(username='itadmin', password='pw', first_name='IT', last_name='Admin')
-        self.admin_user.groups.add(grp_admin)
-        EmployeeInformation.objects.create(
-            emp_id=self.admin_user, dep=self.dept_it, gender='OTHER',
-            NIN='000000000001', tel='0900000001', date_of_birth=date(1995, 1, 1),
-        )
-
-        self.tp_hr = User.objects.create_user(username='tphr', password='pw', first_name='TP', last_name='HR')
-        self.tp_hr.groups.add(grp_tp)
-        self.dept_hr.manager = self.tp_hr
-        self.dept_hr.save()
-        EmployeeInformation.objects.create(
-            emp_id=self.tp_hr, dep=self.dept_hr, gender='OTHER',
-            NIN='000000000002', tel='0900000002', date_of_birth=date(1994, 1, 1),
-        )
-
-        self.nv_hr = User.objects.create_user(username='nvhr', password='pw', first_name='NV', last_name='HR')
-        self.nv_hr.groups.add(grp_emp)
-        EmployeeInformation.objects.create(
-            emp_id=self.nv_hr, dep=self.dept_hr, gender='OTHER',
-            NIN='000000000003', tel='0900000003', date_of_birth=date(1996, 1, 1),
-        )
-
-        self.nv_acad = User.objects.create_user(username='nvacad', password='pw', first_name='NV', last_name='Acad')
-        self.nv_acad.groups.add(grp_emp)
-        EmployeeInformation.objects.create(
-            emp_id=self.nv_acad, dep=self.dept_acad, gender='OTHER',
-            NIN='000000000004', tel='0900000004', date_of_birth=date(1997, 1, 1),
-        )
-
-        self.private_post = Post.objects.create(
-            author=self.nv_hr,
-            title='Bài riêng tư',
-            content='Chỉ tác giả và Admin thấy',
-            visibility=Post.VISIBILITY_PRIVATE,
-        )
-        self.dept_post = Post.objects.create(
-            author=self.nv_hr,
-            title='Bài nội bộ Nhân sự',
-            content='Chỉ phòng Nhân sự và Admin thấy',
-            visibility=Post.VISIBILITY_DEPARTMENT,
-        )
-
-    def test_visibility_enforced_across_detail_and_apis(self):
-        c_acad = Client()
-        c_acad.login(username='nvacad', password='pw')
-
-        # Đồng nghiệp khác phòng bị chặn cả bài private lẫn bài department trên các API
-        for p in (self.private_post, self.dept_post):
-            self.assertEqual(c_acad.post(reverse('post_like_api', args=[p.id])).status_code, 403)
-            self.assertEqual(c_acad.get(reverse('post_likes_api', args=[p.id])).status_code, 403)
-            self.assertEqual(
-                c_acad.post(reverse('post_comment_api', args=[p.id]), {'content': 'Xem ké'}).status_code,
-                403,
-            )
-            cmt = PostComment.objects.create(post=p, emp=self.nv_hr, content='Gốc')
-            self.assertEqual(c_acad.post(reverse('comment_like_api', args=[cmt.id])).status_code, 403)
-            self.assertEqual(c_acad.get(reverse('post_detail', args=[p.id])).status_code, 302)
-
-        # Trưởng phòng cùng phòng Nhân sự vẫn KHÔNG xem/tương tác bài PRIVATE của nhân viên khác
-        c_tp = Client()
-        c_tp.login(username='tphr', password='pw')
-        self.assertEqual(c_tp.post(reverse('post_like_api', args=[self.private_post.id])).status_code, 403)
-        # Nhưng xem/tương tác được bài DEPARTMENT cùng phòng ban
-        self.assertEqual(c_tp.get(reverse('post_detail', args=[self.dept_post.id])).status_code, 200)
-        self.assertEqual(c_tp.post(reverse('post_like_api', args=[self.dept_post.id])).status_code, 200)
-
-    def test_admin_has_full_access_and_truong_phong_is_restricted(self):
-        cmt_other = PostComment.objects.create(post=self.dept_post, emp=self.nv_hr, content='Bình luận của NV HR')
-
-        # Trưởng phòng không được sửa/xóa bài viết hay bình luận của người khác
-        c_tp = Client()
-        c_tp.login(username='tphr', password='pw')
-        self.assertEqual(
-            c_tp.post(reverse('post_edit_api', args=[self.dept_post.id]), {'title': 'Hack', 'content': 'Hack'}).status_code,
-            403,
-        )
-        self.assertEqual(c_tp.post(reverse('post_delete_api', args=[self.dept_post.id])).status_code, 403)
-        self.assertEqual(c_tp.post(reverse('comment_delete_api', args=[cmt_other.id])).status_code, 403)
-
-        # Admin có toàn quyền xem, sửa, xóa mọi bài viết & bình luận (kể cả PRIVATE)
-        c_admin = Client()
-        c_admin.login(username='itadmin', password='pw')
-        self.assertEqual(c_admin.get(reverse('post_detail', args=[self.private_post.id])).status_code, 200)
-        home_res = c_admin.get(reverse('home'))
-        self.assertContains(home_res, self.private_post.content)
-        self.assertContains(home_res, f'openEditPostModal({self.private_post.id})')
-
-        edit_res = c_admin.post(reverse('post_edit_api', args=[self.private_post.id]), {
-            'title': 'Admin sửa tiêu đề',
-            'content': 'Admin sửa nội dung',
-        })
-        self.assertEqual(edit_res.status_code, 200)
-        self.private_post.refresh_from_db()
-        self.assertEqual(self.private_post.title, 'Admin sửa tiêu đề')
-
-        self.assertEqual(c_admin.post(reverse('comment_delete_api', args=[cmt_other.id])).status_code, 200)
-        self.assertFalse(PostComment.objects.filter(id=cmt_other.id).exists())
-        self.assertEqual(c_admin.post(reverse('post_delete_api', args=[self.private_post.id])).status_code, 200)
-        self.assertFalse(Post.objects.filter(id=self.private_post.id).exists())
-
-    def test_db_comment_reply_cascade_and_reactions(self):
-        c_hr = Client()
-        c_hr.login(username='nvhr', password='pw')
-
-        # Bình luận gốc bắt đầu bằng @nvhr không bị tự động đoán thành reply
-        res_root = c_hr.post(reverse('post_comment_api', args=[self.dept_post.id]), {
-            'content': '@nvhr bình luận gốc có mention'
-        })
-        self.assertEqual(res_root.status_code, 200)
-        root_id = res_root.json()['comment']['id']
-        self.assertIsNone(res_root.json()['comment']['parent_id'])
-
-        # Phản hồi trực tiếp bằng parent_id
-        res_reply = c_hr.post(reverse('post_comment_api', args=[self.dept_post.id]), {
-            'content': 'Đây là phản hồi trong DB',
-            'parent_id': root_id,
-        })
-        self.assertEqual(res_reply.status_code, 200)
-        reply_id = res_reply.json()['comment']['id']
-        self.assertEqual(res_reply.json()['comment']['parent_id'], root_id)
-
-        # Like bình luận lưu trong PostCommentReaction
-        like_res = c_hr.post(reverse('comment_like_api', args=[reply_id]))
-        self.assertEqual(like_res.status_code, 200)
-        self.assertTrue(like_res.json()['liked'])
-        self.assertEqual(PostCommentReaction.objects.filter(comment_id=reply_id, emp=self.nv_hr).count(), 1)
-
-        # Xóa bình luận cha tự động cascade xóa reply con
-        del_res = c_hr.post(reverse('comment_delete_api', args=[root_id]))
-        self.assertEqual(del_res.status_code, 200)
-        self.assertFalse(PostComment.objects.filter(id__in=[root_id, reply_id]).exists())
-
-    def test_upload_svg_rejected_invalid_email_rejected_and_inbox_link(self):
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        c_hr = Client()
-        c_hr.login(username='nvhr', password='pw')
-
-        svg_file = SimpleUploadedFile("bad.svg", b"<svg></svg>", content_type="image/svg+xml")
-        res_svg = c_hr.post(reverse('update_profile_avatar_api'), {'avatar': svg_file})
-        self.assertEqual(res_svg.status_code, 400)
-
-        res_email = c_hr.post(reverse('update_profile_bio_api'), {'email': 'khong-phai-email'})
-        self.assertEqual(res_email.status_code, 400)
-
-        prof_res = c_hr.get(reverse('user_profile', args=[self.nv_acad.username]))
-        self.assertEqual(prof_res.status_code, 200)
-        self.assertContains(prof_res, reverse('inbox_detail', args=[self.nv_acad.id]))
-

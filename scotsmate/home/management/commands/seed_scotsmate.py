@@ -138,66 +138,81 @@ class Command(BaseCommand):
         ctv_mgr = pick('nguyenthihoa')
         ctv = pick('dangquanghuy')
 
+        now = timezone.now()
         posts_data = [
             (
                 hr_mgr,
                 'Thông báo cập nhật quy trình chấm công & nghỉ phép Quý IV/2026',
                 'Toàn thể CBNV vui lòng cập nhật biểu mẫu đề xuất nghỉ phép trên mục Tài liệu nội bộ trước ngày 25 hàng tháng để Phòng Nhân sự tổng hợp kịp thời.',
                 Post.VISIBILITY_COMPANY,
+                now - timedelta(days=3, hours=2),
             ),
             (
                 tr_mgr,
                 'Khai giảng chuỗi đào tạo Phương pháp giảng dạy & Kiểm soát chất lượng lớp học',
                 'Các thầy cô, giảng viên và nhân viên mới kiểm tra mục Khóa học trên ScotsMate để hoàn thành bài giảng và bài kiểm tra đánh giá trước thứ 6 tuần này.',
                 Post.VISIBILITY_COMPANY,
+                now - timedelta(days=2, hours=4),
             ),
             (
                 admin,
                 'Thông báo nâng cấp hệ thống ScotsMate theo phân quyền chuẩn mới',
                 'Hệ thống đã hoàn tất đồng bộ 7 phân hệ (Tài khoản, Bài đăng, Nhắn tin, Đào tạo, Tài liệu, Khảo sát, Sự kiện) và bật tính năng tự khôi phục mật khẩu qua email.',
                 Post.VISIBILITY_COMPANY,
+                now - timedelta(days=1, hours=3),
             ),
             (
                 rd_mgr,
                 'Chia sẻ học liệu Cambridge & IELTS phiên bản cập nhật R&D',
                 'Phòng R&D vừa đưa lên danh mục Tài liệu R&D & Học thuật bộ giáo trình tham khảo mới cho các lớp Kids & Teens.',
                 Post.VISIBILITY_DEPARTMENT,
+                now - timedelta(days=1, hours=1),
             ),
             (
                 ctv_mgr,
                 'Lịch điều phối lớp và phản hồi giờ dạy Cộng tác viên tuần tới',
                 'Các bạn cộng tác viên và chuyên viên phòng QLGV&HV kiểm tra kỹ lịch phân công trong nhóm chat Bộ phận Cộng tác viên nhé.',
                 Post.VISIBILITY_DEPARTMENT,
+                now - timedelta(hours=6),
             ),
             (
                 hr_emp,
                 'Ghi chú chuẩn bị hồ sơ tổng kết đánh giá cuối năm',
                 'Bản nháp cá nhân để rà soát checklist công việc tháng 11.',
                 Post.VISIBILITY_PRIVATE,
+                now - timedelta(hours=2),
             ),
         ]
 
         created_posts = []
-        for author, title, content, vis in posts_data:
-            created_posts.append(
-                Post.objects.create(author=author, title=title, content=content, visibility=vis)
-            )
+        for author, title, content, vis, p_time in posts_data:
+            p_obj = Post.objects.create(author=author, title=title, content=content, visibility=vis)
+            Post.objects.filter(id=p_obj.id).update(created_at=p_time, updated_at=p_time)
+            created_posts.append((p_obj, p_time))
 
         if created_posts:
-            PostReaction.objects.get_or_create(post=created_posts[0], emp=hr_emp)
-            PostReaction.objects.get_or_create(post=created_posts[0], emp=tr_mgr)
-            PostReaction.objects.get_or_create(post=created_posts[1], emp=trainer)
-            PostReaction.objects.get_or_create(post=created_posts[1], emp=ctv)
-            PostReaction.objects.get_or_create(post=created_posts[2], emp=teacher_mgr)
+            p0, t0 = created_posts[0]
+            p1, t1 = created_posts[1]
+            p2, t2 = created_posts[2]
+
+            PostReaction.objects.get_or_create(post=p0, emp=hr_emp)
+            PostReaction.objects.get_or_create(post=p0, emp=tr_mgr)
+            PostReaction.objects.get_or_create(post=p1, emp=trainer)
+            PostReaction.objects.get_or_create(post=p1, emp=ctv)
+            PostReaction.objects.get_or_create(post=p2, emp=teacher_mgr)
+
+            c0_time = (t0 + timedelta(minutes=35)).strftime("%Y-%m-%d %H:%M:%S")
+            c1_time = (t1 + timedelta(minutes=45)).strftime("%Y-%m-%d %H:%M:%S")
+            c2_time = (t2 + timedelta(minutes=40)).strftime("%Y-%m-%d %H:%M:%S")
 
             PostComment.objects.create(
-                post=created_posts[0], emp=hr_emp, content='Đã rõ thông tin quy trình mới ạ.'
+                post=p0, emp=hr_emp, content='Đã rõ thông tin quy trình mới ạ.', time_reacted=c0_time
             )
             PostComment.objects.create(
-                post=created_posts[1], emp=ctv, content='Em đã đăng ký khóa học và đang ôn tập chuẩn bị làm bài test ạ.'
+                post=p1, emp=ctv, content='Em đã đăng ký khóa học và đang ôn tập chuẩn bị làm bài test ạ.', time_reacted=c1_time
             )
             PostComment.objects.create(
-                post=created_posts[2], emp=hr_mgr, content='Cảm ơn team IT đã nâng cấp rất mượt!'
+                post=p2, emp=hr_mgr, content='Cảm ơn team IT đã nâng cấp rất mượt!', time_reacted=c2_time
             )
 
     def _seed_messages(self, pick, all_users):

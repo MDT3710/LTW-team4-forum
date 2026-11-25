@@ -13,10 +13,33 @@ def format_time_ago_vi(dt):
     - X tuần trước (< 30 ngày)
     - X tháng trước (< 365 ngày)
     - X năm trước (>= 365 ngày)
+    Hỗ trợ cả đối tượng datetime lẫn chuỗi ngày giờ dạng 'YYYY-MM-DD HH:MM:SS'.
     """
     if not dt:
         return ""
+    if isinstance(dt, str):
+        s = dt.strip()
+        if not s:
+            return ""
+        if s.lower() in ("vừa xong", "vua xong"):
+            return "Vừa xong"
+        from datetime import datetime
+        parsed = None
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+            try:
+                parsed = datetime.strptime(s, fmt)
+                break
+            except Exception:
+                pass
+        if parsed:
+            dt = parsed
+        else:
+            return s
+
+    from datetime import timezone as dt_timezone
     from django.utils import timezone
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, dt_timezone.utc)
     now = timezone.now()
     diff = now - dt
     total_seconds = int(diff.total_seconds())
@@ -183,7 +206,7 @@ class PostReaction(models.Model):
     def save(self, *args, **kwargs):
         if not self.time_reacted:
             self.time_reacted = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
-        super().save(*args, **kwargs)
+        super().save(*args, **kwargs) #Lưu dữ liệu vào database
 
     def __str__(self):
         return f"{self.emp.username} reacted to Post #{self.post_id}"
@@ -237,6 +260,10 @@ class PostComment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.emp.username} on Post #{self.post_id}: {self.content[:30]}"
+
+    @property
+    def time_reacted_vi(self):
+        return format_time_ago_vi(self.time_reacted)
 
 
 class PostCommentReaction(models.Model):
