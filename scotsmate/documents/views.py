@@ -116,16 +116,11 @@ def document_list(request):
             Q(description__icontains=search_query)
         )
 
-    visible_docs = _visible_docs_queryset_for_user(request.user, include_hidden_for_manager=False)
-    counts_by_cat = dict(
-        visible_docs.values('category_id').annotate(c=Count('id', distinct=True)).values_list('category_id', 'c')
-    )
 
     is_mgr = _is_manager(request.user)
     categories = list(categories_qs)
     for cat in categories:
         cat.can_manage = is_mgr
-        cat.doc_count = counts_by_cat.get(cat.id, 0)
 
     context = {
         'categories': categories,
