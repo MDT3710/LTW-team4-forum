@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import StaffProfile, Conversation, ConversationMember, Message, Attachment
+from .models import Conversation, ConversationMember, Message, Attachment
 
 class ConversationMemberInline(admin.TabularInline):
     model = ConversationMember
@@ -9,12 +9,6 @@ class ConversationMemberInline(admin.TabularInline):
 class AttachmentInline(admin.TabularInline):
     model = Attachment
     extra = 0
-
-@admin.register(StaffProfile)
-class StaffProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'position', 'department', 'branch', 'is_online')
-    list_filter = ('branch', 'department', 'is_online')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'position', 'department')
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
@@ -35,8 +29,8 @@ class ConversationMemberAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('sender', 'conversation', 'short_content', 'is_read', 'created_at')
-    list_filter = ('is_read', 'created_at', 'conversation__conversation_type')
+    list_display = ('sender', 'conversation', 'short_content', 'created_at')
+    list_filter = ('created_at', 'conversation__conversation_type')
     search_fields = ('content', 'sender__username', 'conversation__title')
     inlines = [AttachmentInline]
 

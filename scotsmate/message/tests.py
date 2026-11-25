@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from home.models import Branch
 from home.roles import ROLE_ADMIN, ROLE_EMPLOYEE, ROLE_MANAGER
-from .models import Attachment, Conversation, ConversationMember, Message, StaffProfile
+from .models import Attachment, Conversation, ConversationMember, Message
 
 
 class MessageChatViewTests(TestCase):
@@ -33,11 +33,6 @@ class MessageChatViewTests(TestCase):
             last_name='Đức',
         )
         self.user_other.groups.add(self.mgr_group)
-        StaffProfile.objects.create(
-            user=self.user_other,
-            position='Trainer',
-            department='Phòng Đào tạo',
-        )
 
         self.group = Conversation.objects.create(
             title='Tư vấn Cầu Giấy',
@@ -326,8 +321,6 @@ class InboxCreateViewTests(TestCase):
         user_inactive = User.objects.create_user(
             username='nghi_viec', first_name='Nghỉ', last_name='Việc', is_active=False
         )
-        StaffProfile.objects.create(user=user_b, position='Trainer', branch='Chi nhánh Cầu Giấy')
-        StaffProfile.objects.create(user=user_c, position='Nhân sự', branch='Chi nhánh Hà Đông')
 
         self.client.force_login(user_a)
         resp = self.client.get(reverse('inbox_create'), HTTP_HOST='127.0.0.1')
@@ -609,10 +602,8 @@ class MessageSecurityAndReadTrackingTests(TestCase):
         convos = list_resp.context['conversations']
         self.assertEqual(convos[0].unread_count, 1)
 
-        # Opening inbox marks is_read=True and updates last_read_at
+        # Opening inbox updates last_read_at
         self.client.get(reverse('inbox_detail', kwargs={'user_id': self.user_a.id}), HTTP_HOST='127.0.0.1')
-        msg.refresh_from_db()
-        self.assertTrue(msg.is_read)
 
         list_after = self.client.get(reverse('messages_list'), HTTP_HOST='127.0.0.1')
         self.assertEqual(list_after.context['conversations'][0].unread_count, 0)
